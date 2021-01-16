@@ -5,4 +5,4 @@ api: 3.0.0
 version: 1.0.0
 main: Clouria\WorldBindedShops\WorldBindedShops
 website: https://github.com/crnw-dev/IslandArchitect
-soft-depend: [SkyBlock]
+depend: [SkyBlock]

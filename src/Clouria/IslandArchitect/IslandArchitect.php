@@ -14,6 +14,7 @@
 		/  _  \ | | (__| | | | | ||  __/ (__| |_ 
 		\_/ \_/_|  \___|_| |_|_|\__\___|\___|\__|
 		                                         
+		@ClouriaNetwork | Apache License 2.0
 														*/
 
 declare(strict_types=1);
@@ -22,7 +23,7 @@ namespace Clouria\IslandArchitect;
 use pocketmine\plugin\PluginBase;
 use pocketmine\event\{
 	Listener
-}
+};
 
 final class IslandArchitect extends PluginBase implements Listener {
 
