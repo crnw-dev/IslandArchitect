@@ -30,13 +30,15 @@ class TheCloudTemplate extends IslandGenerator {
 
 	/**
 	 * @param mixed[] $data
+	 * 
+	 * @throws TheCloudTemplateException
 	 */
 	public function __construct(array $data) {
-		if ((int)($data['version'] ?? -1) != self::VERSION) {
-			$e = new \TheCloudTemplateException();
-			$e->setIslandData($data);
-		}
+		if ((int)($data['version'] ?? -1) != self::VERSION) throw new TheCloudTemplateException($data, $e::ISLAND_DATA_VERSION_MISMATCH);
 		$this->data = $data;
 	}
-	
+
+	public function generateChunk(int $chunkX, int $chunkZ) : void {
+	}
+
 }

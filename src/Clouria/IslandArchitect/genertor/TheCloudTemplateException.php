@@ -22,10 +22,26 @@ namespace Clouria\IslandArchitect\genertor;
 
 class CloudGenertorException extends \RuntimeException {
 
+	protected const ERROR_MESSAGE_MAPPING = [
+		self::ISLAND_DATA_VERSION_MISMATCH => 'Island data version mistmatch, is it from a newer version of this plugin?'
+	]
+	protected const DEFAULT_ERROR_MESSAGE = 'Unknown error occurred';
+
 	/**
 	 * @var mixed[]
 	 */
 	private $data = null;
+
+	/**
+	 * @var int
+	 */
+	private $reason = null;
+
+	public function __construct(array $data, ?int $reason) {
+		$this->data = $data;
+		$this->reason = $reason;
+		parent::__construct(self::ISLAND_DATA_VERSION_MISMATCH[$reason] ?? self::DEFAULT_ERROR_MESSAGE);
+	}
 
 	/**
 	 * Set the island data passed into the cloud genertor
@@ -36,12 +52,9 @@ class CloudGenertorException extends \RuntimeException {
 	}
 
 	/**
-	 * Set the island data passed into the cloud genertor
-	 * @param mixed[]
-	 * @return mixed
+	 * @return The ID of reason why this error is thrown
 	 */
-	public function setIslandData(array $data) {
-		$this->data = $data;
+	public function getReason() : ?int {
+		return $this->reason;
 	}
-
 }
