@@ -29,9 +29,9 @@ class TheCloudTemplate extends IslandGenerator {
 	public function generateChunk(int $chunkX, int $chunkZ) : void {
 		$chunk = $this->level->getChunk($chunkX, $chunkZ);
         $chunk->setGenerated();
-		$data = new IslandData($this->getSettings()['preset']);
+		$data = new IslandData(unserialize($this->getSettings()['preset']));
 		$data->locateChunk($chunk);
-		foreach ($data->getBlockData() as $blockdata) $chunk->setBlock($blockdata->getX(), $blockdata->getY(), $blockdata->getZ(), $blockdata->getBlock(), $blockdata->getMeta());
+		foreach ($data->getBlockData() as $blockdata) $chunk->setBlock($blockdata[0], $blockdata[1], $blockdata[2], $blockdata[3], $blockdata[4]);
 	}
 
 }
