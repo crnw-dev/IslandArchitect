@@ -22,23 +22,16 @@ namespace Clouria\IslandArchitect\genertor;
 
 use room17\SkyBlock\island\generator\IslandGenerator;
 
+use function unserialize;
+
 class TheCloudTemplate extends IslandGenerator {
 
-	public const VERSION = '1';
-
-	private $data;
-
-	/**
-	 * @param mixed[] $data
-	 * 
-	 * @throws TheCloudTemplateException
-	 */
-	public function __construct(array $data) {
-		if ((int)($data['version'] ?? -1) != self::VERSION) throw new TheCloudTemplateException($data, $e::ISLAND_DATA_VERSION_MISMATCH);
-		$this->data = $data;
-	}
-
 	public function generateChunk(int $chunkX, int $chunkZ) : void {
+		$chunk = $this->level->getChunk($chunkX, $chunkZ);
+        $chunk->setGenerated();
+		$data = new IslandData($this->getSettings()['preset']);
+		$data->locateChunk($chunk);
+		foreach ($data->getBlockData() as $blockdata) $chunk->setBlock($blockdata->getX(), $blockdata->getY(), $blockdata->getZ(), $blockdata->getBlock(), $blockdata->getMeta());
 	}
 
 }

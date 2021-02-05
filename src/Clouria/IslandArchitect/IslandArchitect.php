@@ -25,7 +25,7 @@ use pocketmine\event\{
 	Listener
 };
 
-final class IslandArchitect extends PluginBase implements Listener {
+final class IslandArchitect extends PluginBase implements Listener, API {
 
 	private static $instance = null;
 
@@ -47,7 +47,7 @@ final class IslandArchitect extends PluginBase implements Listener {
 		foreach ($all = $conf->getAll() as $k => $v) $conf->remove($k);
 
 		$conf->set('enable-plugin', (bool)($all['enable-plugin'] ?? true));
-		$conf->set('json-output', (bool)($all['json-output'] ?? $this->getDataFolder()));
+		$conf->set('island-data-folder', (bool)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'));
 
 		return (bool)$conf->get('enable-plugin', true);
 	}
