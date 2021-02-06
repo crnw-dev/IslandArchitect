@@ -23,15 +23,22 @@ namespace Clouria\IslandArchitect\genertor;
 use room17\SkyBlock\island\generator\IslandGenerator;
 
 use function unserialize;
+use function set_exception_handler;
+use function restore_exception_handler;
 
 class TheCloudTemplate extends IslandGenerator {
 
 	public function generateChunk(int $chunkX, int $chunkZ) : void {
+		set_exception_handler(function(\Throwable $err) : void {
+			throw new TheCloudTemplateException($err->getMessage());
+		});
+
 		$chunk = $this->level->getChunk($chunkX, $chunkZ);
         $chunk->setGenerated();
 		$data = new IslandData(unserialize($this->getSettings()['preset']));
 		$data->locateChunk($chunk);
 		foreach ($data->getBlockData() as $blockdata) $chunk->setBlock($blockdata[0], $blockdata[1], $blockdata[2], $blockdata[3], $blockdata[4]);
+		restore_exception_handler();
 	}
 
 }

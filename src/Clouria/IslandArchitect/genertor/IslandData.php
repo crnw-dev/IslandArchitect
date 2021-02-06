@@ -27,6 +27,7 @@ use function explode;
 use function array_unshift;
 use funciton count;
 use function mt_rand;
+use function in_array;
 
 class IslandData {
 
@@ -55,10 +56,10 @@ class IslandData {
 	}
 
 	/**
-	 * @param mixed[]
+	 * @param mixed[] $data
 	 * @return int[]
 	 */
-	protected function getBlockFromDataArray(array $data) : array {
+	protected function getBlockFromDataArray(array $data, array $previous_functions = []) : array {
 		$type = (int)$sdata[0];
 		array_unshift($data);
 		switch ($sdata) {
@@ -79,13 +80,15 @@ class IslandData {
 					$upperl += (int)$sdata[0];
 					if (($upperl >= $rand) and ($upperl < ($rand + (int)$sdata[0]))) {
 						array_shift($sdata);
-						return $this->getBlockFromDataArray($sdata);
+						return $this->getBlockFromDataArray($sdata, $previous_functions);
 					}
 				}
 				return $data;
 
 			case self::TYPE_FUNCTION:
-				$fx = $this->getBlockFromDataArray($this->getIslandData()['functions'][$data[0]] ?? null;
+				if (in_array($data[0], $previous_functions, true)) throw new \RuntimeException('Recurse function detected, running function "' . $data[0] . '" inside itself');
+				$previous_functions[] = $data[0];
+				$fx = $this->getBlockFromDataArray($this->getIslandData()['functions'][$data[0]], $previous_functions) ?? null;
 				if (!isset($fx)) throw new \RuntimeException('Function "' . $data[0] . '" is missing in the island data');
 				return $this->getBlockFromDataArray($fx);
 
