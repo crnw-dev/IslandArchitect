@@ -20,7 +20,10 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\genertor;
 
-use pocketmine\level\format\Chunk;
+use pocketmine\{
+	level\format\Chunk,
+	block\Block
+};
 
 use function unserialize;
 use function explode;
@@ -51,8 +54,9 @@ class IslandData {
 	public function locateChunk(Chunk $chunk) : void {
 		foreach ($this->getIslandData()['chunks'][$chunk->getX()][$chunk->getZ()] as $y, $yd) foreach ($yd as $coord => $blockdataRaw) {
 			$block = $this->getBlockFromDataArray($blockdataRaw);
-			$blockdata[] = [$x = (int)($coord / 16), $y, (int)((int)(($coord / 16) - $x) * 16), $block[0], $block[1]];
+			$blockdata[] = [$x = (int)($coord / 16), $y, (int)((int)(($coord / 16) - $x) * 16), $block[0] ?? Block::AIR, $block[1] ?? 0];
 		}
+		$this->blockdata[] = $blockdata ?? [];
 	}
 
 	/**
@@ -72,7 +76,7 @@ class IslandData {
 				$upperl = -1;
 
 				foreach ($data as $sdata) $upperl += (int)$sdata[0];
-				if ($upperl < 0) return [0, 0];
+				if ($upperl < 0) return [Block::AIR, 0];
 				$rand = mt_rand(0, $upperl);
 
 				$upperl = -1;

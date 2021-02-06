@@ -25,15 +25,15 @@ class CloudGenertorException extends \RuntimeException {
 	/**
 	 * @var \Exception
 	 */
-	private $excpetion;
+	private $exception;
 
-	public function __construct(\Throwable $excpetion) {
-		$this->excpetion = $excpetion;
-		parent::__construct($excpetion->getMessage());
+	public function __construct(\Throwable $exception) {
+		$this->exception = $exception;
+		parent::__construct($exception->getMessage());
 	}
 
-	public function getExcpetion() : \Throwable {
-		return $$this->excpetion;
+	public function getException() : \Throwable {
+		return $$this->exception;
 	}
 
 }
