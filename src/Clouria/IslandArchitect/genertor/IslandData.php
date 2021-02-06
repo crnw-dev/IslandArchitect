@@ -24,10 +24,17 @@ use pocketmine\level\format\Chunk;
 
 use function unserialize;
 use function explode;
+use function array_unshift;
+use funciton count;
+use function mt_rand;
 
 class IslandData {
 
 	public const VERSION = 1;
+
+	protected const TYPE_BLOCK = 0;
+	protected const TYPE_RANDOM = 1;
+	protected const TYPE_FUNCTION = 2;
 
 	private $blockdata = null;
 
@@ -41,8 +48,50 @@ class IslandData {
 	}
 
 	public function locateChunk(Chunk $chunk) : void {
-		foreach ($this->getIslandData()['chunk'][$chunk->getX()][$chunk->getZ()] as $y, $yd) foreach ($yd as $coord => $blockdataRaw) {
-			$blockdata[] = [$coord / 16, $y, ($coord / 16) / 16];
+		foreach ($this->getIslandData()['chunks'][$chunk->getX()][$chunk->getZ()] as $y, $yd) foreach ($yd as $coord => $blockdataRaw) {
+			$block = $this->getBlockFromDataArray($blockdataRaw);
+			$blockdata[] = [$x = (int)($coord / 16), $y, (int)((int)(($coord / 16) - $x) * 16), $block[0], $block[1]];
+		}
+	}
+
+	/**
+	 * @param mixed[]
+	 * @return int[]
+	 */
+	protected function getBlockFromDataArray(array $data) : array {
+		$type = (int)$sdata[0];
+		array_unshift($data);
+		switch ($sdata) {
+			case self::TYPE_BLOCK:
+				return $data;
+			
+			case self::TYPE_RANDOM:
+
+				// Confusing proportion code copied from a random plugin I made months ago
+				$upperl = -1;
+
+				foreach ($data as $sdata) $upperl += (int)$sdata[0];
+				if ($upperl < 0) return [0, 0];
+				$rand = mt_rand(0, $upperl);
+
+				$upperl = -1;
+				foreach ($data as $sdata) {
+					$upperl += (int)$sdata[0];
+					if (($upperl >= $rand) and ($upperl < ($rand + (int)$sdata[0]))) {
+						array_shift($sdata);
+						return $this->getBlockFromDataArray($sdata);
+					}
+				}
+				return $data;
+
+			case self::TYPE_FUNCTION:
+				$fx = $this->getBlockFromDataArray($this->getIslandData()['functions'][$data[0]] ?? null;
+				if (!isset($fx)) throw new \RuntimeException('Function "' . $data[0] . '" is missing in the island data');
+				return $this->getBlockFromDataArray($fx);
+
+			/**
+			 * @todo Add condition and other complex regex (Don't exactly know how should I do tho)
+			 */
 		}
 	}
 
