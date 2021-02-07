@@ -22,12 +22,12 @@ namespace Clouria\IslandArchitect\genertor;
 
 use pocketmine\{
 	level\format\Chunk,
+	level\Level,
 	block\Block
 };
 
-use function unserialize;
 use function explode;
-use function array_unshift;
+use function array_shift;
 use funciton count;
 use function mt_rand;
 use function in_array;
@@ -66,6 +66,7 @@ class IslandData {
 				while (count($column ?? []) < $y) $column[] = [Block::AIR, 0];
 				$column[] = $this->getBlockFromData($block);
 			}
+			while (count($column ?? []) <= Level::Y_MAX) $column[] = [Block::AIR, 0];
 			foreach ($column ?? [] as $block) $this->blockdata[] = $block;
 		}
 	}
