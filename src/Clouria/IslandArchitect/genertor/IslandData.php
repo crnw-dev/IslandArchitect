@@ -45,6 +45,14 @@ class IslandData {
 	protected const TYPE_RANDOM = 1;
 	protected const TYPE_FUNCTION = 2;
 
+	/**
+	 * @var array<mixed[]>
+	 */
+	private $data;
+
+	/**
+	 * @var array<int, int>[]
+	 */
 	private $blockdata = null;
 
 	public function __construct(array $islanddata) {
@@ -52,13 +60,14 @@ class IslandData {
 		$this->data = $islanddata;
 	}
 
-	public function getIslandData() : array {
-		return $this->data;
-	}
-
 	public function locateChunk(Chunk $chunk) : void {
-		foreach ($this->getIslandData()['chunks'][$chunk->getX()][$chunk->getZ()] as $coord => $column) foreach (explode('', $column) as $block) $blockdata[] = [$x = (int)($coord / 16), $y, (int)((int)(($coord / 16) - $x) * 16), ($block = $this->getBlockFromData($block))[0] ?? Block::AIR, $block[1] ?? 0];
-		$this->blockdata[] = $blockdata ?? [];
+		foreach ($this->data['chunks'][$chunk->getX()][$chunk->getZ()] as $coord => $columnraw) {
+			foreach (explode('', $columnraw) as $y => $block) {
+				while (count($column ?? []) < $y) $column[] = [Block::AIR, 0];
+				$column[] = $this->getBlockFromData($block);
+			}
+			foreach ($column ?? [] as $block) $this->blockdata[] = $block;
+		}
 	}
 
 	/**
@@ -70,7 +79,7 @@ class IslandData {
 			case is_string($data):
 				if (in_array($data, $previous_functions, true)) throw new \RuntimeException('Recurse function detected, running function "' . $data . '" inside itself');
 				$previous_functions[] = $data;
-				$fx = $this->getBlockFromData($this->getIslandData()['functions'][$data], $previous_functions) ?? null;
+				$fx = $this->getBlockFromData($this->data['functions'][$data], $previous_functions) ?? null;
 				if (!isset($fx)) throw new \RuntimeException('Function "' . $data . '" is missing in the island data');
 				return $this->getBlockFromData($fx, $previous_functions);
 
@@ -122,7 +131,22 @@ class IslandData {
 	}
 
 	/**
-	 * @return BlockData[]
+	 * Check if the block ID and data value (meta) is valid
+	 * @param array<int, int> $blockdata 
+	 * @return array<int, int> Return air, 0 if invalid
+	 */
+	protected static function validateBlock(array $blockdata) : array {
+		if (
+			($blockdata[0] >= 0) and
+			($blockdata[0] <= 255) and
+			(($blockdata[1] ?? 0) >= 0) and
+			(($blockdata[1] ?? 0) <= 15)
+		) return [(int)$blockdata[0], (int)$blockdata[1]];
+		return [Block::AIR, 0];
+	}
+
+	/**
+	 * @return array<int, int>[]
 	 * 
 	 * @throws \InvalidStateException
 	 */
