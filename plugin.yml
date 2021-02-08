@@ -6,3 +6,20 @@ version: 1.0.0
 main: Clouria\IslandArchitect\IslandArchitect
 website: https://github.com/crnw-dev/IslandArchitect
 depend: [SkyBlock]
+
+permissions:
+  island-architect:
+    default: op
+    children:
+      island-architect.cmd:
+        children:
+          island-architect.convert:
+            description: Permission to convert a island into JSON island template file
+            children:
+              island-architect.tct:
+                description: Permission to modify island attributes including functions and other complex stuff
+                children:
+                  island-architect.tct.random:
+                    description: Permission to modify randomization regex in the island
+                  island-architect.tct.function:
+                    description: Permission to modify functions in the island
