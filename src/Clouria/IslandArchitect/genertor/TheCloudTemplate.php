@@ -25,6 +25,9 @@ use room17\SkyBlock\island\generator\IslandGenerator;
 use function unserialize;
 use function set_exception_handler;
 use function restore_exception_handler;
+use function is_file;
+use function file_get_contents;
+use function json_decode;
 
 class TheCloudTemplate extends IslandGenerator {
 
@@ -35,7 +38,13 @@ class TheCloudTemplate extends IslandGenerator {
 
 		$chunk = $this->level->getChunk($chunkX, $chunkZ);
         $chunk->setGenerated();
-		$data = new IslandData(unserialize($this->getSettings()['preset']));
+        static $data = null;
+        if (!isset($data)) {
+	        $path = unserialize($this->getSettings()['preset'][0]);
+			if (!is_file($path)) throw new \RuntimeException('Island data file (' . $path . ') is missing');
+			$data = json_decode(file_get_contents($path), true);
+			if ($path === false) throw new \RuntimeException('Failed to parse island data file');
+		}
 		$data->locateChunk($chunk);
 		foreach ($data->getBlockData() as $blockdata) $chunk->setBlock($blockdata[0], $blockdata[1], $blockdata[2], $blockdata[3], $blockdata[4]);
 		restore_exception_handler();

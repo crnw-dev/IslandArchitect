@@ -49,13 +49,13 @@ class ConvertBlockAsyncTask extends AsyncTask {
 	/**
 	 * @param \pocketmine\level\format\Chunk[] $chunks
 	 */
-	public function __construct(string $output_path, string $name, Vector3 $pos1, Vector3 $pos2, array $chunks, array $island_data = []) {
-		$this->path = $output_path;
+	public function __construct(string $outputpath, string $name, Vector3 $pos1, Vector3 $pos2, array $chunks, array $islanddata = []) {
+		$this->path = $outputpath;
 		$this->name = $name;
 		$this->pos1 = serialize($pos1);
 		$this->pos2 = serialize($pos2);
 		$this->chunks = serialize($chunks);
-		$this->data = serialize($island_data);
+		$this->data = serialize($islanddata);
 	}
 
 	public function onRun() : void {
