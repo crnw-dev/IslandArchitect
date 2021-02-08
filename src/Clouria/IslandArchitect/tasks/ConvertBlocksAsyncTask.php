@@ -27,36 +27,46 @@ use pocketmine\{
 
 use function serialize;
 use function unserialize;
+use function basename;
 
 class ConvertBlockAsyncTask extends AsyncTask {
 
 	/**
-	 * @var Vector3
+	 * @var string
 	 */
-	protected $pos1;
+	protected $path;
 	
 	/**
-	 * @var Vector3
+	 * @var string
 	 */
+	protected $name;
+	
+	protected $data;
+	protected $pos1;
 	protected $pos2;
-
-	/**
-	 * @var \pocketmine\level\format\Chunk[]
-	 */
 	protected $chunks;
 
 	/**
 	 * @param \pocketmine\level\format\Chunk[] $chunks
 	 */
-	public function __construct(Vector3 $pos1, Vector3 $pos2, array $chunks) {
+	public function __construct(string $output_path, string $name, Vector3 $pos1, Vector3 $pos2, array $chunks, array $island_data = []) {
+		$this->path = $output_path;
+		$this->name = $name;
 		$this->pos1 = serialize($pos1);
 		$this->pos2 = serialize($pos2);
 		$this->chunks = serialize($chunks);
+		$this->data = serialize($island_data);
 	}
 
 	public function onRun() : void {
 		$pos1 = unserialize($this->pos1);
 		$pos2 = unserialize($this->pos2);
-		$chunks = unserialize($this->chunks);
+		$chunksraw = unserialize($this->chunks);
+		foreach ($chunksraw as $chunk) $chunks[$chunk->getX()][$chunk->getZ()] = $chunk;
+		$data = unserialize($this->data);
+		
+		$data['version'] = $data['version'] ?? IslandData::VERSION;
+		$data['name'] = $data['name'] ?? $this->name;
+		
 	}
 }
