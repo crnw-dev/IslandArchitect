@@ -21,13 +21,24 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\tasks;
 
 use pocketmine\{
-	scheduler\AsyncTask
+	scheduler\AsyncTask,
+	math\Vector3
 };
 
 use function serialize;
 use function unserialize;
 
 class ConvertBlockAsyncTask extends AsyncTask {
+
+	/**
+	 * @var Vector3
+	 */
+	protected $pos1;
+	
+	/**
+	 * @var Vector3
+	 */
+	protected $pos2;
 
 	/**
 	 * @var \pocketmine\level\format\Chunk[]
@@ -37,11 +48,15 @@ class ConvertBlockAsyncTask extends AsyncTask {
 	/**
 	 * @param \pocketmine\level\format\Chunk[] $chunks
 	 */
-	public function __construct(array $chunks) {
+	public function __construct(Vector3 $pos1, Vector3 $pos2, array $chunks) {
+		$this->pos1 = serialize($pos1);
+		$this->pos2 = serialize($pos2);
 		$this->chunks = serialize($chunks);
 	}
 
 	public function onRun() : void {
+		$pos1 = unserialize($this->pos1);
+		$pos2 = unserialize($this->pos2);
 		$chunks = unserialize($this->chunks);
 	}
 }

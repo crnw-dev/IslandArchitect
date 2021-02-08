@@ -107,7 +107,7 @@ class IslandData {
 						$upperl = -1;
 
 						foreach ($data as $sdata) $upperl += (int)$sdata[0];
-						if ($upperl < 0) return [Block::AIR, 0];
+						if ($upperl < 0) break;
 						$rand = mt_rand(0, $upperl);
 
 						$upperl = -1;
@@ -125,10 +125,8 @@ class IslandData {
 					 */
 				}
 				break;
-
-				default:
-					return [Block::AIR, 0];
 		}
+		return [Block::AIR, 0];
 	}
 
 	/**
