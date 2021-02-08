@@ -36,6 +36,7 @@ use function is_string;
 use function is_int;
 use function is_float;
 use function is_array;
+use function is_a;
 
 class IslandData {
 
@@ -44,6 +45,8 @@ class IslandData {
 	protected const TYPE_BLOCK = 0;
 	protected const TYPE_RANDOM = 1;
 	protected const TYPE_FUNCTION = 2;
+
+	private static $custom_functions = [];
 
 	/**
 	 * @var array<mixed[]>
@@ -58,6 +61,20 @@ class IslandData {
 	public function __construct(array $islanddata) {
 		self::validateData($islanddata);
 		$this->data = $islanddata;
+	}
+
+	public static function registerCustomFunction(string $handler_class) : bool {
+		if (!is_a($handler_class, IslandCustomFunction::class, true)) throw new \InvalidArgumentException('The given string be the name of a valid class that implements ' . IslandCustomFunction::class);
+		foreach (self::$custom_functions as $sc) if ($sc::getName() === $handler_class::getName()) return false;
+		self::$custom_functions[] = $handler_class;
+		return true;
+	}
+
+	/**
+	 * @return string[]
+	 */
+	public static function getCustomFunctions() : array {
+		return self::$custom_functions[];
 	}
 
 	public function locateChunk(Chunk $chunk) : void {
@@ -99,6 +116,7 @@ class IslandData {
 						return $this->getBlockFromData((int)$data[0] + ((int)$data[1] / 100), $previous_functions);
 
 					case self::TYPE_FUNCTION:
+						if (is_array($r = $this->handleCustomFunction($data, $previous_functions))) return $r;
 						return $this->getBlockFromData((string)$data[0], $previous_functions);
 					
 					case self::TYPE_RANDOM:
@@ -118,7 +136,7 @@ class IslandData {
 								return $this->getBlockFromData($sdata, $previous_functions);
 							}
 						}
-						return self:::validateBlock($data);
+						return self::validateBlock($data);
 
 					/**
 					 * @todo Add condition and other complex regex (Don't exactly know how should I do tho)
@@ -127,6 +145,20 @@ class IslandData {
 				break;
 		}
 		return [Block::AIR, 0];
+	}
+
+	/**
+	 * @return mixed[]|null
+	 */
+	protected function handleCustomFunction(array $data, array $previous_functions) : ?array {
+		foreach ($this->data['custom_functions'] as $class) if (is_a($class, IslandCustomFunction::class, true)) if ($class::getName() === $data[0]) {
+			array_shift($data);
+			$class = $class::prepare();
+			$class->setParameters($data);
+			$class->setPreviousFunctions($previous_functions);
+			return $class->handle();
+		}
+		return null;
 	}
 
 	/**
