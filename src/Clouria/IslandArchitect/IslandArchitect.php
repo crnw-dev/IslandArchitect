@@ -77,9 +77,10 @@ class IslandArchitect extends PluginBase implements Listener, API {
 					$cmds[] = 'pos1 [xyz: int]' . TF::ITALIC . TF::GRAY . '(Set the start coordinate of the island for convert)';
 					$cmds[] = 'pos2 [xyz: int]' . TF::ITALIC . TF::GRAY . '(Set the end coordinate of the island for convert)';
 					$cmds[] = 'convert [First coord xyz: int] [Second coord xyz: int]' . TF::ITALIC . TF::GRAY . '(Convert the selected island area to JSON island template file)';
+					$cmds[] = 'reset ' . TF::ITALIC . TF::GRAY . '(Reset island start, end coordinates and attributes)';
 				}
-				if ($sender->hasPermission('island-architect.tct')) $cmds[] = 'attrib [Block xyz: int] <(f)unction|(r)andom> <Function name: string|Random regex: string>' . TF::ITALIC . TF::GRAY . '(Modify island attributes)';
-				if ($sender->hasPermission('island-architect.tct.function')) $cmds[] = 'function <(a)dd|(m)odify|(d)el> <Type: string/int> [Parameters: string]' . TF::ITALIC . TF::GRAY . '(Modify island attributes)';
+				if ($sender->hasPermission('island-architect.tct')) $cmds[] = 'attrib [Block xyz: int] <(f)unction|(r)andom|(l)ist> [Function name: string|Random regex: string]' . TF::ITALIC . TF::GRAY . '(Modify island attributes)';
+				if ($sender->hasPermission('island-architect.tct.function')) $cmds[] = 'function <(a)dd|(m)odify|(d)el|(l)ist> [Type: string/int] [Parameters: string]' . TF::ITALIC . TF::GRAY . '(Modify island attributes)';
 				break;
 		}
 	}

@@ -18,27 +18,44 @@
 														*/
 
 declare(strict_types=1);
-namespace Clouria\IslandArchitect\genertor;
+namespace Clouria\IslandArchitect\sessions;
 
-interface IslandCustomFunction {
+use pocketmine\{
+	Player,
+	math\Vector3
+};
 
-	public static function getName() : string;
-
-	public static function prepare() : IslandCustomFunction;
-
-	/**
-	 * @param mixed[] $parameters
-	 */
-	public function setParameters(array $parameters);
+class ConvertSession {
 
 	/**
-	 * @param string[] $previous_functions
+	 * @var Vector3
 	 */
-	public function setPreviousFunctions(array $previous_functions);
+	private $pos1;
+	
+	/**
+	 * @var Vector3
+	 */
+	private $pos2;
 
 	/**
-	 * @return array<int, int>|mixed[]|null
+	 * @var Player
 	 */
-	public function handle() : ?array;
+	private $player;
+
+	public __construct(Player $player) {
+		$this->player = $player;
+	}
+	
+	public function getPlayer() : Player {
+		return $this->player;
+	}
+	
+	public function setStartCoord(Vector3 $vec = null) : void {
+		$this->pos1 = $vec ?? $this->getPlayer()->asVector3();
+	}
+	
+	public function setEndCoord(Vector3 $vec = null) : void {
+		$this->pos2 = $vec ?? $this->getPlayer()->asVector3();
+	}
 
 }
