@@ -18,9 +18,9 @@
 														*/
 
 declare(strict_types=1);
-namespace Clouria\IslandArchitect\genertor;
+namespace Clouria\IslandArchitect\api;
 
-interface IslandCustomFunction {
+interface IslandCustomFunctionInterfacr {
 
 	public static function getName() : string;
 

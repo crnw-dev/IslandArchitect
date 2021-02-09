@@ -18,7 +18,7 @@
 														*/
 
 declare(strict_types=1);
-namespace Clouria\IslandArchitect\tasks;
+namespace Clouria\IslandArchitect\conversion;
 
 use pocketmine\{
 	Server,
@@ -40,7 +40,7 @@ use function microtime;
 
 use const SORT_NUMERIC;
 
-class ConvertBlockAsyncTask extends AsyncTask {
+class ConvertTask extends AsyncTask {
 
 	/**
 	 * @var string

@@ -18,7 +18,7 @@
 														*/
 
 declare(strict_types=1);
-namespace Clouria\IslandArchitect\genertor;
+namespace Clouria\IslandArchitect\api;
 
 use room17\SkyBlock\island\generator\IslandGenerator;
 
@@ -29,7 +29,7 @@ use function is_file;
 use function file_get_contents;
 use function json_decode;
 
-class TheCloudTemplate extends IslandGenerator {
+class TemplateIslandGenerator extends IslandGenerator {
 
 	public function generateChunk(int $chunkX, int $chunkZ) : void {
 		set_exception_handler(function(\Throwable $err) : void {

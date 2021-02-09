@@ -18,7 +18,7 @@
 														*/
 
 declare(strict_types=1);
-namespace Clouria\IslandArchitect\genertor;
+namespace Clouria\IslandArchitect\api;
 
 use pocketmine\{
 	level\format\Chunk,

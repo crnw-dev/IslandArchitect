@@ -18,9 +18,9 @@
 														*/
 
 declare(strict_types=1);
-namespace Clouria\IslandArchitect\genertor;
+namespace Clouria\IslandArchitect\api;
 
-class CloudGenertorException extends \RuntimeException {
+class TemplateIslandGeneration extends \RuntimeException {
 
 	/**
 	 * @var \Exception

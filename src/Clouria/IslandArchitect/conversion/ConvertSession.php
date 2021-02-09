@@ -18,7 +18,7 @@
 														*/
 
 declare(strict_types=1);
-namespace Clouria\IslandArchitect\sessions;
+namespace Clouria\IslandArchitect\conversion;
 
 use pocketmine\{
 	Player,
