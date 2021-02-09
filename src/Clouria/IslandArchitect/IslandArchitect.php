@@ -21,16 +21,20 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect;
 
 use pocketmine\{
+	Player,
 	plugin\PluginBase,
 	command\Command,
 	command\CommandSender,
 	utils\TextFormat
 };
 use pocketmine\event\{
-	Listener
+	Listener,
+	player\PlayerChatEvent
 };
 
 use function strtolower;
+use function implode;
+use function spl_object_id;
 
 class IslandArchitect extends PluginBase implements Listener, API {
 
@@ -71,6 +75,13 @@ class IslandArchitect extends PluginBase implements Listener, API {
 
 	public function onCommand(CommandSender $sender, Command $cmd, string $alias, array $args) : bool {
 		switch (strtolower($cmd->getName())) {
+			case 'reset':
+				if (!$sender instanceof Player) $s = $this->console_session ?? null;
+				else $s = $this->sessions[spl_object_id($sender)] ?? null;
+				if (!isset($s)) $sender->sendMessage(TF::RED . 'Nothing to reset!');
+				else $s->resetSession();
+				break;
+		
 			default:
 				$cmds[] = 'help ' . TF::ITALIC . TF::GRAY . '(Display available subcommands)';
 				if ($sender->hasPermission('island-architect.convert')) {
@@ -81,6 +92,7 @@ class IslandArchitect extends PluginBase implements Listener, API {
 				}
 				if ($sender->hasPermission('island-architect.tct')) $cmds[] = 'attrib [Block xyz: int] <(f)unction|(r)andom|(l)ist> [Function name: string|Random regex: string]' . TF::ITALIC . TF::GRAY . '(Modify island attributes)';
 				if ($sender->hasPermission('island-architect.tct.function')) $cmds[] = 'function <(a)dd|(m)odify|(d)el|(l)ist> [Type: string/int] [Parameters: string]' . TF::ITALIC . TF::GRAY . '(Modify island attributes)';
+				$sender->sendMessage(TF::BOLD . TF::YELLOW . 'Available subcommands: ' . $glue = ("\n" . TF::RESET . '- ' . TF::YELLOW). implode($glue, $cmds ?? []));
 				break;
 		}
 	}
