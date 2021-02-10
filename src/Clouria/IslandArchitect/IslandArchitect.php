@@ -25,8 +25,9 @@ use pocketmine\{
 	plugin\PluginBase,
 	command\Command,
 	command\CommandSender,
-	utils\TextFormat,
-	level\Position
+	utils\TextFormat as TF,
+	level\Position,
+	scheduler\ClosureTask
 };
 use pocketmine\event\{
 	Listener
@@ -107,7 +108,7 @@ class IslandArchitect extends PluginBase implements Listener {
 
 			case 'random':
 				if (isset($args[1])) $args[1] = (int)$args[1];
-				$this->getSession($sender)->addRandom($args[1] ?? null);
+				$this->getSession($sender)->editRandom($args[1] ?? null);
 				break;
 		
 			default:
