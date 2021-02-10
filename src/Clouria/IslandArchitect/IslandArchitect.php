@@ -25,12 +25,14 @@ use pocketmine\{
 	plugin\PluginBase,
 	command\Command,
 	command\CommandSender,
-	utils\TextFormat
+	utils\TextFormat,
+	level\Position
 };
 use pocketmine\event\{
-	Listener,
-	player\PlayerChatEvent
+	Listener
 };
+
+use Clouria\IslandArchitect\conversion\ConvertSession;
 
 use function strtolower;
 use function implode;
@@ -39,6 +41,11 @@ use function spl_object_id;
 class IslandArchitect extends PluginBase implements Listener {
 
 	private static $instance = null;
+
+	/**
+	 * @var ConvertSession[]
+	 */
+	private $sessions = [];
 
 	public function onLoad() : void {
 		self::$instance = $this;
@@ -73,24 +80,34 @@ class IslandArchitect extends PluginBase implements Listener {
 		$this->getServer()->getCommandMap()->register($this->getName(), $cmd);
 	}
 
+	public function getSession(Player $player) : ConvertSession {
+		return $this->sessions[spl_object_id($player)] ?? ($this->sessions[spl_object_id($player)] = new ConvertSession($player));
+	}
+
 	public function onCommand(CommandSender $sender, Command $cmd, string $alias, array $args) : bool {
 		if (!$sender instanceof Player) $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
-		else switch ($args[0] ?? 'help') {
+		else switch (strtolower($args[0] ?? 'help')) {
 			case 'reset':
-			case 'r':
 				$this->getSession($sender)->resetSession();
 				break;
 
 			case 'pos1':
 			case 'p1':
 			case '1':
-				$this->getSession($sender)->startPos();
+				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
+				$this->getSession($sender)->startCoord($vec ?? $sender->asPosition());
 				break;
 
 			case 'pos2':
 			case 'p2':
 			case '2':
-				$this->getSession($sender)->endPos();
+				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
+				$this->getSession($sender)->endCoord($vec ?? $sender->asPosition());
+				break;
+
+			case 'random':
+				if (isset($args[1])) $args[1] = (int)$args[1];
+				$this->getSession($sender)->addRandom($args[1] ?? null);
 				break;
 		
 			default:

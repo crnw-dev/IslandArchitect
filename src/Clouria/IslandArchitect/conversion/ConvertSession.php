@@ -22,6 +22,8 @@ namespace Clouria\IslandArchitect\conversion;
 
 use pocketmine\{
 	Player,
+	level\Position,
+	level\Level,
 	math\Vector3
 };
 
@@ -38,11 +40,16 @@ class ConvertSession {
 	private $pos2;
 
 	/**
+	 * @var Level
+	 */
+	private $level;
+
+	/**
 	 * @var Player
 	 */
 	private $player;
 
-	public __construct(Player $player) {
+	public function __construct(Player $player) {
 		$this->player = $player;
 	}
 	
@@ -50,12 +57,35 @@ class ConvertSession {
 		return $this->player;
 	}
 	
-	public function setStartCoord(Vector3 $vec = null) : void {
-		$this->pos1 = $vec ?? $this->getPlayer()->asVector3();
+	/**
+	 * @param Position|null $pos The level must be the same one as end coord
+	 * @return void
+	 * 
+	 * @throws \InvalidArgumentException
+	 */
+	public function startCoord(Position $pos = null) : void {
+		$this->validateLevel($pos);
+		$this->pos1 = ($pos ?? $this->getPlayer()->asVector3())->asVector3();
 	}
 	
-	public function setEndCoord(Vector3 $vec = null) : void {
-		$this->pos2 = $vec ?? $this->getPlayer()->asVector3();
+	/**
+	 * @param Position|null $pos The level must be the same one as start coord
+	 * @return void
+	 * 
+	 * @throws \InvalidArgumentException
+	 */
+	public function endCoord(Position $pos = null) : void {
+		$this->validateLevel($pos);
+		$this->pos2 = ($pos ?? $this->getPlayer()->asVector3())->asVector3();
+	}
+
+	protected function validateLevel(Position $pos) : void {
+		if (!isset($this->level)) $this->level = $pos->getLevel();
+		elseif ($pos->getLevel() !== $this->level) throw new \InvalidArgumentException('Invalid level instance given');
+	}
+
+	public function addRandom(int $id) : void {
+
 	}
 
 }
