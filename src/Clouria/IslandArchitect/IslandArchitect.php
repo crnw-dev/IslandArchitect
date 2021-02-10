@@ -36,7 +36,7 @@ use function strtolower;
 use function implode;
 use function spl_object_id;
 
-class IslandArchitect extends PluginBase implements Listener, API {
+class IslandArchitect extends PluginBase implements Listener {
 
 	private static $instance = null;
 
@@ -74,25 +74,34 @@ class IslandArchitect extends PluginBase implements Listener, API {
 	}
 
 	public function onCommand(CommandSender $sender, Command $cmd, string $alias, array $args) : bool {
-		switch (strtolower($cmd->getName())) {
+		if (!$sender instanceof Player) $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
+		else switch ($args[0] ?? 'help') {
 			case 'reset':
-				if (!$sender instanceof Player) $s = $this->console_session ?? null;
-				else $s = $this->sessions[spl_object_id($sender)] ?? null;
-				if (!isset($s)) $sender->sendMessage(TF::RED . 'Nothing to reset!');
-				else $s->resetSession();
+			case 'r':
+				$this->getSession($sender)->resetSession();
+				break;
+
+			case 'pos1':
+			case 'p1':
+			case '1':
+				$this->getSession($sender)->startPos();
+				break;
+
+			case 'pos2':
+			case 'p2':
+			case '2':
+				$this->getSession($sender)->endPos();
 				break;
 		
 			default:
 				$cmds[] = 'help ' . TF::ITALIC . TF::GRAY . '(Display available subcommands)';
 				if ($sender->hasPermission('island-architect.convert')) {
-					$cmds[] = 'pos1 [xyz: int]' . TF::ITALIC . TF::GRAY . '(Set the start coordinate of the island for convert)';
-					$cmds[] = 'pos2 [xyz: int]' . TF::ITALIC . TF::GRAY . '(Set the end coordinate of the island for convert)';
-					$cmds[] = 'convert [First coord xyz: int] [Second coord xyz: int]' . TF::ITALIC . TF::GRAY . '(Convert the selected island area to JSON island template file)';
-					$cmds[] = 'reset ' . TF::ITALIC . TF::GRAY . '(Reset island start, end coordinates and attributes)';
+					$cmds[] = 'pos1 [xyz: int] ' . TF::ITALIC . TF::GRAY . '(Set the start coordinate of the island for convert)';
+					$cmds[] = 'pos2 [xyz: int] ' . TF::ITALIC . TF::GRAY . '(Set the end coordinate of the island for convert)';
+					$cmds[] = 'convert ' . TF::ITALIC . TF::GRAY . '(Convert the selected island area to JSON island template file)';
+					$cmds[] = 'random [Random function ID: int] ' . TF::ITALIC . TF::GRAY . '(Setup random blocks generation)';
 				}
-				if ($sender->hasPermission('island-architect.tct')) $cmds[] = 'attrib [Block xyz: int] <(f)unction|(r)andom|(l)ist> [Function name: string|Random regex: string]' . TF::ITALIC . TF::GRAY . '(Modify island attributes)';
-				if ($sender->hasPermission('island-architect.tct.function')) $cmds[] = 'function <(a)dd|(m)odify|(d)el|(l)ist> [Type: string/int] [Parameters: string]' . TF::ITALIC . TF::GRAY . '(Modify island attributes)';
-				$sender->sendMessage(TF::BOLD . TF::YELLOW . 'Available subcommands: ' . $glue = ("\n" . TF::RESET . '- ' . TF::YELLOW). implode($glue, $cmds ?? []));
+				$sender->sendMessage(TF::BOLD . TF::YELLOW . 'Available subcommands: ' . $glue = ("\n" . TF::RESET . '- ' . TF::YELLOW). implode($glue, $cmds ?? ['help']));
 				break;
 		}
 	}
