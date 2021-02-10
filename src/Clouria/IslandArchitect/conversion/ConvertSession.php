@@ -155,10 +155,13 @@ class ConvertSession {
 		foreach ($r->getAllRandomBlocks() as $chance) $totalchance += $chance;
 		foreach ($r->getAllRandomBlocks() as $block => $chance) for ($i=0; $i < max((int)$chance, 1); $i++) {
 			if (++$ti >= 23) continue;
-			$item = explode($block);
-			$item = Item::get((int)$item[0], (int)($item[1] ?? 0));
-			$item->setCustomName(TF::RESET . $item->getVanillaName() . "\n" . TF::YELLOW . 'ID: ' . TF::BOLD . TF::GOLD . (int)$item[0] . "\n" . TF::RESET . TF::YELLOW . 'Data value (Meta ID): ' . TF::BOLD . TF::GOLD . (isset($item[1]) ? (int)$item[1] : TF::ITALIC . 'Randomized') . "\n" . TF::RESET . TF::YELLOW . TF::YELLOW . 'Chance: ' . TF::BOLD . TF::GREEN . (int)$chance . TF::ITALIC . ' (' . round((int)$chance / ($totalchance ?? (int)$chance) * 100, 2) . '%)');
-			$item->setNamedTagEntry(new CompoundTag('IslandArchitect', [new StringTag('block', $block)]));
+			$block = explode($block);
+			$item = Item::get((int)$block[0], (int)($block[1] ?? 0));
+			$item->setCustomName(TF::RESET . $item->getVanillaName() . "\n" . TF::YELLOW . 'ID: ' . TF::BOLD . TF::GOLD . (int)$block[0] . "\n" . TF::RESET . TF::YELLOW . 'Data value (Meta ID): ' . TF::BOLD . TF::GOLD . (isset($block[1]) ? (int)$block[1] : TF::ITALIC . 'Randomized') . "\n" . TF::RESET . TF::YELLOW . TF::YELLOW . 'Chance: ' . TF::BOLD . TF::GREEN . (int)$chance . TF::ITALIC . ' (' . round((int)$chance / ($totalchance ?? (int)$chance) * 100, 2) . '%)');
+			$item->setNamedTagEntry(new CompoundTag('IslandArchitect', [
+				new ShortTag('id', (int)$block[0]),
+				new ByteTag('meta', (int)$block[1] ?? -1)
+			]));
 			$inv->setItem($ti - 1, $item, false);
 		}
 		foreach ([23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 41] as $slot) $inv->setItem($slot, Item::ge, falset(Item::INVISIBLEBEDROCK));
