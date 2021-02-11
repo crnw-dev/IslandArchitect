@@ -153,6 +153,9 @@ class ConvertSession {
 	public const INVMENU_ITEM_NEXT = 4;
 	public const INVMENU_ITEM_SEED = 5;
 	public const INVMENU_ITEM_ROLL = 6;
+	public const INVMENU_ITEM_SELECTED = 7;
+	public const INVMENU_ITEM_EXPAND = 8;
+	public const INVMENU_ITEM_COLLAPS = 9;
 
 	public function editRandom(?int $id = null, InvMenu $menu = null, bool $roll_next = true) : void {
 		if (isset($this->randoms[$id])) $r = $this->randoms[$id];
@@ -217,6 +220,26 @@ class ConvertSession {
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_ROLL)]));
 		$inv->setItem(43, $i, false);
 
+		if (!isset($this->invmenu_selected)) {
+			$i = Item::get(END_PORTAL);
+			$i->setCustomName(TF::GRAY . '(No selected block)');
+		} else {
+			$i = clone $this->invmenu_selected;
+			$i->setCustomName(TF::RESET . TF::YELLOW . 'Selected block: ' . TF::BOLD . TF::GOLD . $i->getVanillaName());
+		}
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_SELECTED)]));
+		$inv->setItem(33, $i, false);
+
+		$i = Item::get(Item::get(SHULKER_BOX, 5));
+		$i->setCustomName(TF::RESET . TF::BOLD . TF::GREEN . 'Expand');
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_EXPAND)]));
+		$inv->setItem(43, $i, false);
+
+		$i = Item::get(Item::get(SHULKER_BOX, 14));
+		$i->setCustomName(TF::RESET . TF::BOLD . TF::RED . 'Collapse');
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_COLLAPSE)]));
+		$inv->setItem(44, $i, false);
+
 		if ($roll_next) {
 			$i = $r->randomBlock($this->invmenu_random);
 			$i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
@@ -278,6 +301,12 @@ class ConvertSession {
 					$i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
 					$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', -1)]));
 					$inv->setItem(44, $i);
+					break;
+
+				case self::INVMENU_ITEM_EXPAND:
+				case self::INVMENU_ITEM_COLLAPSE:
+					$this->invmenu_collapse = $nbt == INVMENU_ITEM_COLLAPSE;
+					$this->editRandom($id, $m, false);
 					break;
 
 			}
