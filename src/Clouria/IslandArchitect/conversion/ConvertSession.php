@@ -25,6 +25,8 @@ use pocketmine\{
 	Server,
 	level\Position,
 	level\Level,
+	item\Item,
+	block\Block,
 	math\Vector3,
 	utils\TextFormat as TF,
 	utils\Random,
@@ -59,7 +61,8 @@ use function random_int;
 use function ceil;
 use function count;
 use function preg_replace;
-use function uniqid;
+use function time;
+use function array_push;
 
 use const INT32_MIN;
 use const INT32_MAX;
@@ -173,7 +176,7 @@ class ConvertSession {
 		else $id = array_push($this->randoms, $r = new RandomGeneration);
 		if (!class_exists(InvMenu::class)) {
 			$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Cannot edit regex due to required virion "InvMenu" is not installed. ' . TF::RESET . TF::AQUA . 'A blank regex has been inserted into the island data, ' . TF::YELLOW . 'you can edit the regex after the island is exported!');
-			$this->giveRandomGenerationBlock($id);
+			self::giveRandomGenerationBlock($this->getPlayer(), $r);
 			return;
 		}
 		if (!isset($menu)) {
@@ -247,8 +250,8 @@ class ConvertSession {
 					$this->editRandom($id, $m, false);
 				}
 			}));
-			$m->setInventoryCloseListener(function(Player $p, Inventory $inv) use ($id) : void {
-				$this->giveRandomGenerationBlock($id);
+			$m->setInventoryCloseListener(function(Player $p, Inventory $inv) use ($id, $r) : void {
+				self::giveRandomGenerationBlock($this->getPlayer(), $r);
 			});
 		}
 		$inv = $m->getInventory();
@@ -359,20 +362,27 @@ class ConvertSession {
 		if (($nbt = $ev->getItem()->getNamedTagEntry('IslandArchitect')) === null) return;
 		if (($nbt = $ev->getCompoundTag('random-generation')) === null) return;
 		if (($nbt = $ev->getListTag('regex')) === null) return;
-		$tile = RandomGenerationTile::createTile('RandomGenerationTile', $this->getPlayer()->getLevel(), RandomGenerationTile::createNBT($ev->getBlock()->asVector3()));
-		$tile->setNBT($nbt);
+		$tile = RandomGenerationTile::createTile('RandomGenerationTile', $this->getPlayer()->getLevel(), RandomGenerationTile::createNBT($ev->getBlock()->asVector3(), null, $ev->getItem()));
 	}
 
-	public function onBlockBreak(BlockBreakEvent $ev) : void {
-	}
+	/**
+	 * @var int Unix timestamp
+	 */
+	private $invmenu_interact_lock = 0;
 
 	public function onPlayerInteract(PlayerInteractEvent $ev) : void {
+		if ($ev->getPlayer() !== $this->getPlayer()) return;
+		if (time() <= $this->invmenu_interact_lock + 10) return;
+		$this->invmenu_interact_lock = time();
+		if (!($tile = $ev->getBlock()->getLevel()->getTile($ev->getBlock()->asVector3())) instanceof RandomGenerationTile) return;
+		$ev->getBlock()->getLevel()->setBlock($ev->getBlock()->asVector3(), Block::get(Block::AIR));
+		$this->editRandom(array_push($this->randoms, $tile->getRandomGeneration()));
 	}
 
-	public function giveRandomGenerationBlock(int $id, bool $removeDuplicatedItem = true) : void {
+	public static function giveRandomGenerationBlock(Player $player, RandomGeneration $randomgeneration, bool $removeDuplicatedItem = true) : void {
 		$inv = $this->getPlayer()->getInventory();
-		if ($removeDuplicatedItem) foreach ($inv->getContents() as $index => $i) if (($nbt = $i->getNamedTagEntry('IslandArchitect')) !== null) if (($nbt = $nbt->getCompoundTag('random-generation')) !== null) if ($nbt->getShort('regexid', -1) === $id) $inv->clear($index);
-		foreach ($this->randoms[$id]->getAllRandomBlocks() as $block => $chance) {
+		if ($removeDuplicatedItem) foreach ($inv->getContents() as $index => $i) if (($nbt = $i->getNamedTagEntry('IslandArchitect')) !== null) if (($nbt = $nbt->getCompoundTag('random-generation')) !== null) if (($nbt = $nbt->getListTag('regex')) !== null) if (RandomGeneration::fromNBT($nbt)->equals($randomgeneration)) $inv->clear($index);
+		foreach ($randomgeneration->getAllRandomBlocks() as $block => $chance) {
 			$block = explode(':', $block);
 			$regex[] = new CompoundTag('', [
 				new ShortTag('id', (int)$block[0]);
@@ -384,7 +394,6 @@ class ConvertSession {
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . 'Random generation (Regex #' . $id . ')');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new CompoundTag('random-generation', [
 			new ListTag('regex', $regex ?? [])
-			// Saves the regex so when users are sharing the random generation block with others, the block will still valid
 		])]));
 		$inv->addItem($i);
 	}

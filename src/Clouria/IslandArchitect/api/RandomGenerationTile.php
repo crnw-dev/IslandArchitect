@@ -21,8 +21,11 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\api;
 
 use pocketmine\{
+	Player,
+	item\Item,
+	math\Vector3,
 	tile\Tile,
-	nbt\tag\ListTag
+	nbt\tag\CompoundTag
 };
 use Clouria\IslandArchitect\api\RandomGeneration;
 
@@ -34,16 +37,16 @@ class RandomGenerationTile extends Tile {
 		return RandomGeneration::fromNBT($this->nbt);
 	}
 
-	public function setNBT(ListTag $nbt) : void {
-		$this->nbt = clone $nbt;
-	}
-
 	protected function readSaveData(CompoundTag $nbt) : void{
 		$this->nbt = clone $nbt;
 	}
 
 	protected function writeSaveData(CompoundTag $nbt) : void{
 		$nbt->setTag($this->nbt);
+	}
+
+	protected static function createAdditionalNBT(CompoundTag $nbt, Vector3 $pos, ?int $face = null, ?Item $item = null, ?Player $player = null) : void {
+		$nbt->setTag(clone $item->getNamedTagEntry('IslandArchitect')->getCompoundTag('random-generation')->getListTag('regex'));
 	}
 
 }

@@ -39,7 +39,8 @@ use pocketmine\event\{
 
 use Clouria\IslandArchitect\{
 	conversion\ConvertSession,
-	api\RandomGenerationTile
+	api\RandomGenerationTile,
+	api\RandomGeneration
 };
 
 use function strtolower;
@@ -157,7 +158,16 @@ class IslandArchitect extends PluginBase implements Listener {
 	 * @ignoreCancelled
 	 */
 	public function onBlockBreak(BlockBreakEvent $ev) : void {
-		foreach ($this->sessions as $s) $s->onBlockBreak($ev);
+		if (!($tile = $ev->getBlock()->getLevel()->getTile($ev->getBlock()->asVector3())) instanceof RandomGenerationTile) return;
+		$ev->getPlayer()->sendPopup(TF::BOLD . TF::YELLOW . 'You have destroyed a random generation block');
+		foreach ($ev->getPlayer()->getInventory()->getContents() as $item) {
+			$add = false;
+			if (($nbt = $item->getNamedTagEntry('IslandArchitect')) == null) $add = true;
+			if (($nbt = $nbt->getCompoundTag('random-generation')) === null) $add = true;
+			if (($nbt = $nbt->getListTag('regex')) === null) $add = true;
+			if (RandomGeneration::fromNBT($nbt)->equals($regex = $tile->getRandomGeneration())) $add = false;
+			if ($add) ConvertSession::giveRandomGenerationBlock($ev->getPlayer(), $regex, false);
+		}
 	}
 
 	public static function getInstance() : ?self {
