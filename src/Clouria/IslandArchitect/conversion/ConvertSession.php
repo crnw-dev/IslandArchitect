@@ -22,17 +22,22 @@ namespace Clouria\IslandArchitect\conversion;
 
 use pocketmine\{
 	Player,
+	Server,
 	level\Position,
 	level\Level,
 	math\Vector3,
 	utils\TextFormat as TF,
 	utils\Random,
-	event\player\PlayerChatEvent
+	event\player\PlayerChatEvent,
+	scheduler\TaskHandler,
+	scheduler\ClosureTask
 };
 use pocketmine\nbt\tag\{
 	CompoundTag,
 	ShortTag,
-	ByteTag
+	ByteTag,
+	ListTag,
+	StringTag
 }
 
 use muqsit\invmenu\{
@@ -52,6 +57,8 @@ use function explode;
 use function random_int;
 use function ceil;
 use function count;
+use function preg_replace;
+use function uniqid;
 
 use const INT32_MIN;
 use const INT32_MAX;
@@ -189,6 +196,7 @@ class ConvertSession {
 						return;
 
 					case self::INVMENU_ITEM_LUCK:
+						if ($r->getChanceByItem($this->invmenu_selected) >= 32767) return;
 						$r->addBlockByItem($this->invmenu_selected);
 						$this->editRandom($id, $m)
 						break;
@@ -213,8 +221,12 @@ class ConvertSession {
 						break;
 
 					case self::INVMENU_ITEM_SEED:
-						$this->getPlayer()->sendMessage(TF::YELLOW . 'Pleas enter a seed: ');
-						$this->invmenu_seed_lock = [$id, $m];
+						$this->getPlayer()->sendMessage(TF::YELLOW . 'Pleas enter a seed (Wait 10 second to cancel)');;
+						$task = Server::getInstance()->getScheduler()->scheduleDelayedTask(function(int $ct) : void {
+							$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'No respond for too long (Timeout)');
+							$this->invmenu_seed_lock = null;
+						}, 20 * 10);
+						$this->invmenu_seed_lock = [$id, $m, $task];
 						break;
 
 					case self::INVMENU_ITEM_ROLL:
@@ -267,6 +279,9 @@ class ConvertSession {
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_REMOVE)]));
 		$inv->setItem(36, $i, false);
 
+		/**
+		 * @todo Disable this action item if the chance of a block is over or equals 32767
+		 */
 		$i = Item::get(Item::STONE);
 		$i->setCustomName($prefix . 'Increase chance' . $surfix);
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_LUCK)]));
@@ -324,7 +339,7 @@ class ConvertSession {
 	}
 
 	/**
-	 * @var array<int, InvMenu>|null
+	 * @var array<int, InvMenu, TaskHandler>|null
 	 */
 	private $invmenu_seed_lock = null;
 
@@ -338,9 +353,33 @@ class ConvertSession {
 		if (!isset($this->invmenu_seed_lock)) return;
 		if (!$ev->getPlayer() === $this->getPlayer()) return;
 		$ev->setCancelled();
-		$this->invmenu_random = new Random(TemplateIslandGenerator::convertSeed($ev->getMessage()));
-		$this->editRandom($this->invmenu_random[0], $this->invmenu_random[1]);
+		$this->invmenu_seed_lock[2]->cancel();
+		$msg = $ev->getMessage();
+		$this->invmenu_random = new Random(empty(preg_replace('/[0-9]+/i', '', $msg)) ? (int)$msg : TemplateIslandGenerator::convertSeed($msg));
+		$this->editRandom($this->invmenu_seed_lock[0], $this->invmenu_seed_lock[1]);
 		$this->invmenu_seed_lock = null;
+	}
+
+	public function giveRandomGenerationBlock(int $id, bool $removeDuplicatedItem = true) : void {
+		$inv = $this->getPlayer()->getInventory();
+		if ($removeDuplicatedItem) foreach ($inv->getContents() as $index => $i) if (($nbt = $i->getNamedTagEntry('IslandArchitect')) !== null) if (($nbt = $nbt->getCompoundTag('random-generation')) !== null) if ($nbt->getShort('regexid', -1) === $id) $inv->clear($index);
+		foreach ($this->randoms[$id]->getAllRandomBlocks() as $block => $chance) {
+			$block = explode($block);
+			$regex[] = new CompoundTag('', [
+				new ShortTag('id', (int)$block[0]);
+				new ByteTag('meta', (int)($block[1] ?? 0))
+				new ShortTag('chance', (int)$chance)
+			]);
+		}
+		$i = Item::get(Item::CYAN_GLAZED_TERRACOTTA, 0, 64);
+		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . 'Random generation (Regex #' . $id . ')');
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new CompoundTag('random-generation', [
+			new ShortTag('regexid', $id),
+			new StringTag('uniqueid', uniqid('')),
+			new ListTag('regex', $regex ?? [])
+			// Saves the regex so when users are sharing the random generation block with others, the block will still valid
+		])]));
+		$inv->addItem($i);
 	}
 
 }
