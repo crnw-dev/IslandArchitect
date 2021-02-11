@@ -26,7 +26,8 @@ use pocketmine\{
 	level\Level,
 	math\Vector3,
 	utils\TextFormat as TF,
-	utils\Random
+	utils\Random,
+	event\player\PlayerChatEvent
 };
 use pocketmine\nbt\tag\{
 	CompoundTag,
@@ -41,7 +42,10 @@ use muqsit\invmenu\{
 	transaction\DeterministicInvMenuTransaction as InvMenuTransaction
 };
 
-use Clouria\IslandArchitect\api\RandomGeneration;
+use Clouria\IslandArchitect\{
+	api\RandomGeneration,
+	api\TemplateIslandGenerator
+};
 
 use function max;
 use function explode;
@@ -156,15 +160,20 @@ class ConvertSession {
 	public const INVMENU_ITEM_SELECTED = 7;
 	public const INVMENU_ITEM_COLLAPSE = 8;
 
-	public function editRandom(?int $id = null, InvMenu $menu = null, bool $roll_next = true) : void {
+	public function editRandom(?int $id = null, ?InvMenu $menu = null, bool $roll_next = true) : void {
 		if (isset($this->randoms[$id])) $r = $this->randoms[$id];
 		else $id = array_push($this->randoms, $r = new RandomGeneration);
+		if (!class_exists(InvMenu::class)) {
+			$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Cannot edit regex due to required virion "InvMenu" is not installed. ' . TF::RESET . TF::AQUA . 'A blank regex has been inserted into the island data, ' . TF::YELLOW . 'you can edit the regex after the island is exported!');
+			$this->giveRandomGenerationBlock($id);
+			return;
+		}
 		if (!isset($menu)) {
 			$m = new InvMenu(MenuIds::TYPE_DOUBLE_CHEST);
 			$m->send($this->getPlayer());
 		}
 		$inv = $m->getInventory();
-		$m->setName(TF::DARK_BLUE . 'Random regex ' . TF::BOLD . '#' . $id);
+		$m->setName(TF::DARK_BLUE . 'Random regex ' . TF::BOLD . '#' . $id . (isset($this->invmenu_selected) ? ' (Selected ' . $this->invmenu_selected->getId() : ':' . $this->invmenu_selected->getDamage() . ')'));
 		$totalchance = 0;
 		foreach ($r->getAllRandomBlocks() as $chance) $totalchance += $chance;
 		foreach ($r->getAllRandomBlocks() as $block => $chance) for ($i=0; $i < (!$this->invmenu_collapse ? max((int)$chance, 1) : 1); $i++) {
@@ -229,6 +238,13 @@ class ConvertSession {
 			$i = clone $this->invmenu_selected;
 			$i->setCustomName(TF::RESET . TF::YELLOW . 'Selected block: ' . TF::BOLD . TF::GOLD . $i->getVanillaName());
 		}
+		
+		if ($roll_next) {
+			$i = $r->randomBlock($this->invmenu_random);
+			$i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
+			$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', -1)]));
+			$inv->setItem(41, $i, false);
+		}
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_SELECTED)]));
 		$inv->setItem(34, $i, false);
 
@@ -237,15 +253,7 @@ class ConvertSession {
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_COLLAPSE)]));
 		$inv->setItem(43, $i, false);
 
-		if ($roll_next) {
-			$i = $r->randomBlock($this->invmenu_random);
-			$i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
-			$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', -1)]));
-			$inv->setItem(41, $i, false);
-		}
-
-		$inv->sendContents($inv->getViewers());
-		$m->setListener(InvMenu::readonly(function (InvMenuTransaction $transaction) use ($r) : void {
+		$m->setListener(InvMenu::readonly(function (InvMenuTransaction $transaction) use ($r, $m, $id) : void {
 			$in = $transaction->getIn();
 			if ($in->getBlock()->getId() !== Item::AIR) {
 				$r->addBlockByItem($in, $in->getCount());
@@ -287,10 +295,8 @@ class ConvertSession {
 					break;
 
 				case self::INVMENU_ITEM_SEED:
-					$transaction->getPlayer()->removeWindow($transaction->getAction()->getInventory());
-					$transaction->then(function(Player $player) : void{
-						$this->editSeed();
-					});
+					$this->getPlayer()->sendMessage(TF::YELLOW . 'Pleas enter a seed: ');
+					$this->invmenu_seed_lock = [$id, $m];
 					break;
 
 				case self::INVMENU_ITEM_ROLL:
@@ -311,6 +317,31 @@ class ConvertSession {
 				$this->editRandom($id, $m, false);
 			}
 		}));
+		$m->setInventoryCloseListener(function(Player $p, Inventory $inv) use ($id) : void {
+			$this->giveRandomGenerationBlock($id);
+		});
+
+		$inv->sendContents($inv->getViewers());
+	}
+
+	/**
+	 * @var array<int, InvMenu>|null
+	 */
+	private $invmenu_seed_lock = null;
+
+	/**
+	 * @param PlayerChatEvent $ev 
+	 * @return void
+	 * 
+	 * @ignoreCancelled
+	 */
+	public function onPlayerChat(PlayerChatEvent $ev) : void {
+		if (!isset($this->invmenu_seed_lock)) return;
+		if (!$ev->getPlayer() === $this->getPlayer()) return;
+		$ev->setCancelled();
+		$this->invmenu_random = new Random(TemplateIslandGenerator::convertSeed($ev->getMessage()));
+		$this->editRandom($this->invmenu_random[0], $this->invmenu_random[1]);
+		$this->invmenu_seed_lock = null;
 	}
 
 }

@@ -124,6 +124,10 @@ class IslandArchitect extends PluginBase implements Listener {
 		}
 	}
 
+	public function onPlayerChat(PlayerChatEvent $ev) : void {
+		foreach ($this->sessions as $s) $s->onPlayerChat($ev);
+	}
+
 	public static function getInstance() : ?self {
 		return self::$instance;
 	}
