@@ -49,6 +49,7 @@ use muqsit\invmenu\{
 
 use Clouria\IslandArchitect\{
 	api\RandomGeneration,
+	api\RandomGenerationTile,
 	api\TemplateIslandGenerator
 };
 
@@ -342,12 +343,6 @@ class ConvertSession {
 	 */
 	private $invmenu_seed_lock = null;
 
-	/**
-	 * @param PlayerChatEvent $ev 
-	 * @return void
-	 * 
-	 * @ignoreCancelled
-	 */
 	public function onPlayerChat(PlayerChatEvent $ev) : void {
 		if (!isset($this->invmenu_seed_lock)) return;
 		if (!$ev->getPlayer() === $this->getPlayer()) return;
@@ -357,6 +352,21 @@ class ConvertSession {
 		$this->invmenu_random = new Random(empty(preg_replace('/[0-9-]+/i', '', $msg)) ? (int)$msg : TemplateIslandGenerator::convertSeed($msg));
 		$this->editRandom($this->invmenu_seed_lock[0], $this->invmenu_seed_lock[1]);
 		$this->invmenu_seed_lock = null;
+	}
+
+	public function onBlockPlace(BlockPlaceEvent $ev) : void {
+		if ($ev->getPlayer() !== $this->getPlayer()) return;
+		if (($nbt = $ev->getItem()->getNamedTagEntry('IslandArchitect')) === null) return;
+		if (($nbt = $ev->getCompoundTag('random-generation')) === null) return;
+		if (($nbt = $ev->getListTag('regex')) === null) return;
+		$tile = RandomGenerationTile::createTile('RandomGenerationTile', $this->getPlayer()->getLevel(), RandomGenerationTile::createNBT($ev->getBlock()->asVector3()));
+		$tile->setNBT($nbt);
+	}
+
+	public function onBlockBreak(BlockBreakEvent $ev) : void {
+	}
+
+	public function onPlayerInteract(PlayerInteractEvent $ev) : void {
 	}
 
 	public function giveRandomGenerationBlock(int $id, bool $removeDuplicatedItem = true) : void {
@@ -373,8 +383,6 @@ class ConvertSession {
 		$i = Item::get(Item::CYAN_GLAZED_TERRACOTTA, 0, 64);
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . 'Random generation (Regex #' . $id . ')');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new CompoundTag('random-generation', [
-			new ShortTag('regexid', $id),
-			new StringTag('uniqueid', uniqid('')),
 			new ListTag('regex', $regex ?? [])
 			// Saves the regex so when users are sharing the random generation block with others, the block will still valid
 		])]));

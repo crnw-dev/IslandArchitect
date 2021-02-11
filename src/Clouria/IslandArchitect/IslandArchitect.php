@@ -30,10 +30,17 @@ use pocketmine\{
 	scheduler\ClosureTask
 };
 use pocketmine\event\{
-	Listener
+	Listener,
+	player\PlayerChatEvent,
+	player\PlayerInteractEvent,
+	block\BlockPlaceEvent,
+	block\BlockBreakEvent
 };
 
-use Clouria\IslandArchitect\conversion\ConvertSession;
+use Clouria\IslandArchitect\{
+	conversion\ConvertSession,
+	api\RandomGenerationTile
+};
 
 use function strtolower;
 use function implode;
@@ -57,6 +64,7 @@ class IslandArchitect extends PluginBase implements Listener {
 			$this->getServer()->getPluginManager()->disablePlugin($this);
 			return;
 		}
+		RandomGenerationTile::registerTile(RandomGenerationTile::class, ['RandomGenerationTile']);
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 		$this->registerCommands();
 	}
@@ -124,8 +132,32 @@ class IslandArchitect extends PluginBase implements Listener {
 		}
 	}
 
+	/**
+	 * @ignoreCancelled
+	 */
 	public function onPlayerChat(PlayerChatEvent $ev) : void {
 		foreach ($this->sessions as $s) $s->onPlayerChat($ev);
+	}
+
+	/**
+	 * @ignoreCancelled
+	 */
+	public function onPlayerInteract(PlayerInteractEvent $ev) : void {
+		foreach ($this->sessions as $s) $s->onPlayerInteract($ev);
+	}
+
+	/**
+	 * @ignoreCancelled
+	 */
+	public function onBlockPlace(BlockPlaceEvent $ev) : void {
+		foreach ($this->sessions as $s) $s->onBlockPlace($ev);
+	}
+
+	/**
+	 * @ignoreCancelled
+	 */
+	public function onBlockBreak(BlockBreakEvent $ev) : void {
+		foreach ($this->sessions as $s) $s->onBlockBreak($ev);
 	}
 
 	public static function getInstance() : ?self {

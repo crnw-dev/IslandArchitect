@@ -25,7 +25,8 @@ use Clouria\IslandArchitect\IslandArchitect;
 use pocketmine\{
 	item\Item,
 	block\Block,
-	utils\Random
+	utils\Random,
+	nbt\tag\ListTag
 }
 
 use function explode;
@@ -99,6 +100,25 @@ class RandomGeneration {
 				return Item::get((int)$block[0], (int)($block[1] ?? 0));
 			}
 		}
+	}
+
+	public static function fromNBT(ListTag $nbt) : self {
+		$self = new self;
+		foreach ($nbt as $block) $self->addBlock($block->getShort('id'), $block->getByte('meta', 0), $block->getShort('chance'));
+		return $self;
+	}
+
+	public function equals(RandomGeneration $regex) : bool {
+		$blocks = $regex->getAllRandomBlocks();
+		foreach ($this->getAllRandomBlocks() as $block => $chance) {
+			if (!isset($blocks[$block])) return false;
+			if ($blocks[$block] != $chance) return false;
+		}
+		foreach ($blocks = $regex->getAllRandomBlocks(); as $block => $chance) {
+			if (!isset($this->blocks[$block])) return false;
+			if ($this->blocks[$block] != $chance) return false;
+		}
+		return true;
 	}
 
 }
