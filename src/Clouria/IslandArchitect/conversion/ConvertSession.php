@@ -47,6 +47,7 @@ use function max;
 use function explode;
 use function random_int;
 use function ceil;
+use function count;
 
 use const INT32_MIN;
 use const INT32_MAX;
@@ -135,6 +136,16 @@ class ConvertSession {
 	 */
 	private $invmenu_selected = null;
 
+	/**
+	 * @var int The positive offset of blocks(chances) display in the inventory, normally 23 as a page since there is 23 available slots.
+	 */
+	private $invmenu_display = 0;
+
+	/**
+	 * @var bool
+	 */
+	private $invmenu_collapse = false;
+
 	public const INVMENU_ITEM_REMOVE = 0;
 	public const INVMENU_ITEM_LUCK = 1;
 	public const INVMENU_ITEM_UNLUCK = 2;
@@ -143,7 +154,7 @@ class ConvertSession {
 	public const INVMENU_ITEM_SEED = 5;
 	public const INVMENU_ITEM_ROLL = 6;
 
-	public function editRandom(?int $id = null, InvMenu $menu = null) : void {
+	public function editRandom(?int $id = null, InvMenu $menu = null, bool $roll_next = true) : void {
 		if (isset($this->randoms[$id])) $r = $this->randoms[$id];
 		else $id = array_push($this->randoms, $r = new RandomGeneration);
 		if (!isset($menu)) {
@@ -152,15 +163,17 @@ class ConvertSession {
 		}
 		$inv = $m->getInventory();
 		$m->setName(TF::DARK_BLUE . 'Random regex ' . TF::BOLD . '#' . $id);
+		$totalchance = 0;
 		foreach ($r->getAllRandomBlocks() as $chance) $totalchance += $chance;
-		foreach ($r->getAllRandomBlocks() as $block => $chance) for ($i=0; $i < max((int)$chance, 1); $i++) {
-			if (++$ti >= 23) continue;
+		foreach ($r->getAllRandomBlocks() as $block => $chance) for ($i=0; $i < (!$this->invmenu_collapse ? max((int)$chance, 1) : 1); $i++) {
+			if (++$ti <= $this->invmenu_display) continue;
+			if (++$ti > ($this->invmenu_display + 23)) continue;
 			$block = explode($block);
-			$item = Item::get((int)$block[0], (int)($block[1] ?? 0));
-			$item->setCustomName(TF::RESET . $item->getVanillaName() . "\n" . TF::YELLOW . 'ID: ' . TF::BOLD . TF::GOLD . (int)$block[0] . "\n" . TF::RESET . TF::YELLOW . 'Data value (Meta ID): ' . TF::BOLD . TF::GOLD . (isset($block[1]) ? (int)$block[1] : TF::ITALIC . 'Randomized') . "\n" . TF::RESET . TF::YELLOW . TF::YELLOW . 'Chance: ' . TF::BOLD . TF::GREEN . (int)$chance . TF::ITALIC . ' (' . round((int)$chance / ($totalchance ?? (int)$chance) * 100, 2) . '%)');
+			$item = Item::get((int)$block[0], (int)($block[1]));
+			$item->setCustomName(TF::RESET . $item->getVanillaName() . "\n" . TF::YELLOW . 'ID: ' . TF::BOLD . TF::GOLD . (int)$block[0] . "\n" . TF::RESET . TF::YELLOW . 'Data value (Meta ID): ' . TF::BOLD . TF::GOLD . (int)$block[1] . "\n" . TF::RESET . TF::YELLOW . TF::YELLOW . 'Chance: ' . TF::BOLD . TF::GREEN . (int)$chance . TF::ITALIC . ' (' . round((int)$chance / ($totalchance ?? (int)$chance) * 100, 2) . '%)');
 			$item->setNamedTagEntry(new CompoundTag('IslandArchitect', [
 				new ShortTag('id', (int)$block[0]),
-				new ByteTag('meta', (int)$block[1] ?? -1)
+				new ByteTag('meta', (int)$block[1])
 			]));
 			$inv->setItem($ti - 1, $item, false);
 		}
@@ -183,12 +196,13 @@ class ConvertSession {
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_UNLUCK)]));
 		$inv->setItem(38, $i, false);
 
-		$i = Item::get(Item::PAPER);
+		$i = Item::get($this->invmenu_display > 23 ? Item::EMPTYMAP : Item::PAPER, 0, ceil($this->invmenu_display / 23));
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Previous page');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_PREVIOUS)]));
 		$inv->setItem(39, $i, false);
 
-		$i = Item::get(Item::EMPTYMAP, max(ceil($totalchance / 23), 64) - 1);
+		$tdi = !$this->invmenu_collapse ? $totalchance : count($r->getAllRandomBlocks()); // Total display item
+		$i = $i = Item::get($tdi / 23 < 1 ? Item::PAPER : Item::EMPTYMAP, max(ceil($tdi / 23) - 1, 1));
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Next page');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_NEXT)]));
 		$inv->setItem(40, $i, false);
@@ -198,15 +212,18 @@ class ConvertSession {
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_SEED)]));
 		$inv->setItem(42, $i, false);
 
-		$i = Item::get(Item::EXPERIENCE_BOTTLE, ++$this->invmenu_random_rolled_times);
+		$i = Item::get(Item::EXPERIENCE_BOTTLE, 0, $roll_next ? ++$this->invmenu_random_rolled_times : $this->invmenu_random_rolled_times);
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Next roll');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_ROLL)]));
 		$inv->setItem(43, $i, false);
 
-		$i = $r->randomBlock($this->invmenu_random);
-		$i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', -1)]));
-		$inv->setItem(44, $i, false);
+		if ($roll_next) {
+			$i = $r->randomBlock($this->invmenu_random);
+			$i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
+			$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', -1)]));
+			$inv->setItem(44, $i, false);
+		}
+
 		$inv->sendContents($inv->getViewers());
 		$m->setListener(InvMenu::readonly(function (InvMenuTransaction $transaction) use ($r) : void {
 			$in = $transaction->getIn();
@@ -235,9 +252,18 @@ class ConvertSession {
 					break;
 
 				case self::INVMENU_ITEM_PREVIOUS:
+					if ($this->invmenu_display <= 0) break;
+					$this->invmenu_display -= 23;
+					$this->editRandom($id, $m, false);
 					break;
 
 				case self::INVMENU_ITEM_NEXT:
+					$totalitem = 0;
+					if (!$this->invmenu_collapse) foreach ($r->getAllRandomBlocks() as $chance) $totalitem += $chance;
+					else $totalitem = count($r->getAllRandomBlocks());
+					if ($this->invmenu_display / 23 >= ceil($totalitem / 23)) break;
+					$this->invmenu_display += 23;
+					$this->editRandom($id, $m, false);
 					break;
 
 				case self::INVMENU_ITEM_SEED:
