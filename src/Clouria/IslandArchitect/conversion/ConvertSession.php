@@ -196,7 +196,6 @@ class ConvertSession {
 						return;
 
 					case self::INVMENU_ITEM_LUCK:
-						if ($r->getChanceByItem($this->invmenu_selected) >= 32767) return;
 						$r->addBlockByItem($this->invmenu_selected);
 						$this->editRandom($id, $m)
 						break;
@@ -258,7 +257,7 @@ class ConvertSession {
 		foreach ($r->getAllRandomBlocks() as $block => $chance) for ($i=0; $i < (!$this->invmenu_collapse ? max((int)$chance, 1) : 1); $i++) {
 			if (++$ti <= $this->invmenu_display) continue;
 			if (++$ti > ($this->invmenu_display + 24)) continue;
-			$block = explode($block);
+			$block = explode(':', $block);
 			$item = Item::get((int)$block[0], (int)($block[1]));
 			$selected = false;
 			if (isset($this->invmenu_selected)) $selected = $item->equals($this->invmenu_selected);
@@ -355,7 +354,7 @@ class ConvertSession {
 		$ev->setCancelled();
 		$this->invmenu_seed_lock[2]->cancel();
 		$msg = $ev->getMessage();
-		$this->invmenu_random = new Random(empty(preg_replace('/[0-9]+/i', '', $msg)) ? (int)$msg : TemplateIslandGenerator::convertSeed($msg));
+		$this->invmenu_random = new Random(empty(preg_replace('/[0-9-]+/i', '', $msg)) ? (int)$msg : TemplateIslandGenerator::convertSeed($msg));
 		$this->editRandom($this->invmenu_seed_lock[0], $this->invmenu_seed_lock[1]);
 		$this->invmenu_seed_lock = null;
 	}
@@ -364,7 +363,7 @@ class ConvertSession {
 		$inv = $this->getPlayer()->getInventory();
 		if ($removeDuplicatedItem) foreach ($inv->getContents() as $index => $i) if (($nbt = $i->getNamedTagEntry('IslandArchitect')) !== null) if (($nbt = $nbt->getCompoundTag('random-generation')) !== null) if ($nbt->getShort('regexid', -1) === $id) $inv->clear($index);
 		foreach ($this->randoms[$id]->getAllRandomBlocks() as $block => $chance) {
-			$block = explode($block);
+			$block = explode(':', $block);
 			$regex[] = new CompoundTag('', [
 				new ShortTag('id', (int)$block[0]);
 				new ByteTag('meta', (int)($block[1] ?? 0))
