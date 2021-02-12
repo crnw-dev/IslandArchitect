@@ -25,6 +25,7 @@ use pocketmine\{
 	plugin\PluginBase,
 	command\Command,
 	command\CommandSender,
+	command\PluginCommand,
 	utils\TextFormat as TF,
 	level\Position,
 	scheduler\ClosureTask
@@ -149,9 +150,10 @@ class IslandArchitect extends PluginBase implements Listener {
 					else $cmds[] = 'reset ' . TF::ITALIC . TF::GRAY . '(Reset your convert session instance)';
 				}
 				if ($sender->hasPermission('island-architect.reset-all')) $cmds[] = 'reset-all ' . TF::ITALIC . TF::GRAY . '(Destruct all the convert session instances for saving up server memory)';
-				$sender->sendMessage(TF::BOLD . TF::YELLOW . 'Available subcommands: ' . $glue = ("\n" . TF::RESET . '- ' . TF::YELLOW). implode($glue, $cmds ?? ['help']));
+				$sender->sendMessage(TF::BOLD . TF::GOLD . 'Available subcommands: ' . ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $cmds ?? ['help']));
 				break;
 		}
+		return true;
 	}
 
 	/**

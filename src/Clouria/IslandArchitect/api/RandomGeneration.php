@@ -27,7 +27,7 @@ use pocketmine\{
 	block\Block,
 	utils\Random,
 	nbt\tag\ListTag
-}
+};
 
 use function explode;
 
@@ -47,7 +47,7 @@ class RandomGeneration {
 	 */
 	public function removeBlock(int $id, int $meta = 0, ?int $chance = null) : bool {
 		if (!isset($chance)) {
-			unset($this->blocks[$id . ':' . $meta] ?? 0);
+			unset($this->blocks[$id . ':' . $meta]);
 			return true;
 		}
 		if (($this->blocks[$id . ':' . $meta] ?? 0) - $chance <= 0) return false;
@@ -88,7 +88,7 @@ class RandomGeneration {
 
 		// Random crap "proportional random algorithm" code copied from my old plugin
 		$upperl = -1;
-		foreach ($blocks as $block => $chance) $upperl += $chance
+		foreach ($blocks as $block => $chance) $upperl += $chance;
 		if ($upperl < 0) break;
 		$rand = $random->nextRange(0, $upperl);
 
@@ -114,7 +114,7 @@ class RandomGeneration {
 			if (!isset($blocks[$block])) return false;
 			if ($blocks[$block] != $chance) return false;
 		}
-		foreach ($blocks = $regex->getAllRandomBlocks(); as $block => $chance) {
+		foreach ($blocks = $regex->getAllRandomBlocks() as $block => $chance) {
 			if (!isset($this->blocks[$block])) return false;
 			if ($this->blocks[$block] != $chance) return false;
 		}

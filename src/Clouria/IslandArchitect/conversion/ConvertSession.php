@@ -40,7 +40,7 @@ use pocketmine\nbt\tag\{
 	ByteTag,
 	ListTag,
 	StringTag
-}
+};
 
 use muqsit\invmenu\{
 	InvMenu,
@@ -132,7 +132,7 @@ class ConvertSession {
 	/**
 	 * @return RandomGeneration[]
 	 */
-	public function getRandoms() array {
+	public function getRandoms() : array {
 		return $this->randoms;
 	}
 
@@ -201,7 +201,7 @@ class ConvertSession {
 
 					case self::INVMENU_ITEM_LUCK:
 						$r->addBlockByItem($this->invmenu_selected);
-						$this->editRandom($id, $m)
+						$this->editRandom($id, $m);
 						break;
 
 					case self::INVMENU_ITEM_UNLUCK:
@@ -266,7 +266,12 @@ class ConvertSession {
 			$selected = false;
 			if (isset($this->invmenu_selected)) $selected = $item->equals($this->invmenu_selected);
 			if ($selected) $item = Item::get(Item::WOOL, 5);
-			$item->setCustomName(TF::RESET . $item->getVanillaName() . "\n" . TF::YELLOW . 'ID: ' . TF::BOLD . TF::GOLD . (int)$block[0] . "\n" . TF::RESET . TF::YELLOW . 'Data value (Meta ID): ' . TF::BOLD . TF::GOLD . (int)$block[1] . "\n" . TF::RESET . TF::YELLOW . TF::YELLOW . 'Chance: ' . TF::BOLD . TF::GREEN . (int)$chance . TF::ITALIC . ' (' . round((int)$chance / ($totalchance ?? (int)$chance) * 100, 2) . '%)' . "\n\n" . TF::RESET . TF::ITALIC . TF::GRAY . !$selected . '(Click / drop to select this block)' : '(Click / drop again to cancel the select)');
+			$item->setCustomName(
+				TF::RESET . $item->getVanillaName() . "\n" .
+				TF::YELLOW . 'ID: ' . TF::BOLD . TF::GOLD . (int)$block[0] . "\n" .
+				TF::RESET . TF::YELLOW . 'Data value (Meta ID): ' . TF::BOLD . TF::GOLD . (int)$block[1] . "\n" .
+				TF::RESET . TF::YELLOW . TF::YELLOW . 'Chance: ' . TF::BOLD . TF::GREEN . (int)$chance . TF::ITALIC . ' (' . round((int)$chance / ($totalchance ?? (int)$chance) * 100, 2) . '%)' . "\n\n" .
+				TF::RESET . TF::ITALIC . TF::GRAY . (!$selected ? '(Click / drop to select this block)' : '(Click / drop again to cancel the select)'));
 			$item->setNamedTagEntry(new CompoundTag('IslandArchitect', [
 				new ShortTag('id', (int)$block[0]),
 				new ByteTag('meta', (int)$block[1])
@@ -276,7 +281,7 @@ class ConvertSession {
 		foreach ([24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 42] as $slot) $inv->setItem($slot, Item::ge, falset(Item::INVISIBLEBEDROCK));
 
 		$prefix = TF::RESET . TF::BOLD . TF::GRAY;
-		$surfix = . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Please select a block first)';
+		$surfix = "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Please select a block first)';
 		$i = Item::get(Item::CONCRETE, 7);
 		$i->setCustomName($prefix . 'Remove' . $surfix);
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_REMOVE)]));
@@ -385,8 +390,8 @@ class ConvertSession {
 		foreach ($randomgeneration->getAllRandomBlocks() as $block => $chance) {
 			$block = explode(':', $block);
 			$regex[] = new CompoundTag('', [
-				new ShortTag('id', (int)$block[0]);
-				new ByteTag('meta', (int)($block[1] ?? 0))
+				new ShortTag('id', (int)$block[0]),
+				new ByteTag('meta', (int)($block[1] ?? 0)),
 				new ShortTag('chance', (int)$chance)
 			]);
 		}
