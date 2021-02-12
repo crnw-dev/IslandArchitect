@@ -37,6 +37,7 @@ class RandomGeneration {
 
 	public function addBlock(int $id, int $meta = 0, int $chance = 1) : bool {
 		if (($this->blocks[$id . ':' . $meta] ?? 0) + $chance > 32767) return false;
+		if (!isset($this->blocks[$id . ':' . $meta])) $this->blocks[$id . ':' . $meta] = 0;
 		$this->blocks[$id . ':' . $meta] += $chance;
 		return true;
 	}
@@ -51,6 +52,7 @@ class RandomGeneration {
 			return true;
 		}
 		if (($this->blocks[$id . ':' . $meta] ?? 0) - $chance <= 0) return false;
+		if (!isset($this->blocks[$id . ':' . $meta])) $this->blocks[$id . ':' . $meta] = 0;
 		$this->blocks[$id . ':' . $meta] -= $chance;
 		return true;
 	}
@@ -63,7 +65,7 @@ class RandomGeneration {
 	public function addBlockByItem($item, int $chance = 1) : bool {
 		if (!$item instanceof Block) $item->getBlock();
 		if ($item->getId() === Block::AIR) return false;
-		$this->addBlock($item->getId(), $item->getDamage(), $chance);
+		return $this->addBlock($item->getId(), $item->getDamage(), $chance);
 	}
 
 	/**
@@ -72,7 +74,7 @@ class RandomGeneration {
 	 * @return bool
 	 */
 	public function removeBlockByItem($item, ?int $chance = null) : bool {
-		$this->removeBlock($item->getId(), $item->getDamage(), $chance);
+		return $this->removeBlock($item->getId(), $item->getDamage(), $chance);
 	}
 
 	/**

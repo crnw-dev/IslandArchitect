@@ -22,7 +22,6 @@ namespace Clouria\IslandArchitect\conversion;
 
 use pocketmine\{
 	Player,
-	Server,
 	level\Position,
 	level\Level,
 	item\Item,
@@ -52,6 +51,7 @@ use muqsit\invmenu\{
 };
 
 use Clouria\IslandArchitect\{
+	IslandArchitect,
 	api\RandomGeneration,
 	api\RandomGenerationTile,
 	api\TemplateIslandGenerator
@@ -174,6 +174,7 @@ class ConvertSession {
 	public const INVMENU_ITEM_ROLL = 6;
 	public const INVMENU_ITEM_SELECTED = 7;
 	public const INVMENU_ITEM_COLLAPSE = 8;
+	public const INVMENU_ITEM_FRAME = 9;
 
 	public function editRandom(?int $id = null, ?InvMenu $menu = null, bool $roll_next = true) : void {
 		if (isset($this->randoms[$id])) $r = $this->randoms[$id];
@@ -194,7 +195,7 @@ class ConvertSession {
 					return;
 				}
 				$nbt = $transaction->getOut()->getNamedTagEntry('IslandArchitect');
-				if ($nbt !== null) $nbt = $nbt->getInt('action');
+				if ($nbt !== null) $nbt = $nbt->getByte('action');
 				if ($nbt !== null) switch ($nbt) {
 					case self::INVMENU_ITEM_REMOVE:
 						if (!isset($this->invmenu_selected)) break;
@@ -204,11 +205,13 @@ class ConvertSession {
 						return;
 
 					case self::INVMENU_ITEM_LUCK:
+						if (!isset($this->invmenu_selected)) return;
 						$r->addBlockByItem($this->invmenu_selected);
 						$this->editRandom($id, $m);
 						break;
 
 					case self::INVMENU_ITEM_UNLUCK:
+						if (!isset($this->invmenu_selected)) return;
 						$r->removeBlockByItem($this->invmenu_selected, 1);
 						break;
 
@@ -222,24 +225,24 @@ class ConvertSession {
 						$totalitem = 0;
 						if (!$this->invmenu_collapse) foreach ($r->getAllRandomBlocks() as $chance) $totalitem += $chance;
 						else $totalitem = count($r->getAllRandomBlocks());
-						if ($this->invmenu_display / 33 >= (int)ceil($totalitem / 33)) break;
+						if (($this->invmenu_display + 33) / 33 >= (int)ceil($totalitem / 33)) break;
 						$this->invmenu_display += 33;
 						$this->editRandom($id, $m, false);
 						break;
 
 					case self::INVMENU_ITEM_SEED:
 						$this->getPlayer()->sendMessage(TF::YELLOW . 'Pleas enter a seed (Wait 10 second to cancel)');;
-						$task = Server::getInstance()->getScheduler()->scheduleDelayedTask(function(int $ct) : void {
+						$task = IslandArchitect::getInstance()->getScheduler()->scheduleDelayedTask(new ClosureTask(function(int $ct) : void {
 							$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'No respond for too long (Timeout)');
 							$this->invmenu_seed_lock = null;
-						}, 20 * 10);
+						}), 20 * 10);
 						$this->invmenu_seed_lock = [$id, $m, $task];
 						break;
 
 					case self::INVMENU_ITEM_ROLL:
 						$i = $r->randomBlock($this->invmenu_random);
 						$i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
-						$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', -1)]));
+						$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
 						$inv->setItem(44, $i);
 						break;
 
@@ -249,7 +252,7 @@ class ConvertSession {
 						break;
 
 				} else {
-					if (!isset($this->invmenu_selected)) $this->invmenu_selected = clone $item;
+					if (!isset($this->invmenu_selected)) $this->invmenu_selected = clone $out;
 					else $this->invmenu_selected = null;
 					$this->editRandom($id, $m, false);
 				}
@@ -282,13 +285,16 @@ class ConvertSession {
 			]));
 			$inv->setItem($ti - 1, $item, false);
 		}
-		foreach ([24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 42] as $slot) $inv->setItem($slot + 9, Item::get(Item::INVISIBLEBEDROCK), false);
+
+		$i = Item::get(Item::INVISIBLEBEDROCK);
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::INVMENU_ITEM_FRAME)]));
+		foreach ([24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 42] as $slot) $inv->setItem($slot + 9, $i, false);
 
 		$prefix = TF::RESET . TF::BOLD . TF::GRAY;
 		$surfix = "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Please select a block first)';
 		$i = Item::get(Item::CONCRETE, 7);
 		$i->setCustomName($prefix . 'Remove' . $surfix);
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_REMOVE)]));
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::INVMENU_ITEM_REMOVE)]));
 		$inv->setItem(36 + 9, $i, false);
 
 		/**
@@ -296,34 +302,41 @@ class ConvertSession {
 		 */
 		$i = Item::get(Item::STONE);
 		$i->setCustomName($prefix . 'Increase chance' . $surfix);
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_LUCK)]));
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::INVMENU_ITEM_LUCK)]));
 		$inv->setItem(37 + 9, $i, false);
 
 		$i = Item::get(Item::STONE);
 		$i->setCustomName($prefix . 'Decrease chance' . $surfix);
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_UNLUCK)]));
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::INVMENU_ITEM_UNLUCK)]));
 		$inv->setItem(38 + 9, $i, false);
 
-		$i = Item::get($this->invmenu_display > 33 ? Item::EMPTYMAP : Item::PAPER, 0, (int)ceil($this->invmenu_display / 33));
+		$i = Item::get(($this->invmenu_display > 33 ? Item::EMPTYMAP : Item::PAPER), 0, (int)ceil(($this->invmenu_display + 33) / 33));
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Previous page');
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_PREVIOUS)]));
-		$inv->setItem(39 + 9, $i, false);
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::INVMENU_ITEM_PREVIOUS)]));
+		$inv->setItem(43 + 9, $i, false);
 
 		$tdi = !$this->invmenu_collapse ? $totalchance : count($r->getAllRandomBlocks()); // Total display item
 		$i = $i = Item::get($tdi / 33 < 1 ? Item::PAPER : Item::EMPTYMAP, max((int)ceil($tdi / 33) - 1, 1));
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Next page');
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_NEXT)]));
-		$inv->setItem(43 + 9, $i, false);
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::INVMENU_ITEM_NEXT)]));
+		$inv->setItem(44 + 9, $i, false);
 
 		$i = Item::get(Item::SEEDS);
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . (int)(($this->invmenu_random ?? $this->invmenu_random = new Random(random_int(INT32_MIN, INT32_MAX)))->getSeed()) . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to edit seed or reset random)');
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_SEED)]));
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::INVMENU_ITEM_SEED)]));
 		$inv->setItem(39 + 9, $i, false);
 
 		$i = Item::get(Item::EXPERIENCE_BOTTLE, 0, $roll_next ? ++$this->invmenu_random_rolled_times : $this->invmenu_random_rolled_times);
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Next roll');
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_ROLL)]));
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::INVMENU_ITEM_ROLL)]));
 		$inv->setItem(40 + 9, $i, false);
+		
+		if ($roll_next) {
+			$i = $r->randomBlock($this->invmenu_random);
+			$i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
+			$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
+			$inv->setItem(41 + 9, $i, false);
+		}
 
 		if (!isset($this->invmenu_selected)) {
 			$i = Item::get(Item::END_PORTAL);
@@ -332,20 +345,13 @@ class ConvertSession {
 			$i = clone $this->invmenu_selected;
 			$i->setCustomName(TF::RESET . TF::YELLOW . 'Selected block: ' . TF::BOLD . TF::GOLD . $i->getVanillaName());
 		}
-		
-		if ($roll_next) {
-			$i = $r->randomBlock($this->invmenu_random);
-			$i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
-			$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', -1)]));
-			$inv->setItem(41 + 9, $i, false);
-		}
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_SELECTED)]));
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::INVMENU_ITEM_SELECTED)]));
 		$inv->setItem(34 + 9, $i, false);
 
 		$i = Item::get(Item::SHULKER_BOX, $this->invmenu_collapse ? 14 : 5);
 		$i->setCustomName(TF::RESET . TF::YELLOW . 'Show chance as block (Expand mode): ' . TF::BOLD . ($this->invmenu_collapse ? TF::RED . 'Off' : TF::GREEN . 'On') . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to toggle)');
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_COLLAPSE)]));
-		$inv->setItem(43 + 9, $i, false);
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::INVMENU_ITEM_COLLAPSE)]));
+		$inv->setItem(35 + 9, $i, false);
 
 		$inv->sendContents($inv->getViewers());
 	}
