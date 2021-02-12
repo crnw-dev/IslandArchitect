@@ -172,9 +172,7 @@ class ConvertSession {
 	public const INVMENU_ITEM_NEXT = 4;
 	public const INVMENU_ITEM_SEED = 5;
 	public const INVMENU_ITEM_ROLL = 6;
-	public const INVMENU_ITEM_SELECTED = 7;
-	public const INVMENU_ITEM_COLLAPSE = 8;
-	public const INVMENU_ITEM_FRAME = 9;
+	public const INVMENU_ITEM_COLLAPSE = 7;
 
 	public function editRandom(?int $id = null, ?InvMenu $menu = null, bool $roll_next = true) : void {
 		if (isset($this->randoms[$id])) $r = $this->randoms[$id];
@@ -189,12 +187,14 @@ class ConvertSession {
 			$m->send($this->getPlayer());
 			$m->setListener(InvMenu::readonly(function (InvMenuTransaction $transaction) use ($r, $m, $id) : void {
 				$in = $transaction->getIn();
-				if ($in->getBlock()->getId() !== Item::AIR) {
+				$out = $transaction->getOut();
+				$inv = $m->getInventory();
+				if ($transaction->getAction()->getInventory() === $this->getPlayer()->getInventory()) if ($in->getBlock()->getId() !== Item::AIR) {
 					$r->addBlockByItem($in, $in->getCount());
 					$this->editRandom($id, $m);
 					return;
 				}
-				$nbt = $transaction->getOut()->getNamedTagEntry('IslandArchitect');
+				$nbt = $out->getNamedTagEntry('IslandArchitect');
 				if ($nbt !== null) $nbt = $nbt->getByte('action');
 				if ($nbt !== null) switch ($nbt) {
 					case self::INVMENU_ITEM_REMOVE:
@@ -202,16 +202,16 @@ class ConvertSession {
 						$r->removeBlockByItem($this->invmenu_selected);
 						$this->invmenu_selected = null;
 						$this->editRandom($id, $m);
-						return;
+						break;
 
 					case self::INVMENU_ITEM_LUCK:
-						if (!isset($this->invmenu_selected)) return;
+						if (!isset($this->invmenu_selected)) break;
 						$r->addBlockByItem($this->invmenu_selected);
 						$this->editRandom($id, $m);
 						break;
 
 					case self::INVMENU_ITEM_UNLUCK:
-						if (!isset($this->invmenu_selected)) return;
+						if (!isset($this->invmenu_selected)) break;
 						$r->removeBlockByItem($this->invmenu_selected, 1);
 						break;
 
@@ -241,6 +241,7 @@ class ConvertSession {
 
 					case self::INVMENU_ITEM_ROLL:
 						$i = $r->randomBlock($this->invmenu_random);
+						if ($i->getBlock()->getId() === Item::AIR) return;
 						$i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
 						$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
 						$inv->setItem(44, $i);
@@ -252,15 +253,17 @@ class ConvertSession {
 						break;
 
 				} else {
-					if (!isset($this->invmenu_selected)) $this->invmenu_selected = clone $out;
-					else $this->invmenu_selected = null;
-					$this->editRandom($id, $m, false);
+					if ($out->getId() !== Item::AIR) {
+						if (!isset($this->invmenu_selected)) $this->invmenu_selected = clone $out;
+						else $this->invmenu_selected = null;
+						$this->editRandom($id, $m, false);
+					}
 				}
 			}));
 			$m->setInventoryCloseListener(function(Player $p, Inventory $inv) use ($id, $r) : void {
 				self::giveRandomGenerationBlock($this->getPlayer(), $r);
 			});
-		}
+		} else $m = $menu;
 		$inv = $m->getInventory();
 		$m->setName(TF::DARK_BLUE . 'Random regex ' . TF::BOLD . '#' . $id . (isset($this->invmenu_selected) ? ' (Selected ' . $this->invmenu_selected->getId() . ':' . $this->invmenu_selected->getDamage() . ')' : ''));
 		$totalchance = 0;
@@ -287,7 +290,7 @@ class ConvertSession {
 		}
 
 		$i = Item::get(Item::INVISIBLEBEDROCK);
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::INVMENU_ITEM_FRAME)]));
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
 		foreach ([24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 42] as $slot) $inv->setItem($slot + 9, $i, false);
 
 		$prefix = TF::RESET . TF::BOLD . TF::GRAY;
@@ -333,7 +336,10 @@ class ConvertSession {
 		
 		if ($roll_next) {
 			$i = $r->randomBlock($this->invmenu_random);
-			$i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
+			if ($i->getBlock()->getId() === Item::AIR) {
+				$i = Item::get(Item::END_PORTAL);
+				$i->setCustomName(TF::GRAY . '(No random output)');
+			} else $i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
 			$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
 			$inv->setItem(41 + 9, $i, false);
 		}
@@ -345,7 +351,7 @@ class ConvertSession {
 			$i = clone $this->invmenu_selected;
 			$i->setCustomName(TF::RESET . TF::YELLOW . 'Selected block: ' . TF::BOLD . TF::GOLD . $i->getVanillaName());
 		}
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::INVMENU_ITEM_SELECTED)]));
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
 		$inv->setItem(34 + 9, $i, false);
 
 		$i = Item::get(Item::SHULKER_BOX, $this->invmenu_collapse ? 14 : 5);
