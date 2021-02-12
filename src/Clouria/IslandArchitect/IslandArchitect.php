@@ -46,6 +46,7 @@ use Clouria\IslandArchitect\{
 use function strtolower;
 use function implode;
 use function spl_object_id;
+use function count;
 
 class IslandArchitect extends PluginBase implements Listener {
 
@@ -98,12 +99,28 @@ class IslandArchitect extends PluginBase implements Listener {
 		if (!$sender instanceof Player) $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
 		else switch (strtolower($args[0] ?? 'help')) {
 			case 'reset':
-				$this->getSession($sender)->resetSession();
+				if (isset($args[1])) {
+					if (!$sender->hasPermission('island-architect.reset-all')) return false;
+					$sp = $this->getServer()->getPlayer(implode(' ', $args));
+					if (!isset($sp)) {
+						$sender->sendMessage(TF::BOLD . TF::RED . 'Player not found!');
+						return true;
+					}
+				} else $sp = $sender;
+				$sp->sendMessage(TF::BOLD . TF::GOLD . 'Your convert session has been ' . TF::RED . 'reset!');
+				unset($this->sessions[spl_object_id($sp)]);
+				break;
+
+			case 'reset-all':
+				if (!$sender->hasPermission('island-architect.reset-all')) return false;
+				$sender->sendMessage(TF::BOLD . TF::YELLOW . 'Destructed ' . TF::GREEN . count($this->sessions) . TF::YELLOW . ' convert session instances!s');
+				$this->sessions = [];
 				break;
 
 			case 'pos1':
 			case 'p1':
 			case '1':
+				if (!$sender->hasPermission('island-architect.convert')) return false;
 				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
 				$this->getSession($sender)->startCoord($vec ?? $sender->asPosition());
 				break;
@@ -111,6 +128,7 @@ class IslandArchitect extends PluginBase implements Listener {
 			case 'pos2':
 			case 'p2':
 			case '2':
+				if (!$sender->hasPermission('island-architect.convert')) return false;
 				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
 				$this->getSession($sender)->endCoord($vec ?? $sender->asPosition());
 				break;
@@ -127,7 +145,10 @@ class IslandArchitect extends PluginBase implements Listener {
 					$cmds[] = 'pos2 [xyz: int] ' . TF::ITALIC . TF::GRAY . '(Set the end coordinate of the island for convert)';
 					$cmds[] = 'convert ' . TF::ITALIC . TF::GRAY . '(Convert the selected island area to JSON island template file)';
 					$cmds[] = 'random [Random function ID: int] ' . TF::ITALIC . TF::GRAY . '(Setup random blocks generation)';
+					if ($sender->hasPermission('island-architect.reset-all')) $cmds[] = 'reset [Player: string] ' . TF::ITALIC . TF::GRAY . '(Reset someone\'s convert session instance)';
+					else $cmds[] = 'reset ' . TF::ITALIC . TF::GRAY . '(Reset your convert session instance)';
 				}
+				if ($sender->hasPermission('island-architect.reset-all')) $cmds[] = 'reset-all ' . TF::ITALIC . TF::GRAY . '(Destruct all the convert session instances for saving up server memory)';
 				$sender->sendMessage(TF::BOLD . TF::YELLOW . 'Available subcommands: ' . $glue = ("\n" . TF::RESET . '- ' . TF::YELLOW). implode($glue, $cmds ?? ['help']));
 				break;
 		}
