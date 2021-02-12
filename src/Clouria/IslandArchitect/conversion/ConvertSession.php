@@ -30,9 +30,13 @@ use pocketmine\{
 	math\Vector3,
 	utils\TextFormat as TF,
 	utils\Random,
-	event\player\PlayerChatEvent,
 	scheduler\TaskHandler,
 	scheduler\ClosureTask
+};
+use pocketmine\event\{
+	player\PlayerChatEvent,
+	player\PlayerInteractEvent,
+	block\BlockPlaceEvent
 };
 use pocketmine\nbt\tag\{
 	CompoundTag,
@@ -63,6 +67,8 @@ use function count;
 use function preg_replace;
 use function time;
 use function array_push;
+use function class_exists;
+use function implode;
 
 use const INT32_MIN;
 use const INT32_MAX;
@@ -365,8 +371,8 @@ class ConvertSession {
 	public function onBlockPlace(BlockPlaceEvent $ev) : void {
 		if ($ev->getPlayer() !== $this->getPlayer()) return;
 		if (($nbt = $ev->getItem()->getNamedTagEntry('IslandArchitect')) === null) return;
-		if (($nbt = $ev->getCompoundTag('random-generation')) === null) return;
-		if (($nbt = $ev->getListTag('regex')) === null) return;
+		if (($nbt = $nbt->getCompoundTag('random-generation')) === null) return;
+		if (($nbt = $nbt->getListTag('regex')) === null) return;
 		$tile = RandomGenerationTile::createTile('RandomGenerationTile', $this->getPlayer()->getLevel(), RandomGenerationTile::createNBT($ev->getBlock()->asVector3(), null, $ev->getItem()));
 	}
 
@@ -385,7 +391,7 @@ class ConvertSession {
 	}
 
 	public static function giveRandomGenerationBlock(Player $player, RandomGeneration $randomgeneration, bool $removeDuplicatedItem = true) : void {
-		$inv = $this->getPlayer()->getInventory();
+		$inv = $player->getInventory();
 		if ($removeDuplicatedItem) foreach ($inv->getContents() as $index => $i) if (($nbt = $i->getNamedTagEntry('IslandArchitect')) !== null) if (($nbt = $nbt->getCompoundTag('random-generation')) !== null) if (($nbt = $nbt->getListTag('regex')) !== null) if (RandomGeneration::fromNBT($nbt)->equals($randomgeneration)) $inv->clear($index);
 		foreach ($randomgeneration->getAllRandomBlocks() as $block => $chance) {
 			$block = explode(':', $block);
@@ -396,7 +402,12 @@ class ConvertSession {
 			]);
 		}
 		$i = Item::get(Item::CYAN_GLAZED_TERRACOTTA, 0, 64);
-		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . 'Random generation (Regex #' . $id . ')');
+		foreach ($randomgeneration->getAllRandomBlocks() as $block => $chance) {
+			$block = explode($block);
+			$bi = Item::get((int)$block[0], (int)($block[1] ?? 0));
+			$blockslore[] = $bi->getName() . ' (' . $bi->getId() . ':' . $bi->getDamage() . '): ' . TF::BOLD . TF::GREEN . $chance . TF::ITALIC . ' (' . round((int)$chance / ($totalchance ?? (int)$chance) * 100, 2) . '%)';
+		}
+		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . 'Random generation' . (!empty($blockslore ?? []) ? ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $blockslore ?? []) : ''));
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new CompoundTag('random-generation', [
 			new ListTag('regex', $regex ?? [])
 		])]));

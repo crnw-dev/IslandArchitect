@@ -89,7 +89,7 @@ class RandomGeneration {
 		// Random crap "proportional random algorithm" code copied from my old plugin
 		$upperl = -1;
 		foreach ($blocks as $block => $chance) $upperl += $chance;
-		if ($upperl < 0) break;
+		if ($upperl < 0) return Block::get(Block::AIR);
 		$rand = $random->nextRange(0, $upperl);
 
 		$upperl = -1;

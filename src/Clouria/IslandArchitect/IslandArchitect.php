@@ -114,7 +114,7 @@ class IslandArchitect extends PluginBase implements Listener {
 
 			case 'reset-all':
 				if (!$sender->hasPermission('island-architect.reset-all')) return false;
-				$sender->sendMessage(TF::BOLD . TF::YELLOW . 'Destructed ' . TF::GREEN . count($this->sessions) . TF::YELLOW . ' convert session instances!s');
+				$sender->sendMessage(TF::BOLD . TF::YELLOW . 'Destructed ' . TF::GREEN . count($this->sessions) . TF::YELLOW . ' convert session instances!');
 				$this->sessions = [];
 				break;
 
@@ -123,7 +123,9 @@ class IslandArchitect extends PluginBase implements Listener {
 			case '1':
 				if (!$sender->hasPermission('island-architect.convert')) return false;
 				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
-				$this->getSession($sender)->startCoord($vec ?? $sender->asPosition());
+				$vec = $vec ?? $sender->asPosition();
+				$sender->sendMessage(TF::YELLOW . 'Start coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
+				$this->getSession($sender)->startCoord($vec);
 				break;
 
 			case 'pos2':
@@ -131,7 +133,9 @@ class IslandArchitect extends PluginBase implements Listener {
 			case '2':
 				if (!$sender->hasPermission('island-architect.convert')) return false;
 				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
-				$this->getSession($sender)->endCoord($vec ?? $sender->asPosition());
+				$vec = $vec ?? $sender->asPosition();
+				$sender->sendMessage(TF::YELLOW . 'End coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
+				$this->getSession($sender)->endCoord($vec);
 				break;
 
 			case 'random':

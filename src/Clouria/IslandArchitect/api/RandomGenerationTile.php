@@ -38,7 +38,7 @@ class RandomGenerationTile extends Tile {
 	}
 
 	protected function readSaveData(CompoundTag $nbt) : void{
-		$this->nbt = clone $nbt;
+		$this->nbt = clone $nbt->getListTag('regex');
 	}
 
 	protected function writeSaveData(CompoundTag $nbt) : void{
