@@ -48,8 +48,6 @@ use pocketmine\nbt\tag\{
 
 use muqsit\invmenu\{
 	InvMenu,
-	MenuIds,
-	InvMenuHandler,
 	transaction\DeterministicInvMenuTransaction as InvMenuTransaction
 };
 
@@ -186,7 +184,7 @@ class ConvertSession {
 			return;
 		}
 		if (!isset($menu)) {
-			$m = new InvMenu(MenuIds::TYPE_DOUBLE_CHEST);
+			$m = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
 			$m->send($this->getPlayer());
 			$m->setListener(InvMenu::readonly(function (InvMenuTransaction $transaction) use ($r, $m, $id) : void {
 				$in = $transaction->getIn();
@@ -224,7 +222,7 @@ class ConvertSession {
 						$totalitem = 0;
 						if (!$this->invmenu_collapse) foreach ($r->getAllRandomBlocks() as $chance) $totalitem += $chance;
 						else $totalitem = count($r->getAllRandomBlocks());
-						if ($this->invmenu_display / 24 >= ceil($totalitem / 24)) break;
+						if ($this->invmenu_display / 24 >= (int)ceil($totalitem / 24)) break;
 						$this->invmenu_display += 24;
 						$this->editRandom($id, $m, false);
 						break;
@@ -261,7 +259,7 @@ class ConvertSession {
 			});
 		}
 		$inv = $m->getInventory();
-		$m->setName(TF::DARK_BLUE . 'Random regex ' . TF::BOLD . '#' . $id . (isset($this->invmenu_selected) ? ' (Selected ' . $this->invmenu_selected->getId() : ':' . $this->invmenu_selected->getDamage() . ')'));
+		$m->setName(TF::DARK_BLUE . 'Random regex ' . TF::BOLD . '#' . $id . (isset($this->invmenu_selected) ? ' (Selected ' . $this->invmenu_selected->getId() . ':' . $this->invmenu_selected->getDamage() . ')' : ''));
 		$totalchance = 0;
 		foreach ($r->getAllRandomBlocks() as $chance) $totalchance += $chance;
 		foreach ($r->getAllRandomBlocks() as $block => $chance) for ($i=0; $i < (!$this->invmenu_collapse ? max((int)$chance, 1) : 1); $i++) {
@@ -284,7 +282,7 @@ class ConvertSession {
 			]));
 			$inv->setItem($ti - 1, $item, false);
 		}
-		foreach ([24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 42] as $slot) $inv->setItem($slot, Item::ge, falset(Item::INVISIBLEBEDROCK));
+		foreach ([24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 42] as $slot) $inv->setItem($slot, Item::get(Item::INVISIBLEBEDROCK), false);
 
 		$prefix = TF::RESET . TF::BOLD . TF::GRAY;
 		$surfix = "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Please select a block first)';
@@ -306,13 +304,13 @@ class ConvertSession {
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_UNLUCK)]));
 		$inv->setItem(38, $i, false);
 
-		$i = Item::get($this->invmenu_display > 24 ? Item::EMPTYMAP : Item::PAPER, 0, ceil($this->invmenu_display / 24));
+		$i = Item::get($this->invmenu_display > 24 ? Item::EMPTYMAP : Item::PAPER, 0, (int)ceil($this->invmenu_display / 24));
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Previous page');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_PREVIOUS)]));
 		$inv->setItem(39, $i, false);
 
 		$tdi = !$this->invmenu_collapse ? $totalchance : count($r->getAllRandomBlocks()); // Total display item
-		$i = $i = Item::get($tdi / 24 < 1 ? Item::PAPER : Item::EMPTYMAP, max(ceil($tdi / 24) - 1, 1));
+		$i = $i = Item::get($tdi / 24 < 1 ? Item::PAPER : Item::EMPTYMAP, max((int)ceil($tdi / 24) - 1, 1));
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Next page');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_NEXT)]));
 		$inv->setItem(43, $i, false);
@@ -328,7 +326,7 @@ class ConvertSession {
 		$inv->setItem(40, $i, false);
 
 		if (!isset($this->invmenu_selected)) {
-			$i = Item::get(END_PORTAL);
+			$i = Item::get(Item::END_PORTAL);
 			$i->setCustomName(TF::GRAY . '(No selected block)');
 		} else {
 			$i = clone $this->invmenu_selected;
@@ -344,7 +342,7 @@ class ConvertSession {
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_SELECTED)]));
 		$inv->setItem(34, $i, false);
 
-		$i = Item::get(Item::get(SHULKER_BOX, $this->invmenu_collapse ? 14 : 5));
+		$i = Item::get(Item::SHULKER_BOX, $this->invmenu_collapse ? 14 : 5);
 		$i->setCustomName(TF::RESET . TF::YELLOW . 'Show chance as block (Expand mode): ' . TF::BOLD . ($this->invmenu_collapse ? TF::RED . 'Off' : TF::GREEN . 'On') . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to toggle)');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ShortTag('action', self::INVMENU_ITEM_COLLAPSE)]));
 		$inv->setItem(43, $i, false);

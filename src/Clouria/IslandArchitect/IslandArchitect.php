@@ -38,6 +38,8 @@ use pocketmine\event\{
 	block\BlockBreakEvent
 };
 
+use muqsit\invmenu\InvMenuHandler;
+
 use Clouria\IslandArchitect\{
 	conversion\ConvertSession,
 	api\RandomGenerationTile,
@@ -68,6 +70,7 @@ class IslandArchitect extends PluginBase implements Listener {
 			return;
 		}
 		RandomGenerationTile::registerTile(RandomGenerationTile::class, ['RandomGenerationTile']);
+		if(!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 		$this->registerCommands();
 	}
