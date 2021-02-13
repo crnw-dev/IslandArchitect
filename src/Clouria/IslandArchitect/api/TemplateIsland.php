@@ -32,6 +32,8 @@ use funciton array_push;
 use function implode;
 use function explode;
 use function asort;
+use function in_array;
+use function json_encode;
 
 use const SORT_NUMERIC;
 
@@ -42,17 +44,8 @@ class TemplateIsland {
 	 */
 	protected $name;
 
-	/**
-	 * @var string
-	 */
-	protected $orginalName;
-
 	public function getName() : string {
 		return $this->name;
-	}
-
-	public function setName(string $name) : void {
-		$this->name = $name;
 	}
 
 	/**
@@ -125,7 +118,7 @@ class TemplateIsland {
 	}
 
 	/**
-	 * @var int[][][]
+	 * @var array<string, int>
 	 */
 	private $random_blocks = [];
 
@@ -135,11 +128,13 @@ class TemplateIsland {
 		$bb = new BB($sc->getX(), $sc->getY() , $sc->getZ(), $ec->getX(), $ec->getY() , $ec->getZ());
 		$bb->expand(1.0, 1.0, 1.0);
 		if (!$bb->isVectorInside($block)) return false;
-		$this->random_blocks[$block->getFloorX()][$block->getFloorY()][$block->getFloorZ()] = $id;
+		$this->random_blocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()]= $id;
 		return true;
 	}
 
-	public function save() : void {
+	public const VERSION = 1;
+
+	public function save() : string {
 		$data['level'] = $this->getLevel();
 		$data['startcoord'] = $this->getStartCoord();
 		$data['endcoord'] = $this->getEndCoord();
@@ -150,9 +145,9 @@ class TemplateIsland {
 
 	/**
 	 * @param Chunk[] $chunks 
-	 * @return void
+	 * @return string JSON encoded template island data
 	 */
-	public function export(array $chunks) : void {
+	public function export(array $chunks) : string {
 		$sc = $this->getStartCoord();
 		$ec = $this->getEndCoord();
 		$xl[$sc->getFloorX(), $ec->getFloorX()];
@@ -169,17 +164,25 @@ class TemplateIsland {
 				$x -= $xl[0];
 				$y -= $yl[0];
 				$z -= $zl[0];
-				$data['structure'][$x . ':' . $y . ':' . $z . ':'] = $id . ':' . $chunk->getBlockData($x, $y, $z);
+				$coord = $x . ':' . $y . ':' . $z . ':';
+				if (isset($this->random_blocks[$coord])) {
+					$coord = '1:' . ($id = $this->random_blocks[$coord]);
+					$usedrandoms[] = $id;
+					if (($r = $this->getRandomById($this->random_blocks[$coord])) === null) continue;
+					if (!$r->isValid()) continue;
+				} else $data['structure'][$coord] = '0:' . $id . ':' . $chunk->getBlockData($x, $y, $z);
 			}
 		}
 
-		foreach ($this->randoms as $random) $data['randoms'][] = $random->getAllElements();
+		if (!empty($usedrandoms ?? [])) foreach ($this->randoms as $id => $random) if (in_array($id, $usedrandoms)) $data['randoms'][] = $random->getAllElements();
 
 		$this->encode($data);
 	}
 
-	protected function encode(array $data) : void {
+	protected function encode(array $data) : string {
 		$data['version'] = self::VERSION;
 		$data['name'] = $this->getName();
+
+		return json_encode($data);
 	}
 }
