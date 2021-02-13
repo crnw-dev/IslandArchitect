@@ -20,6 +20,10 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\api;
 
+use pocketmine\{
+	math\Vector3
+};
+
 use room17\SkyBlock\island\generator\IslandGenerator;
 
 use function unserialize;
@@ -49,5 +53,17 @@ class TemplateIslandGenerator extends IslandGenerator {
 		foreach ($data->getBlockData() as $blockdata) $chunk->setBlock($blockdata[0], $blockdata[1], $blockdata[2], $blockdata[3], $blockdata[4]);
 		restore_exception_handler();
 	}
+
+	public function getName() : string {
+		return 'TemplateIslandGenerator';
+	}
+
+	public static function getWorldSpawn() : Vector3 {
+    	return new Vector3(0, 0, 0);
+	}
+
+    public static function getChestPosition() : Vector3 {
+    	return new Vector3(0, 0, 0);
+    }
 
 }

@@ -30,7 +30,8 @@ use pocketmine\{
 	utils\TextFormat as TF,
 	utils\Random,
 	scheduler\TaskHandler,
-	scheduler\ClosureTask
+	scheduler\ClosureTask,
+	inventory\Inventory
 };
 use pocketmine\event\{
 	player\PlayerChatEvent,
@@ -165,6 +166,11 @@ class ConvertSession {
 	 */
 	private $invmenu_collapse = false;
 
+	/**
+	 * @var bool A random generation item won't be give to player if this is true
+	 */
+	private $invmenu_item_lock = false;
+
 	public const INVMENU_ITEM_REMOVE = 0;
 	public const INVMENU_ITEM_LUCK = 1;
 	public const INVMENU_ITEM_UNLUCK = 2;
@@ -231,9 +237,16 @@ class ConvertSession {
 						break;
 
 					case self::INVMENU_ITEM_SEED:
+						$this->invmenu_item_lock = true;
+						$this->getPlayer()->removeWindow($inv);
+						$this->invmenu_item_lock = false;
 						$this->getPlayer()->sendMessage(TF::YELLOW . 'Pleas enter a seed (Wait 10 second to cancel)');;
 						$task = IslandArchitect::getInstance()->getScheduler()->scheduleDelayedTask(new ClosureTask(function(int $ct) : void {
-							$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'No respond for too long (Timeout)');
+							if ($this->invmenu_seed_lock !== null) {
+								$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'No respond for too long (Timeout)');
+								$this->editRandom($this->invmenu_seed_lock[0], $this->invmenu_seed_lock[1]);
+								$this->invmenu_seed_lock[1]->send($this->getPlayer());
+							}
 							$this->invmenu_seed_lock = null;
 						}), 20 * 10);
 						$this->invmenu_seed_lock = [$id, $m, $task];
@@ -261,7 +274,7 @@ class ConvertSession {
 				}
 			}));
 			$m->setInventoryCloseListener(function(Player $p, Inventory $inv) use ($id, $r) : void {
-				self::giveRandomGenerationBlock($this->getPlayer(), $r);
+				if (!$this->invmenu_item_lock) self::giveRandomGenerationBlock($this->getPlayer(), $r);
 			});
 		} else $m = $menu;
 		$inv = $m->getInventory();
