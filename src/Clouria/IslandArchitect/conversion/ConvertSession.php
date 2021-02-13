@@ -54,7 +54,7 @@ use jojoe77777\FormAPI\CustomForm;
 use Clouria\IslandArchitect\{
 	IslandArchitect,
 	api\RandomGeneration,
-	api\RandomGenerationTile,
+	api\IslandAttributeTile,
 	api\TemplateIslandGenerator
 };
 
@@ -380,7 +380,7 @@ class ConvertSession {
 		if (($nbt = $ev->getItem()->getNamedTagEntry('IslandArchitect')) === null) return;
 		if (($nbt = $nbt->getCompoundTag('random-generation')) === null) return;
 		if (($nbt = $nbt->getListTag('regex')) === null) return;
-		$tile = RandomGenerationTile::createTile('RandomGenerationTile', $this->getPlayer()->getLevel(), RandomGenerationTile::createNBT($ev->getBlock()->asVector3(), null, $ev->getItem()));
+		$tile = IslandAttributeTile::createTile('IslandAttributeTile', $this->getPlayer()->getLevel(), IslandAttributeTile::createNBT($ev->getBlock()->asVector3(), null, $ev->getItem()));
 	}
 
 	/**
@@ -392,7 +392,7 @@ class ConvertSession {
 		if ($ev->getPlayer() !== $this->getPlayer()) return;
 		if (time() <= $this->invmenu_interact_lock + 10) return;
 		$this->invmenu_interact_lock = time();
-		if (!($tile = $ev->getBlock()->getLevel()->getTile($ev->getBlock()->asVector3())) instanceof RandomGenerationTile) return;
+		if (!($tile = $ev->getBlock()->getLevel()->getTile($ev->getBlock()->asVector3())) instanceof IslandAttributeTile) return;
 		$ev->getBlock()->getLevel()->setBlock($ev->getBlock()->asVector3(), Block::get(Block::AIR));
 		$this->editRandom(array_push($this->randoms, $tile->getRandomGeneration()));
 	}

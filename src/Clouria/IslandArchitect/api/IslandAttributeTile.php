@@ -29,7 +29,7 @@ use pocketmine\{
 };
 use Clouria\IslandArchitect\api\RandomGeneration;
 
-class RandomGenerationTile extends Tile {
+class IslandAttributeTile extends Tile {
 
 	private $nbt = null;
 

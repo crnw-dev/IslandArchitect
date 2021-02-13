@@ -41,7 +41,7 @@ use muqsit\invmenu\InvMenuHandler;
 
 use Clouria\IslandArchitect\{
 	conversion\ConvertSession,
-	api\RandomGenerationTile,
+	api\IslandAttributeTile,
 	api\RandomGeneration
 };
 
@@ -68,7 +68,7 @@ class IslandArchitect extends PluginBase implements Listener {
 			$this->getServer()->getPluginManager()->disablePlugin($this);
 			return;
 		}
-		RandomGenerationTile::registerTile(RandomGenerationTile::class, ['RandomGenerationTile']);
+		IslandAttributeTile::registerTile(IslandAttributeTile::class, ['IslandAttributeTile']);
 		if (class_exists(InvMenuHandler::class)) if(!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 		$this->registerCommands();
@@ -189,7 +189,7 @@ class IslandArchitect extends PluginBase implements Listener {
 	 * @ignoreCancelled
 	 */
 	public function onBlockBreak(BlockBreakEvent $ev) : void {
-		if (!($tile = $ev->getBlock()->getLevel()->getTile($ev->getBlock()->asVector3())) instanceof RandomGenerationTile) return;
+		if (!($tile = $ev->getBlock()->getLevel()->getTile($ev->getBlock()->asVector3())) instanceof IslandAttributeTile) return;
 		$ev->getPlayer()->sendPopup(TF::BOLD . TF::YELLOW . 'You have destroyed a random generation block');
 		foreach ($ev->getPlayer()->getInventory()->getContents() as $item) {
 			$add = false;
