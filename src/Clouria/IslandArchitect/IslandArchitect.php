@@ -47,7 +47,6 @@ use Clouria\IslandArchitect\{
 
 use function strtolower;
 use function implode;
-use function spl_object_id;
 use function count;
 use function class_exists;
 
@@ -96,7 +95,7 @@ class IslandArchitect extends PluginBase implements Listener {
 	}
 
 	public function getSession(Player $player) : ConvertSession {
-		$session = $this->sessions[spl_object_id($player)] ?? ($this->sessions[spl_object_id($player)] = new ConvertSession($player));
+		$session = $this->sessions[$player->getName()] ?? ($this->sessions[$player->getName()] = new ConvertSession($player));
 		$session->updatePlayer($player);
 		return $session;
 	}
@@ -107,14 +106,18 @@ class IslandArchitect extends PluginBase implements Listener {
 			case 'reset':
 				if (isset($args[1])) {
 					if (!$sender->hasPermission('island-architect.reset-all')) return false;
-					$sp = $this->getServer()->getPlayer(implode(' ', $args));
+					$sp = $this->getServer()->getPlayer($args[1]);
 					if (!isset($sp)) {
 						$sender->sendMessage(TF::BOLD . TF::RED . 'Player not found!');
-						return true;
+						break;
 					}
 				} else $sp = $sender;
+				if (!isset($this->sessions[$sp->getName()])) break;
+				if (!$this->sessions[$sp->getName()]->isIdle()) if (!(bool)($args[2] ?? false)) {
+					$sender->sendMessage(TF::BOLD . TF::RED . 'This convert session is not in idle!');
+				}
+				unset($this->sessions[$sp->getName()]);
 				$sp->sendMessage(TF::BOLD . TF::GOLD . 'Your convert session has been ' . TF::RED . 'reset!');
-				unset($this->sessions[spl_object_id($sp)]);
 				break;
 
 			case 'reset-all':
@@ -158,7 +161,7 @@ class IslandArchitect extends PluginBase implements Listener {
 					$cmds[] = 'pos2 [xyz: int] ' . TF::ITALIC . TF::GRAY . '(Set the end coordinate of the island for convert)';
 					$cmds[] = 'convert ' . TF::ITALIC . TF::GRAY . '(Convert the selected island area to JSON island template file)';
 					$cmds[] = 'random [Random function ID: int] ' . TF::ITALIC . TF::GRAY . '(Setup random blocks generation)';
-					if ($sender->hasPermission('island-architect.reset-all')) $cmds[] = 'reset [Player: string] ' . TF::ITALIC . TF::GRAY . '(Reset someone\'s convert session instance)';
+					if ($sender->hasPermission('island-architect.reset-all')) $cmds[] = 'reset [Player: string] [Forced: bool]' . TF::ITALIC . TF::GRAY . '(Reset someone\'s convert session instance)';
 					else $cmds[] = 'reset ' . TF::ITALIC . TF::GRAY . '(Reset your convert session instance)';
 				}
 				if ($sender->hasPermission('island-architect.reset-all')) $cmds[] = 'reset-all ' . TF::ITALIC . TF::GRAY . '(Destruct all the convert session instances for saving up server memory)';

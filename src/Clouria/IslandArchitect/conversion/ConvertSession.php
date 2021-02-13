@@ -196,9 +196,9 @@ class ConvertSession {
 					$this->editRandom($id, $m);
 					return;
 				}
-				$nbt = $out->getNamedTagEntry('IslandArchitect');
-				if ($nbt !== null) $nbt = $nbt->getByte('action');
-				if ($nbt !== null) switch ($nbt) {
+				$nbt = $out->getNamedTagEntry('IslandArchitect') ?? null;
+				if ($nbt !== null) $nbt = $nbt->getTag('action') ?? null;
+				if ($nbt !== null) switch ($nbt->getValue()) {
 					case self::INVMENU_ITEM_REMOVE:
 						if (!isset($this->invmenu_selected)) break;
 						$r->removeBlockByItem($this->invmenu_selected);
@@ -267,13 +267,9 @@ class ConvertSession {
 		$inv = $m->getInventory();
 		$m->setName(TF::DARK_BLUE . 'Random regex ' . TF::BOLD . '#' . $id . (isset($this->invmenu_selected) ? ' (Selected ' . $this->invmenu_selected->getId() . ':' . $this->invmenu_selected->getDamage() . ')' : ''));
 		$totalchance = 0;
+		for ($i=0; $i < $inv->getSize(); $i++) $inv->clear($i, false);
 		foreach ($r->getAllRandomBlocks() as $chance) $totalchance += $chance;
-		foreach ($r->getAllRandomBlocks() as $block => $chance) for ($i=0; $i < (!$this->invmenu_collapse ? max((int)$chance, 1) : 1); $i++) {
-			if (!isset($ti)) $ti = 0;
-			$cti = ++$ti;
-			var_dump($cti, $this->invmenu_display);
-			if ($cti <= $this->invmenu_display) continue;
-			if ($cti > ($this->invmenu_display + 33)) continue;
+		foreach ($r->getAllRandomBlocks() as $block => $chance) {
 			$block = explode(':', $block);
 			$item = Item::get((int)$block[0], (int)($block[1]));
 			$selected = false;
@@ -289,7 +285,13 @@ class ConvertSession {
 				new ShortTag('id', (int)$block[0]),
 				new ByteTag('meta', (int)$block[1])
 			]));
-			$inv->setItem($ti - $this->invmenu_display - 1, $item, false);
+			for ($i=0; $i < (!$this->invmenu_collapse ? max((int)$chance, 1) : 1); $i++) {
+				if (!isset($ti)) $ti = 0;
+				$cti = ++$ti;
+				if ($cti <= $this->invmenu_display) continue;
+				if ($cti > ($this->invmenu_display + 33)) continue;
+				$inv->setItem($ti - $this->invmenu_display - 1, $item, false);
+			}
 		}
 
 		$i = Item::get(Item::INVISIBLEBEDROCK);
@@ -316,7 +318,7 @@ class ConvertSession {
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::INVMENU_ITEM_UNLUCK)]));
 		$inv->setItem(38 + 9, $i, false);
 
-		$i = Item::get(($this->invmenu_display > 33 ? Item::EMPTYMAP : Item::PAPER), 0, (int)ceil(($this->invmenu_display + 33) / 33));
+		$i = Item::get(($this->invmenu_display >= 33 ? Item::EMPTYMAP : Item::PAPER), 0, (int)ceil(($this->invmenu_display + 33) / 33));
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Previous page');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::INVMENU_ITEM_PREVIOUS)]));
 		$inv->setItem(43 + 9, $i, false);
@@ -408,7 +410,7 @@ class ConvertSession {
 		}
 		$i = Item::get(Item::CYAN_GLAZED_TERRACOTTA, 0, 64);
 		foreach ($randomgeneration->getAllRandomBlocks() as $block => $chance) {
-			$block = explode($block);
+			$block = explode(':', $block);
 			$bi = Item::get((int)$block[0], (int)($block[1] ?? 0));
 			$blockslore[] = $bi->getName() . ' (' . $bi->getId() . ':' . $bi->getDamage() . '): ' . TF::BOLD . TF::GREEN . $chance . TF::ITALIC . ' (' . round((int)$chance / ($totalchance ?? (int)$chance) * 100, 2) . '%)';
 		}
