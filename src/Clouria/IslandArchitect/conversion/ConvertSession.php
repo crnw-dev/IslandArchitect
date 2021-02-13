@@ -34,7 +34,6 @@ use pocketmine\{
 	inventory\Inventory
 };
 use pocketmine\event\{
-	player\PlayerChatEvent,
 	player\PlayerInteractEvent,
 	block\BlockPlaceEvent
 };
@@ -50,6 +49,7 @@ use muqsit\invmenu\{
 	InvMenu,
 	transaction\DeterministicInvMenuTransaction as InvMenuTransaction
 };
+use jojoe77777\FormAPI\CustomForm;
 
 use Clouria\IslandArchitect\{
 	IslandArchitect,
@@ -166,11 +166,6 @@ class ConvertSession {
 	 */
 	private $invmenu_collapse = false;
 
-	/**
-	 * @var bool A random generation item won't be give to player if this is true
-	 */
-	private $invmenu_item_lock = false;
-
 	public const INVMENU_ITEM_REMOVE = 0;
 	public const INVMENU_ITEM_LUCK = 1;
 	public const INVMENU_ITEM_UNLUCK = 2;
@@ -237,19 +232,10 @@ class ConvertSession {
 						break;
 
 					case self::INVMENU_ITEM_SEED:
-						$this->invmenu_item_lock = true;
 						$this->getPlayer()->removeWindow($inv);
-						$this->invmenu_item_lock = false;
-						$this->getPlayer()->sendMessage(TF::YELLOW . 'Pleas enter a seed (Wait 10 second to cancel)');;
-						$task = IslandArchitect::getInstance()->getScheduler()->scheduleDelayedTask(new ClosureTask(function(int $ct) : void {
-							if ($this->invmenu_seed_lock !== null) {
-								$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'No respond for too long (Timeout)');
-								$this->editRandom($this->invmenu_seed_lock[0], $this->invmenu_seed_lock[1]);
-								$this->invmenu_seed_lock[1]->send($this->getPlayer());
-							}
-							$this->invmenu_seed_lock = null;
-						}), 20 * 10);
-						$this->invmenu_seed_lock = [$id, $m, $task];
+						$transaction->then(function() use ($id, $m) : void {
+							$this->editSeed($id, $m);
+						});
 						break;
 
 					case self::INVMENU_ITEM_ROLL:
@@ -274,7 +260,7 @@ class ConvertSession {
 				}
 			}));
 			$m->setInventoryCloseListener(function(Player $p, Inventory $inv) use ($id, $r) : void {
-				if (!$this->invmenu_item_lock) self::giveRandomGenerationBlock($this->getPlayer(), $r);
+				self::giveRandomGenerationBlock($this->getPlayer(), $r);
 			});
 		} else $m = $menu;
 		$inv = $m->getInventory();
@@ -337,9 +323,17 @@ class ConvertSession {
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::INVMENU_ITEM_NEXT)]));
 		$inv->setItem(44 + 9, $i, false);
 
-		$i = Item::get(Item::SEEDS);
-		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . (int)(($this->invmenu_random ?? $this->invmenu_random = new Random(random_int(INT32_MIN, INT32_MAX)))->getSeed()) . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to edit seed or reset random)');
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::INVMENU_ITEM_SEED)]));
+		if (!isset($this->invmenu_random)) $this->invmenu_random = new Random(random_int(INT32_MIN, INT32_MAX));
+		$itemname = TF::RESET . TF::BOLD . TF::GOLD . (int)$this->invmenu_random->getSeed();
+		if (class_exists(CustomForm::class)) {
+			$i = Item::get(Item::SEEDS);
+			$i->setCustomName($itemname . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to edit seed or reset random)');
+			$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::INVMENU_ITEM_SEED)]));
+		} else {
+			$i = Item::get(Item::PUMPKIN_SEEDS);
+			$i->setCustomName($itemname . "\n\n" . TF::RESET . TF::BOLD . TF::RED . 'Cannot edit seed due to ' . "\n" . 'required virion "FormAPI" is not installed.');
+			$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
+		}
 		$inv->setItem(39 + 9, $i, false);
 
 		$i = Item::get(Item::EXPERIENCE_BOTTLE, 0, $roll_next ? ++$this->invmenu_random_rolled_times : $this->invmenu_random_rolled_times);
@@ -373,22 +367,6 @@ class ConvertSession {
 		$inv->setItem(35 + 9, $i, false);
 
 		$inv->sendContents($inv->getViewers());
-	}
-
-	/**
-	 * @var array<int, InvMenu, TaskHandler>|null
-	 */
-	private $invmenu_seed_lock = null;
-
-	public function onPlayerChat(PlayerChatEvent $ev) : void {
-		if (!isset($this->invmenu_seed_lock)) return;
-		if (!$ev->getPlayer() === $this->getPlayer()) return;
-		$ev->setCancelled();
-		$this->invmenu_seed_lock[2]->cancel();
-		$msg = $ev->getMessage();
-		$this->invmenu_random = new Random(empty(preg_replace('/[0-9-]+/i', '', $msg)) ? (int)$msg : TemplateIslandGenerator::convertSeed($msg));
-		$this->editRandom($this->invmenu_seed_lock[0], $this->invmenu_seed_lock[1]);
-		$this->invmenu_seed_lock = null;
 	}
 
 	public function onBlockPlace(BlockPlaceEvent $ev) : void {
@@ -435,6 +413,16 @@ class ConvertSession {
 			new ListTag('regex', $regex ?? [])
 		])]));
 		$inv->addItem($i);
+	}
+
+	public function editSeed(?int $id = null, ?InvMenu $menu = null) : void {
+		$f = new CustomForm(function(Player $p, array $d = null) use ($id, $menu) : void {
+			if ($d !== null and !empty($d[0] ?? null)) $this->invmenu_random = new Random(empty(preg_replace('/[0-9-]+/i', '', $d[0])) ? (int)$d[0] : TemplateIslandGenerator::convertSeed($d[0]));
+			$this->editRandom($id, $menu);
+			$menu->send($this->getPlayer());
+		});
+		$f->addInput(TF::BOLD . TF::GOLD . 'Seed: ', 'Empty box to discard change', isset($this->invmenu_random) ? (string)$this->invmenu_random->getSeed() : '');
+		$this->getPlayer()->sendForm($f);
 	}
 
 }

@@ -32,7 +32,6 @@ use pocketmine\{
 };
 use pocketmine\event\{
 	Listener,
-	player\PlayerChatEvent,
 	player\PlayerInteractEvent,
 	block\BlockPlaceEvent,
 	block\BlockBreakEvent
@@ -50,6 +49,7 @@ use function strtolower;
 use function implode;
 use function spl_object_id;
 use function count;
+use function class_exists;
 
 class IslandArchitect extends PluginBase implements Listener {
 
@@ -70,7 +70,7 @@ class IslandArchitect extends PluginBase implements Listener {
 			return;
 		}
 		RandomGenerationTile::registerTile(RandomGenerationTile::class, ['RandomGenerationTile']);
-		if(!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
+		if (class_exists(InvMenuHandler::class)) if(!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 		$this->registerCommands();
 	}
@@ -161,13 +161,6 @@ class IslandArchitect extends PluginBase implements Listener {
 				break;
 		}
 		return true;
-	}
-
-	/**
-	 * @ignoreCancelled
-	 */
-	public function onPlayerChat(PlayerChatEvent $ev) : void {
-		foreach ($this->sessions as $s) $s->onPlayerChat($ev);
 	}
 
 	/**
