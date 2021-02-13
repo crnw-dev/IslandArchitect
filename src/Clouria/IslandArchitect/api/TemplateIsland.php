@@ -20,9 +20,75 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\api;
 
+use pocketmine\{
+	math\Vector3
+};
+
 use funciton array_push;
 
 class TemplateIsland {
+
+	/**
+	 * @var string
+	 */
+	protected $name;
+
+	/**
+	 * @var string
+	 */
+	protected $orginalName;
+
+	public function getName() : string {
+		return $this->name;
+	}
+
+	public function setName(string $name) : void {
+		$this->name = $name;
+	}
+
+	/**
+	 * @var Vector3
+	 */
+	protected $startcoord = null;
+
+	public function getStartCoord() : ?Vector3 {
+		return $this->startcoord;
+	}
+
+	public function setStartCoord(Vector3 $pos) : void {
+		return $this->startcoord = $pos;
+	}
+
+	/**
+	 * @var Vector3
+	 */
+	protected $endcoord = null;
+
+	public function getEndCoord() : ?Vector3 {
+		return $this->endcoord;
+	}
+
+	public function setEndCoord(Vector3 $pos) : void {
+		return $this->endcoord = $pos;
+	}
+
+	/**
+	 * @var Level
+	 */
+	protected $level = null;
+	
+	public function getLevel() : ?Level {
+		return $this->level;
+	}
+
+	public function setLevel(Level $level) : void {
+		return $this->level = $level;
+	}
+
+	/**
+	 * @var RandomGeneration[]
+	 */
+	protected $randoms = [];
 
 	/**
 	 * @return RandomGeneration[]
@@ -45,7 +111,17 @@ class TemplateIsland {
 	 * @param RandomGeneration $random
 	 * @return int The random generation regex ID
 	 */
-	public function attachRandom(RandomGeneration $random) : int {
+	public function addRandom(RandomGeneration $random) : int {
 		return array_push($this->randoms, $random) - 1;
+	}
+
+	public function encode() : void {
+		$data['version'] = self::VERSION;
+		$data['name'] = $this->getName();
+		$data['startcoord'] = $this->getStartCoord();
+		$data['endcoord'] = $this->getEndCoord();
+
+		foreach ($this->randoms as $random) $randoms[] = $random->getAllElements();
+		$data['randoms'] = $randoms ?? [];
 	}
 }
