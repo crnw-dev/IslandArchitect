@@ -21,10 +21,19 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\api;
 
 use pocketmine\{
-	math\Vector3
+	math\Vector3,
+	math\AxisAlignedBB as BB,
+	level\Level,
+	level\format\Chunk,
+	block\Block
 };
 
 use funciton array_push;
+use function implode;
+use function explode;
+use function asort;
+
+use const SORT_NUMERIC;
 
 class TemplateIsland {
 
@@ -73,16 +82,16 @@ class TemplateIsland {
 	}
 
 	/**
-	 * @var Level
+	 * @var string
 	 */
 	protected $level = null;
 	
-	public function getLevel() : ?Level {
+	public function getLevel() : string {
 		return $this->level;
 	}
 
 	public function setLevel(Level $level) : void {
-		return $this->level = $level;
+		return $this->level = $level->getFolderName(0);
 	}
 
 	/**
@@ -115,13 +124,62 @@ class TemplateIsland {
 		return array_push($this->randoms, $random) - 1;
 	}
 
-	public function encode() : void {
-		$data['version'] = self::VERSION;
-		$data['name'] = $this->getName();
+	/**
+	 * @var int[][][]
+	 */
+	private $random_blocks = [];
+
+	public function setBlockRandom(Vector3 $block, int $id) : bool {
+		if (!isset($this->getRandoms()[$id])) return false;
+		if (($sc = $this->getStartCoord()) === null or ($ec = $this->getEndCoord()) === null) return false;
+		$bb = new BB($sc->getX(), $sc->getY() , $sc->getZ(), $ec->getX(), $ec->getY() , $ec->getZ());
+		$bb->expand(1.0, 1.0, 1.0);
+		if (!$bb->isVectorInside($block)) return false;
+		$this->random_blocks[$block->getFloorX()][$block->getFloorY()][$block->getFloorZ()] = $id;
+		return true;
+	}
+
+	public function save() : void {
+		$data['level'] = $this->getLevel();
 		$data['startcoord'] = $this->getStartCoord();
 		$data['endcoord'] = $this->getEndCoord();
+		foreach ($this->randoms as $random) $data['randoms'][] = $random->getAllElements();
 
-		foreach ($this->randoms as $random) $randoms[] = $random->getAllElements();
-		$data['randoms'] = $randoms ?? [];
+		$this->encode($data);
+	}
+
+	/**
+	 * @param Chunk[] $chunks 
+	 * @return void
+	 */
+	public function export(array $chunks) : void {
+		$sc = $this->getStartCoord();
+		$ec = $this->getEndCoord();
+		$xl[$sc->getFloorX(), $ec->getFloorX()];
+		$yl[$sc->getFloorY(), $ec->getFloorY()];
+		$zl[$sc->getFloorZ(), $ec->getFloorZ()];
+		asort($xl, SORT_NUMERIC);
+		asort($yl, SORT_NUMERIC);
+		asort($zl, SORT_NUMERIC);
+		foreach ($chunks as $chunk) $chunksmap[$chunk->getX()][$chunk->getZ()] = $chunk;
+		for ($x = $xl[0]; $x <= $xl[1]; $x++) for ($z = $zl[0]; $z <= $zl[1]; $z++) {
+			$chunk = $chunksmap[$x << 4][$y << 4];
+			for ($y = $yl[0]; $y <= $yl[1]; $y++) {
+				if (($id = $chunk->getBlockId($x, $y, $z)) === Block::AIR) continue;
+				$x -= $xl[0];
+				$y -= $yl[0];
+				$z -= $zl[0];
+				$data['structure'][$x . ':' . $y . ':' . $z . ':'] = $id . ':' . $chunk->getBlockData($x, $y, $z);
+			}
+		}
+
+		foreach ($this->randoms as $random) $data['randoms'][] = $random->getAllElements();
+
+		$this->encode($data);
+	}
+
+	protected function encode(array $data) : void {
+		$data['version'] = self::VERSION;
+		$data['name'] = $this->getName();
 	}
 }
