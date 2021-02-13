@@ -68,6 +68,7 @@ use function time;
 use function array_push;
 use function class_exists;
 use function implode;
+use function spl_object_hash;
 
 use const INT32_MIN;
 use const INT32_MAX;
@@ -177,7 +178,7 @@ class ConvertSession {
 
 	public function editRandom(?int $id = null, ?InvMenu $menu = null, bool $roll_next = true) : void {
 		if (isset($this->randoms[$id])) $r = $this->randoms[$id];
-		else $id = array_push($this->randoms, $r = new RandomGeneration);
+		else $id = array_push($this->randoms, $r = new RandomGeneration) - 1;
 		if (!class_exists(InvMenu::class)) {
 			$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Cannot edit regex due to required virion "InvMenu" is not installed. ' . TF::RESET . TF::AQUA . 'A blank regex has been inserted into the island data, ' . TF::YELLOW . 'you can edit the regex after the island is exported!');
 			self::giveRandomGenerationBlock($this->getPlayer(), $r);
@@ -190,7 +191,7 @@ class ConvertSession {
 				$in = $transaction->getIn();
 				$out = $transaction->getOut();
 				$inv = $m->getInventory();
-				if ($transaction->getAction()->getInventory() === $this->getPlayer()->getInventory()) if ($in->getBlock()->getId() !== Item::AIR) {
+				if (isset($transaction->getTransaction()->getInventories()[spl_object_hash($this->getPlayer()->getInventory())])) if ($in->getBlock()->getId() !== Item::AIR) {
 					$r->addBlockByItem($in, $in->getCount());
 					$this->editRandom($id, $m);
 					return;
@@ -268,8 +269,11 @@ class ConvertSession {
 		$totalchance = 0;
 		foreach ($r->getAllRandomBlocks() as $chance) $totalchance += $chance;
 		foreach ($r->getAllRandomBlocks() as $block => $chance) for ($i=0; $i < (!$this->invmenu_collapse ? max((int)$chance, 1) : 1); $i++) {
-			if (++$ti <= $this->invmenu_display) continue;
-			if (++$ti > ($this->invmenu_display + 33)) continue;
+			if (!isset($ti)) $ti = 0;
+			$cti = ++$ti;
+			var_dump($cti, $this->invmenu_display);
+			if ($cti <= $this->invmenu_display) continue;
+			if ($cti > ($this->invmenu_display + 33)) continue;
 			$block = explode(':', $block);
 			$item = Item::get((int)$block[0], (int)($block[1]));
 			$selected = false;
@@ -285,7 +289,7 @@ class ConvertSession {
 				new ShortTag('id', (int)$block[0]),
 				new ByteTag('meta', (int)$block[1])
 			]));
-			$inv->setItem($ti - 1, $item, false);
+			$inv->setItem($ti - $this->invmenu_display - 1, $item, false);
 		}
 
 		$i = Item::get(Item::INVISIBLEBEDROCK);
@@ -423,6 +427,16 @@ class ConvertSession {
 		});
 		$f->addInput(TF::BOLD . TF::GOLD . 'Seed: ', 'Empty box to discard change', isset($this->invmenu_random) ? (string)$this->invmenu_random->getSeed() : '');
 		$this->getPlayer()->sendForm($f);
+	}
+
+	public function isIdle() : bool {
+		return $this->getPlayer() === null;
+	}
+
+	public function updatePlayer(Player $player, bool $forced = false) : bool {
+		if ($this->getPlayer() !== null and !$forced) return false;
+		$this->player = $player;
+		return true;
 	}
 
 }

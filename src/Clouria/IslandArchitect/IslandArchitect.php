@@ -96,11 +96,13 @@ class IslandArchitect extends PluginBase implements Listener {
 	}
 
 	public function getSession(Player $player) : ConvertSession {
-		return $this->sessions[spl_object_id($player)] ?? ($this->sessions[spl_object_id($player)] = new ConvertSession($player));
+		$session = $this->sessions[spl_object_id($player)] ?? ($this->sessions[spl_object_id($player)] = new ConvertSession($player));
+		$session->updatePlayer($player);
+		return $session;
 	}
 
 	public function onCommand(CommandSender $sender, Command $cmd, string $alias, array $args) : bool {
-		if (!$sender instanceof Player) $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
+		if ((!$sender instanceof Player) and strtolower($args[0]) !== 'reset-all') $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
 		else switch (strtolower($args[0] ?? 'help')) {
 			case 'reset':
 				if (isset($args[1])) {
@@ -117,8 +119,11 @@ class IslandArchitect extends PluginBase implements Listener {
 
 			case 'reset-all':
 				if (!$sender->hasPermission('island-architect.reset-all')) return false;
-				$sender->sendMessage(TF::BOLD . TF::YELLOW . 'Destructed ' . TF::GREEN . count($this->sessions) . TF::YELLOW . ' convert session instances!');
-				$this->sessions = [];
+				foreach ($this->sessions as $i => $s) if ($s->isIdle()) {
+					unset($this->sessions[$i]);
+					$destructed++;
+				}
+				$sender->sendMessage(TF::BOLD . TF::YELLOW . 'Destructed ' . TF::GREEN . ($destructed ?? 0) . TF::YELLOW . ' convert session instances!');
 				break;
 
 			case 'pos1':
