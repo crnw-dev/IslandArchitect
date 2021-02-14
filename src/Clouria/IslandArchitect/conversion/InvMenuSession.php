@@ -72,15 +72,20 @@ class InvMenuSession {
 	private $session;
 
 	/**
-	 * @var int
+	 * @var RandomGeneration
 	 */
 	private $regex;
 
-	public function __construct(PlayerSession $session, int $regex) {
-		if (($regex = $session->getTemplateIsland()->getRandomById()) === null) throw new \InvalidArgumentException('Invalid regex ID');
+	public function __construct(PlayerSession $session, ?int $regex = null) {
+		if ($regex === null) {
+			$regex = new RandomGeneration;
+			$session->getIsland()->addRandom($regex);
+		}
+		elseif (($regex = $session->getTemplateIsland()->getRandomById()) === null) throw new \InvalidArgumentException('Invalid regex ID');
 		$this->session = $session;
 		$this->regex = $regex;
 	}
+
 	/**
 	 * @return RandomGeneration
 	 */
@@ -171,8 +176,8 @@ class InvMenuSession {
 
 					case self::ITEM_NEXT:
 						$totalitem = 0;
-						if (!$this->collapse) foreach ($r->getAllRandomBlocks() as $chance) $totalitem += $chance;
-						else $totalitem = count($r->getAllRandomBlocks());
+						if (!$this->collapse) foreach ($r->getAllElements() as $chance) $totalitem += $chance;
+						else $totalitem = count($r->getAllElements());
 						if (($this->display + 33) / 33 >= (int)ceil($totalitem / 33)) break;
 						$this->display += 33;
 						$this->editRandom($id, $m, false);
@@ -212,10 +217,10 @@ class InvMenuSession {
 		} else $m = $menu;
 		$inv = $m->getInventory();
 		$m->setName(TF::DARK_BLUE . 'Random regex ' . TF::BOLD . '#' . $id . (isset($this->selected) ? ' (Selected ' . $this->selected->getId() . ':' . $this->selected->getDamage() . ')' : ''));
-		$totalchance = 0;
 		for ($i=0; $i < $inv->getSize(); $i++) $inv->clear($i, false);
-		foreach ($r->getAllRandomBlocks() as $chance) $totalchance += $chance;
-		foreach ($r->getAllRandomBlocks() as $block => $chance) {
+		$totalchance = 0;
+		foreach ($r->getAllElements() as $chance) $totalchance += $chance;
+		foreach ($r->getAllElements() as $block => $chance) {
 			$block = explode(':', $block);
 			$item = Item::get((int)$block[0], (int)($block[1]));
 			$selected = false;
@@ -269,7 +274,7 @@ class InvMenuSession {
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_PREVIOUS)]));
 		$inv->setItem(43 + 9, $i, false);
 
-		$tdi = !$this->collapse ? $totalchance : count($r->getAllRandomBlocks()); // Total display item
+		$tdi = !$this->collapse ? $totalchance : count($r->getAllElements()); // Total display item
 		$i = $i = Item::get($tdi / 33 < 1 ? Item::PAPER : Item::EMPTYMAP, max((int)ceil($tdi / 33) - 1, 1));
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Next page');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_NEXT)]));

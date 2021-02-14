@@ -40,7 +40,8 @@ use pocketmine\event\{
 use muqsit\invmenu\InvMenuHandler;
 
 use Clouria\IslandArchitect\{
-	conversion\PlayerSession
+	conversion\PlayerSession,
+	conversion\InvMenuSession
 };
 
 use function strtolower;
@@ -96,32 +97,6 @@ class IslandArchitect extends PluginBase implements Listener {
 	public function onCommand(CommandSender $sender, Command $cmd, string $alias, array $args) : bool {
 		if ((!$sender instanceof Player) and strtolower($args[0]) !== 'reset-all') $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
 		else switch (strtolower($args[0] ?? 'help')) {
-			case 'reset':
-				if (isset($args[1])) {
-					if (!$sender->hasPermission('island-architect.reset-all')) return false;
-					$sp = $this->getServer()->getPlayer($args[1]);
-					if (!isset($sp)) {
-						$sender->sendMessage(TF::BOLD . TF::RED . 'Player not found!');
-						break;
-					}
-				} else $sp = $sender;
-				if (!isset($this->sessions[$sp->getName()])) break;
-				if (!$this->sessions[$sp->getName()]->isIdle()) if (!(bool)($args[2] ?? false)) {
-					$sender->sendMessage(TF::BOLD . TF::RED . 'This convert session is not in idle!');
-				}
-				unset($this->sessions[$sp->getName()]);
-				$sp->sendMessage(TF::BOLD . TF::GOLD . 'Your convert session has been ' . TF::RED . 'reset!');
-				break;
-
-			case 'reset-all':
-				if (!$sender->hasPermission('island-architect.reset-all')) return false;
-				foreach ($this->sessions as $i => $s) if ($s->isIdle()) {
-					unset($this->sessions[$i]);
-					$destructed++;
-				}
-				$sender->sendMessage(TF::BOLD . TF::YELLOW . 'Destructed ' . TF::GREEN . ($destructed ?? 0) . TF::YELLOW . ' convert session instances!');
-				break;
-
 			case 'pos1':
 			case 'p1':
 			case '1':
@@ -144,7 +119,7 @@ class IslandArchitect extends PluginBase implements Listener {
 
 			case 'random':
 				if (isset($args[1])) $args[1] = (int)$args[1];
-				$this->getSession($sender)->editRandom($args[1] ?? null);
+				new InvMenuSession($this->getPlayer($session, true));
 				break;
 		
 			default:
@@ -154,10 +129,7 @@ class IslandArchitect extends PluginBase implements Listener {
 					$cmds[] = 'pos2 [xyz: int] ' . TF::ITALIC . TF::GRAY . '(Set the end coordinate of the island for convert)';
 					$cmds[] = 'convert ' . TF::ITALIC . TF::GRAY . '(Convert the selected island area to JSON island template file)';
 					$cmds[] = 'random [Random function ID: int] ' . TF::ITALIC . TF::GRAY . '(Setup random blocks generation)';
-					if ($sender->hasPermission('island-architect.reset-all')) $cmds[] = 'reset [Player: string] [Forced: bool]' . TF::ITALIC . TF::GRAY . '(Reset someone\'s convert session instance)';
-					else $cmds[] = 'reset ' . TF::ITALIC . TF::GRAY . '(Reset your convert session instance)';
 				}
-				if ($sender->hasPermission('island-architect.reset-all')) $cmds[] = 'reset-all ' . TF::ITALIC . TF::GRAY . '(Destruct all the convert session instances for saving up server memory)';
 				$sender->sendMessage(TF::BOLD . TF::GOLD . 'Available subcommands: ' . ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $cmds ?? ['help']));
 				break;
 		}
