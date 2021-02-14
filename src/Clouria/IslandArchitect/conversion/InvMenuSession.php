@@ -321,30 +321,6 @@ class InvMenuSession {
 		$inv->sendContents($inv->getViewers());
 	}
 
-	public static function giveRandomGenerationBlock(Player $player, RandomGeneration $randomgeneration, bool $removeDuplicatedItem = true) : void {
-		$inv = $player->getInventory();
-		if ($removeDuplicatedItem) foreach ($inv->getContents() as $index => $i) if (($nbt = $i->getNamedTagEntry('IslandArchitect')) !== null) if (($nbt = $nbt->getCompoundTag('random-generation')) !== null) if (($nbt = $nbt->getListTag('regex')) !== null) if (RandomGeneration::fromNBT($nbt)->equals($randomgeneration)) $inv->clear($index);
-		foreach ($randomgeneration->getAllRandomBlocks() as $block => $chance) {
-			$block = explode(':', $block);
-			$regex[] = new CompoundTag('', [
-				new ShortTag('id', (int)$block[0]),
-				new ByteTag('meta', (int)($block[1] ?? 0)),
-				new ShortTag('chance', (int)$chance)
-			]);
-		}
-		$i = Item::get(Item::CYAN_GLAZED_TERRACOTTA, 0, 64);
-		foreach ($randomgeneration->getAllRandomBlocks() as $block => $chance) {
-			$block = explode(':', $block);
-			$bi = Item::get((int)$block[0], (int)($block[1] ?? 0));
-			$blockslore[] = $bi->getName() . ' (' . $bi->getId() . ':' . $bi->getDamage() . '): ' . TF::BOLD . TF::GREEN . $chance . TF::ITALIC . ' (' . round((int)$chance / ($totalchance ?? (int)$chance) * 100, 2) . '%)';
-		}
-		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . 'Random generation' . (!empty($blockslore ?? []) ? ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $blockslore ?? []) : ''));
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new CompoundTag('random-generation', [
-			new ListTag('regex', $regex ?? [])
-		])]));
-		$inv->addItem($i);
-	}
-
 	public function editSeed(?int $id = null, ?InvMenu $menu = null) : void {
 		$f = new CustomForm(function(Player $p, array $d = null) use ($id, $menu) : void {
 			if ($d !== null and !empty($d[0] ?? null)) $this->random = new Random(empty(preg_replace('/[0-9-]+/i', '', $d[0])) ? (int)$d[0] : TemplateIslandGenerator::convertSeed($d[0]));

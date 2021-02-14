@@ -22,7 +22,8 @@ namespace Clouria\IslandArchitect\conversion;
 
 use pocketmine\{
 	Player,
-	math\Vector3
+	math\Vector3,
+	utils\TextFormat as TF
 };
 
 use Clouria\IslandArchitect\IslandArchitect;
@@ -30,7 +31,7 @@ use Clouria\IslandArchitect\IslandArchitect;
 use function spl_object_id;
 use function time;
 
-class PlayerSession implements PlayerSessionInterface {
+class PlayerSession {
 
 	/**
 	 * @var Player
@@ -62,6 +63,8 @@ class PlayerSession implements PlayerSessionInterface {
 	public function onBlockBreak(Vector3 $vec) : void {
 		if ($this->getIsland() === null) return;
 		if (($r = $this->getIsland()->getBlockRandom($vec)) === null) return;
+		$this->getPlayer()->sendPopup(TF::BOLD . TF::RED . 'You have destroyed a random generation block, ' . TF::GREEN . 'the item has returned to your inventory!');
+		$this->getPlayer()->getInventory()->addItem($this->getIsland()->getRandomById()->getRandomGenerationItem());
 	}
 
 	/**

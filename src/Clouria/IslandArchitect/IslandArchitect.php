@@ -40,9 +40,7 @@ use pocketmine\event\{
 use muqsit\invmenu\InvMenuHandler;
 
 use Clouria\IslandArchitect\{
-	conversion\PlayerSession,
-	conversion\PlayerSessionInterface,
-	conversion\DummyPlayerSession
+	conversion\PlayerSession
 };
 
 use function strtolower;
@@ -90,8 +88,8 @@ class IslandArchitect extends PluginBase implements Listener {
 		return (bool)$conf->get('enable-plugin', true);
 	}
 
-	public function getSession(Player $player, bool $nonnull = false) : PlayerSessionInterface {
-		$session = $this->sessions[$player->getName()] ?? ($nonull ? ($this->sessions[$player->getName()] = new PlayerSession($player)) : new DummyPlayerSession);
+	public function getSession(Player $player, bool $nonnull = false) : ?PlayerSession {
+		$session = $this->sessions[$player->getName()] ?? ($nonull ? ($this->sessions[$player->getName()] = new PlayerSession($player)) : null);
 		return $session;
 	}
 
@@ -178,7 +176,9 @@ class IslandArchitect extends PluginBase implements Listener {
 	 * @ignoreCancelled
 	 */
 	public function onPlayerInteract(PlayerInteractEvent $ev) : void {
-		if ($ev->getBlock() !== null) $this->getSession($ev->getPlayer())->onPlayerInteract($ev->getBlock()->asVector3());
+		if ($ev->getBlock() === null) return;
+		$s = $this->getSession($ev->getPlayer());
+		if (isset($s)) $s->onPlayerInteract($ev->getBlock()->asVector3());
 	}
 
 	/**
@@ -186,7 +186,8 @@ class IslandArchitect extends PluginBase implements Listener {
 	 * @ignoreCancelled
 	 */
 	public function onBlockBreak(BlockBreakEvent $ev) : void {
-		$this->getSession($ev->getPlayer())->onBlockBreak($ev->getBlock()->asVector3());
+		$s = $this->getSession($ev->getPlayer());
+		if (isset($s)) $s->onBlockBreak($ev->getBlock()->asVector3());
 	}
 
 	public static function getInstance() : ?self {
