@@ -128,8 +128,12 @@ class TemplateIsland {
 		$bb = new BB($sc->getX(), $sc->getY() , $sc->getZ(), $ec->getX(), $ec->getY() , $ec->getZ());
 		$bb->expand(1.0, 1.0, 1.0);
 		if (!$bb->isVectorInside($block)) return false;
-		$this->random_blocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()]= $id;
+		$this->random_blocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()] = $id;
 		return true;
+	}
+
+	public function getBlockRandom(Vector3 $block) : ?int {
+		return $this->random_blocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()] ?? null;
 	}
 
 	public const VERSION = 1;

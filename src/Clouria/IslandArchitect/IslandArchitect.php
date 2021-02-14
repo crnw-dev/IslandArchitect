@@ -55,7 +55,7 @@ class IslandArchitect extends PluginBase implements Listener {
 	private static $instance = null;
 
 	/**
-	 * @var ConvertSession[]
+	 * @var PlayerSession[]
 	 */
 	private $sessions = [];
 
@@ -167,13 +167,22 @@ class IslandArchitect extends PluginBase implements Listener {
 	}
 
 	/**
-	 * @ignoreCancelled
+	 * @priority MONITOR
 	 */
-	public function onPlayerInteract(PlayerInteractEvent $ev) : void {
-		if ($ev->getBlock() !== null) $this->getSession($ev->getPlayer())->onBlockBreak($ev->getBlock()->asVector3());
+	public function onPlayerQuit(PlayerQuitEvent $ev) : void {
+		unset($this->sessions[$ev->getPlayer()->getName()]);
 	}
 
 	/**
+	 * @priority HIGH
+	 * @ignoreCancelled
+	 */
+	public function onPlayerInteract(PlayerInteractEvent $ev) : void {
+		if ($ev->getBlock() !== null) $this->getSession($ev->getPlayer())->onPlayerInteract($ev->getBlock()->asVector3());
+	}
+
+	/**
+	 * @priority HIGH
 	 * @ignoreCancelled
 	 */
 	public function onBlockBreak(BlockBreakEvent $ev) : void {
