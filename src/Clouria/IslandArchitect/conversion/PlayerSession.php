@@ -50,7 +50,7 @@ class PlayerSession {
 	/**
 	 * @var IslandTemplate|null
 	 */
-	private $island = null;
+	protected $island = null;
 
 	public function checkOutIsland(IslandTemplate $island) : void {
 		$this->island = $island;
@@ -70,7 +70,7 @@ class PlayerSession {
 	/**
 	 * @var bool
 	 */
-	private $interact_lock = falses;
+	protected $interact_lock = falses;
 
 	public function onPlayerInteract(Vector3 $vec) : void {
 		if ($this->interact_lock) return;
