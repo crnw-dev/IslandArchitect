@@ -22,27 +22,18 @@ namespace Clouria\IslandArchitect\conversion;
 
 use pocketmine\{
 	Player,
-	level\Position,
 	level\Level,
 	item\Item,
 	block\Block,
-	math\Vector3,
 	utils\TextFormat as TF,
 	utils\Random,
-	scheduler\TaskHandler,
-	scheduler\ClosureTask,
 	inventory\Inventory
-};
-use pocketmine\event\{
-	player\PlayerInteractEvent,
-	block\BlockPlaceEvent
 };
 use pocketmine\nbt\tag\{
 	CompoundTag,
 	ShortTag,
 	ByteTag,
-	ListTag,
-	StringTag
+	ListTag
 };
 
 use muqsit\invmenu\{
@@ -330,28 +321,6 @@ class InvMenuSession {
 		$inv->sendContents($inv->getViewers());
 	}
 
-	public function onBlockPlace(BlockPlaceEvent $ev) : void {
-		if ($ev->getPlayer() !== $this->getPlayer()) return;
-		if (($nbt = $ev->getItem()->getNamedTagEntry('IslandArchitect')) === null) return;
-		if (($nbt = $nbt->getCompoundTag('random-generation')) === null) return;
-		if (($nbt = $nbt->getListTag('regex')) === null) return;
-		$tile = IslandAttributeTile::createTile('IslandAttributeTile', $this->getPlayer()->getLevel(), IslandAttributeTile::createNBT($ev->getBlock()->asVector3(), null, $ev->getItem()));
-	}
-
-	/**
-	 * @var int Unix timestamp
-	 */
-	private $interact_lock = 0;
-
-	public function onPlayerInteract(PlayerInteractEvent $ev) : void {
-		if ($ev->getPlayer() !== $this->getPlayer()) return;
-		if (time() <= $this->interact_lock + 10) return;
-		$this->interact_lock = time();
-		if (!($tile = $ev->getBlock()->getLevel()->getTile($ev->getBlock()->asVector3())) instanceof IslandAttributeTile) return;
-		$ev->getBlock()->getLevel()->setBlock($ev->getBlock()->asVector3(), Block::get(Block::AIR));
-		$this->editRandom(array_push($this->randoms, $tile->getRandomGeneration()));
-	}
-
 	public static function giveRandomGenerationBlock(Player $player, RandomGeneration $randomgeneration, bool $removeDuplicatedItem = true) : void {
 		$inv = $player->getInventory();
 		if ($removeDuplicatedItem) foreach ($inv->getContents() as $index => $i) if (($nbt = $i->getNamedTagEntry('IslandArchitect')) !== null) if (($nbt = $nbt->getCompoundTag('random-generation')) !== null) if (($nbt = $nbt->getListTag('regex')) !== null) if (RandomGeneration::fromNBT($nbt)->equals($randomgeneration)) $inv->clear($index);
@@ -384,16 +353,6 @@ class InvMenuSession {
 		});
 		$f->addInput(TF::BOLD . TF::GOLD . 'Seed: ', 'Empty box to discard change', isset($this->random) ? (string)$this->random->getSeed() : '');
 		$this->getPlayer()->sendForm($f);
-	}
-
-	public function isIdle() : bool {
-		return $this->getPlayer() === null;
-	}
-
-	public function updatePlayer(Player $player, bool $forced = false) : bool {
-		if ($this->getPlayer() !== null and !$forced) return false;
-		$this->player = $player;
-		return true;
 	}
 
 }

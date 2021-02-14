@@ -40,9 +40,9 @@ use pocketmine\event\{
 use muqsit\invmenu\InvMenuHandler;
 
 use Clouria\IslandArchitect\{
-	conversion\ConvertSession,
-	api\IslandAttributeTile,
-	api\RandomGeneration
+	conversion\PlayerSession,
+	conversion\PlayerSessionInterface,
+	conversion\DummyPlayerSession
 };
 
 use function strtolower;
@@ -68,10 +68,15 @@ class IslandArchitect extends PluginBase implements Listener {
 			$this->getServer()->getPluginManager()->disablePlugin($this);
 			return;
 		}
-		IslandAttributeTile::registerTile(IslandAttributeTile::class, ['IslandAttributeTile']);
-		if (class_exists(InvMenuHandler::class)) if(!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
+		if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
-		$this->registerCommands();
+
+		$cmd = new PluginCommand('island-architect', $this);
+		$cmd->setDescription('Command of the IslandArchitect plugin');
+		$cmd->setUsage('/island-architect help');
+		$cmd->setAliases(['ia', 'isarch']);
+		$cmd->setPermission('island-architect.cmd');
+		$this->getServer()->getCommandMap()->register($this->getName(), $cmd);
 	}
 
 	private function initConfig() : bool {
@@ -85,18 +90,8 @@ class IslandArchitect extends PluginBase implements Listener {
 		return (bool)$conf->get('enable-plugin', true);
 	}
 
-	public function registerCommands() : void {
-		$cmd = new PluginCommand('island-architect', $this);
-		$cmd->setDescription('Command of the IslandArchitect plugin');
-		$cmd->setUsage('/island-architect help');
-		$cmd->setAliases(['ia', 'isarch']);
-		$cmd->setPermission('island-architect.cmd');
-		$this->getServer()->getCommandMap()->register($this->getName(), $cmd);
-	}
-
-	public function getSession(Player $player) : ConvertSession {
-		$session = $this->sessions[$player->getName()] ?? ($this->sessions[$player->getName()] = new ConvertSession($player));
-		$session->updatePlayer($player);
+	public function getSession(Player $player, bool $nonnull = false) : PlayerSessionInterface {
+		$session = $this->sessions[$player->getName()] ?? ($nonull ? ($this->sessions[$player->getName()] = new PlayerSession($player)) : new DummyPlayerSession);
 		return $session;
 	}
 
@@ -175,30 +170,14 @@ class IslandArchitect extends PluginBase implements Listener {
 	 * @ignoreCancelled
 	 */
 	public function onPlayerInteract(PlayerInteractEvent $ev) : void {
-		foreach ($this->sessions as $s) $s->onPlayerInteract($ev);
-	}
-
-	/**
-	 * @ignoreCancelled
-	 */
-	public function onBlockPlace(BlockPlaceEvent $ev) : void {
-		foreach ($this->sessions as $s) $s->onBlockPlace($ev);
+		if ($ev->getBlock() !== null) $this->getSession($ev->getPlayer())->onBlockBreak($ev->getBlock()->asVector3());
 	}
 
 	/**
 	 * @ignoreCancelled
 	 */
 	public function onBlockBreak(BlockBreakEvent $ev) : void {
-		if (!($tile = $ev->getBlock()->getLevel()->getTile($ev->getBlock()->asVector3())) instanceof IslandAttributeTile) return;
-		$ev->getPlayer()->sendPopup(TF::BOLD . TF::YELLOW . 'You have destroyed a random generation block');
-		foreach ($ev->getPlayer()->getInventory()->getContents() as $item) {
-			$add = false;
-			if (($nbt = $item->getNamedTagEntry('IslandArchitect')) == null) $add = true;
-			if (($nbt = $nbt->getCompoundTag('random-generation')) === null) $add = true;
-			if (($nbt = $nbt->getListTag('regex')) === null) $add = true;
-			if (RandomGeneration::fromNBT($nbt)->equals($regex = $tile->getRandomGeneration())) $add = false;
-			if ($add) ConvertSession::giveRandomGenerationBlock($ev->getPlayer(), $regex, false);
-		}
+		$this->getSession($ev->getPlayer())->onBlockBreak($ev->getBlock()->asVector3());
 	}
 
 	public static function getInstance() : ?self {
