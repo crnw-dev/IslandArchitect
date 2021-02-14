@@ -35,7 +35,7 @@ class RandomGeneration {
 
 	private $blocks = [];
 
-	public function addBlock(int $id, int $meta = 0, int $chance = 1) : bool {
+	public function inElementChance(int $id, int $meta = 0, int $chance = 1) : bool {
 		if (($this->blocks[$id . ':' . $meta] ?? 0) + $chance > 32767) return false;
 		if (!isset($this->blocks[$id . ':' . $meta])) $this->blocks[$id . ':' . $meta] = 0;
 		$this->blocks[$id . ':' . $meta] += $chance;
@@ -46,7 +46,7 @@ class RandomGeneration {
 	 * @param int|null $chance Null to set the chance to 0
 	 * @return bool
 	 */
-	public function removeBlock(int $id, int $meta = 0, ?int $chance = null) : bool {
+	public function decreaseElementChance(int $id, int $meta = 0, ?int $chance = null) : bool {
 		if (!isset($chance)) {
 			unset($this->blocks[$id . ':' . $meta]);
 			return true;
@@ -58,34 +58,14 @@ class RandomGeneration {
 	}
 
 	/**
-	 * @param \pocketmine\block\ItemBlock|Block $item
-	 * @param int $chance
-	 * @return bool
-	 */
-	public function addBlockByItem($item, int $chance = 1) : bool {
-		if (!$item instanceof Block) $item->getBlock();
-		if ($item->getId() === Block::AIR) return false;
-		return $this->addBlock($item->getId(), $item->getDamage(), $chance);
-	}
-
-	/**
-	 * @param \pocketmine\block\ItemBlock|Block $item
-	 * @param int|null $chance Null to set the chance to 0
-	 * @return bool
-	 */
-	public function removeBlockByItem($item, ?int $chance = null) : bool {
-		return $this->removeBlock($item->getId(), $item->getDamage(), $chance);
-	}
-
-	/**
 	 * @return int[]
 	 */
-	public function getAllRandomBlocks() : array {
+	public function getAllElements() : array {
 		foreach ($this->blocks as $block => $chance) $blocks[$block] = $chance;
 		return $blocks ?? [];
 	}
 
-	public function randomBlock(Random $random) : Item {
+	public function randomElementItem(Random $random) : Item {
 		$blocks = $this->getAllRandomBlocks();
 
 		// Random crap "proportional random algorithm" code copied from my old plugin
@@ -102,12 +82,6 @@ class RandomGeneration {
 				return Item::get((int)$block[0], (int)($block[1] ?? 0));
 			}
 		}
-	}
-
-	public static function fromNBT(ListTag $nbt) : self {
-		$self = new self;
-		foreach ($nbt as $block) $self->addBlock($block->getShort('id'), $block->getByte('meta', 0), $block->getShort('chance'));
-		return $self;
 	}
 
 	public function equals(RandomGeneration $regex) : bool {
