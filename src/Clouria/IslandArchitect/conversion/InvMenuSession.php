@@ -149,14 +149,13 @@ class InvMenuSession {
 
 	protected function panelElementSlotsUpdate() : void {
 		for ($i=0; $i < self::PANEL_AVAILABLE_SLOTS_SIZE; $i++) $inv->clear($i, false);
-		$totalchance = 0;
-		foreach ($r->getAllElements() as $chance) $totalchance += $chance;
-		foreach ($r->getAllElements() as $block => $chance) {
+		$totalchance = $this->getRegex()->getTotalChance();
+		foreach ($this->getRegex()->getAllElements() as $block => $chance) {
 			$block = explode(':', $block);
-			$item = Item::get((int)$block[0], (int)($block[1]));
 			$selected = false;
-			if (isset($this->selected)) $selected = $item->equals($this->selected);
-			if ($selected) $item = Item::get(Item::WOOL, 5);
+			if (isset($this->selected)) $selected = (int)$blocks[0] === (int)$this->selected[0] and (int)$blocks[1] === (int)$this->selected[1];
+			if (!$selected) $item = Item::get((int)$block[0], (int)($block[1]));
+			else $item = Item::get(Item::WOOL, 5);
 			$item->setCustomName(
 				TF::RESET . $item->getVanillaName() . "\n" .
 				TF::YELLOW . 'ID: ' . TF::BOLD . TF::GOLD . (int)$block[0] . "\n" .
@@ -190,13 +189,13 @@ class InvMenuSession {
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', $s ? self::ITEM_REMOVE : -1)]));
 		$inv->setItem(45, $i, false);
 
-		$e = $s and ($this->getRegex()->getAllElements()[$this->selected->getId() . ':' . $this->selected->getDamage()] < 32767);
+		$e = $s and ($this->getRegex()->getElementChance($this->selected[0] . $this->selected[1]) < 32767);
 		$i = Item::get($e ? Item::EMERALD_ORE : Item::STONE);
 		$i->setCustomName($e ? TF::RESET . TF::BOLD . TF::GREEN . 'Increase chance' : $prefix . 'Increase chance' . $surfix);
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', $e ? self::ITEM_LUCK : -1)]));
 		$inv->setItem(46, $i, false);
 
-		$e = $s and ($this->getRegex()->getAllElements()[$this->selected->getId() . ':' . $this->selected->getDamage()] > 1);
+		$e = $s and ($this->getRegex()->getElementChance($this->selected[0] . $this->selected[1]) > 1);
 		$i = Item::get($e ? Item::REDSTONE_ORE : Item::STONE);
 		$i->setCustomName($e ? TF::RESET . TF::BOLD . TF::RED . 'Decrease chance' : $prefix . 'Decrease chance' : $surfix);
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', $e ? self::ITEM_UNLUCK : -1)]));

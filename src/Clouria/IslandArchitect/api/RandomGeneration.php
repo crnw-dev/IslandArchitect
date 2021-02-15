@@ -35,6 +35,7 @@ use pocketmine\nbt\tag\{
 }
 
 use function explode;
+use function array_diff;
 
 class RandomGeneration {
 
@@ -68,6 +69,21 @@ class RandomGeneration {
 	public function getAllElements() : array {
 		foreach ($this->blocks as $block => $chance) $blocks[$block] = $chance;
 		return $blocks ?? [];
+	}
+
+	public function getElementChance(int $id, int $meta = 0) : int {
+		return $this->getAllElements()[$id . ':' . $meta] ?? 0;
+	}
+
+	public function getTotalChance() : int {
+		static $blocks = [];
+		static $chance = 0;
+		if (array_diff($blocks, $this->blocks)) {
+			$blocks = $this->blocks;
+			$chance = 0;
+			foreach ($this->blocks as $elementchance) $chance += (int)$elementchance;
+		}
+		return $chance;
 	}
 
 	public function randomElementItem(Random $random) : Item {
