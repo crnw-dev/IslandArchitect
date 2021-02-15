@@ -33,6 +33,7 @@ use pocketmine\{
 use pocketmine\event\{
 	Listener,
 	player\PlayerInteractEvent,
+	player\PlayerQuitEvent,
 	block\BlockPlaceEvent,
 	block\BlockBreakEvent
 };
@@ -40,6 +41,7 @@ use pocketmine\event\{
 use muqsit\invmenu\InvMenuHandler;
 
 use Clouria\IslandArchitect\{
+	api\TemplateIsland,
 	conversion\PlayerSession,
 	conversion\InvMenuSession
 };
@@ -50,6 +52,8 @@ use function count;
 use function class_exists;
 
 class IslandArchitect extends PluginBase implements Listener {
+
+	public const DEV_ISLAND = true;
 
 	private static $instance = null;
 
@@ -90,12 +94,13 @@ class IslandArchitect extends PluginBase implements Listener {
 	}
 
 	public function getSession(Player $player, bool $nonnull = false) : ?PlayerSession {
-		$session = $this->sessions[$player->getName()] ?? ($nonull ? ($this->sessions[$player->getName()] = new PlayerSession($player)) : null);
-		return $session;
+		if (($this->sessions[$player->getName()] ?? null) === null and $nonnull) $s = ($this->sessions[$player->getName()] = new PlayerSession($player));
+		if (self::DEV_ISLAND and isset($s)) $s->checkOutIsland(new TemplateIsland('test'));
+		return $s ?? null;
 	}
 
 	public function onCommand(CommandSender $sender, Command $cmd, string $alias, array $args) : bool {
-		if ((!$sender instanceof Player) and strtolower($args[0]) !== 'reset-all') $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
+		if (!$sender instanceof Player) $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
 		else switch (strtolower($args[0] ?? 'help')) {
 			case 'pos1':
 			case 'p1':
@@ -119,12 +124,13 @@ class IslandArchitect extends PluginBase implements Listener {
 
 			case 'random':
 				if (isset($args[1])) $args[1] = (int)$args[1];
-				new InvMenuSession($this->getPlayer($session, true));
+				new InvMenuSession($this->getSession($sender, true));
 				break;
 		
 			default:
 				$cmds[] = 'help ' . TF::ITALIC . TF::GRAY . '(Display available subcommands)';
 				if ($sender->hasPermission('island-architect.convert')) {
+					$cmds[] = 'island [Template island file name: string] ' . TF::ITALIC . TF::GRAY . '(Check out or create an island)';
 					$cmds[] = 'pos1 [xyz: int] ' . TF::ITALIC . TF::GRAY . '(Set the start coordinate of the island for convert)';
 					$cmds[] = 'pos2 [xyz: int] ' . TF::ITALIC . TF::GRAY . '(Set the end coordinate of the island for convert)';
 					$cmds[] = 'convert ' . TF::ITALIC . TF::GRAY . '(Convert the selected island area to JSON island template file)';

@@ -82,11 +82,10 @@ class InvMenuSession {
 	private $regexid;
 
 	public function __construct(PlayerSession $session, ?int $regexid = null) {
-		if ($regex === null) {
+		if ($regexid === null) {
 			$regex = new RandomGeneration;
 			$session->getIsland()->addRandom($regex);
-		}
-		elseif (($regex = $session->getTemplateIsland()->getRandomById($regexid)) === null) throw new \InvalidArgumentException('Invalid regex ID');
+		} elseif (($regex = $session->getTemplateIsland()->getRandomById($regexid)) === null) throw new \InvalidArgumentException('Invalid regex ID');
 		$this->session = $session;
 		$this->regexid = $regexid;
 		$this->regex = $regex;
@@ -229,7 +228,7 @@ class InvMenuSession {
 
 		$e = $s and ($this->getRegex()->getElementChance($this->selected[0] . $this->selected[1]) > 1);
 		$i = Item::get($e ? Item::REDSTONE_ORE : Item::STONE);
-		$i->setCustomName($e ? TF::RESET . TF::BOLD . TF::RED . 'Decrease chance' : $prefix . 'Decrease chance' : $surfix);
+		$i->setCustomName($e ? TF::RESET . TF::BOLD . TF::RED . 'Decrease chance' : $prefix . 'Decrease chance' . $surfix);
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', $e ? self::ITEM_UNLUCK : -1)]));
 		$inv->setItem(47, $i, false);
 

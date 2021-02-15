@@ -28,7 +28,7 @@ use pocketmine\{
 	block\Block
 };
 
-use funciton array_push;
+use function array_push;
 use function implode;
 use function explode;
 use function asort;
@@ -38,6 +38,10 @@ use function json_encode;
 use const SORT_NUMERIC;
 
 class TemplateIsland {
+
+	public function __construct(string $name) {
+		$this->name = $name;
+	}
 
 	/**
 	 * @var string
@@ -181,6 +185,10 @@ class TemplateIsland {
 		if (!empty($usedrandoms ?? [])) foreach ($this->randoms as $id => $random) if (in_array($id, $usedrandoms)) $data['randoms'][] = $random->getAllElements();
 
 		$this->encode($data);
+	}
+
+	protected function getFilePath() : string {
+		return '';
 	}
 
 	protected function encode(array $data) : string {

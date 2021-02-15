@@ -70,7 +70,7 @@ class PlayerSession {
 	/**
 	 * @var bool
 	 */
-	protected $interact_lock = falses;
+	protected $interact_lock = false;
 
 	public function onPlayerInteract(Vector3 $vec) : void {
 		if ($this->interact_lock) return;
