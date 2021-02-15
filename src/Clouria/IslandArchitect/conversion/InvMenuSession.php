@@ -144,7 +144,7 @@ class InvMenuSession {
 		}
 		$inv->setItem(48, $i, false);
 
-		$this->panelUnselect();
+		$this->panelSelect();
 	}
 
 	protected function panelElementSlotsUpdate() : void {
@@ -178,48 +178,30 @@ class InvMenuSession {
 	}
 
 	protected function panelSelect() : void {
-		if ($this->selected === null) {
-			$this->panelUnselect();
-			return;
+		$this->panelElementSlotsUpdate();
+		$s = $this->selected !== null;
+		if (!$s) {
+			$prefix = TF::RESET . TF::BOLD . TF::GRAY;
+			$surfix = "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Please select a block first)';
 		}
-		$this->panelElementSlotsUpdate();
 
-		$i = Item::get(Item::CONCRETE, 14);
-		$i->setCustomName(TF::RESET . TF::BOLD . TF::RED . 'Remove');
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_REMOVE)]));
+		$i = Item::get(Item::CONCRETE, $s ? 14 : 7);
+		$i->setCustomName($s ? TF::RESET . TF::BOLD . TF::RED . 'Remove' : $prefix . 'Remove' . $surfix);
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', $s ? self::ITEM_REMOVE : -1)]));
 		$inv->setItem(45, $i, false);
 
-		$i = Item::get(Item::EMERALD_ORE);
-		$i->setCustomName(TF::RESET . TF::BOLD . TF::GREEN . 'Increase chance');
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_LUCK)]));
+		$e = $s and ($this->getRegex()->getAllElements()[$this->selected->getId() . ':' . $this->selected->getDamage()] < 32767);
+		$i = Item::get($e ? Item::EMERALD_ORE : Item::STONE);
+		$i->setCustomName($e ? TF::RESET . TF::BOLD . TF::GREEN . 'Increase chance' : $prefix . 'Increase chance' . $surfix);
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', $e ? self::ITEM_LUCK : -1)]));
 		$inv->setItem(46, $i, false);
 
-		$i = Item::get(Item::REDSTONE_ORE);
-		$i->setCustomName(TF::RESET . TF::BOLD . TF::RED . 'Decrease chance');
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_UNLUCK)]));
+		$e = $s and ($this->getRegex()->getAllElements()[$this->selected->getId() . ':' . $this->selected->getDamage()] > 1);
+		$i = Item::get($e ? Item::REDSTONE_ORE : Item::STONE);
+		$i->setCustomName($e ? TF::RESET . TF::BOLD . TF::RED . 'Decrease chance' : $prefix . 'Decrease chance' : $surfix);
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', $e ? self::ITEM_UNLUCK : -1)]));
 		$inv->setItem(47, $i, false);
 
-	}
-
-	protected function panelUnselect() : void {
-		$this->panelElementSlotsUpdate();
-		$prefix = TF::RESET . TF::BOLD . TF::GRAY;
-		$surfix = "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Please select a block first)';
-
-		$i = Item::get(Item::CONCRETE, 7);
-		$i->setCustomName($prefix . 'Remove' . $surfix);
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
-		$inv->setItem(45, $i, false);
-
-		$i = Item::get(Item::STONE);
-		$i->setCustomName($prefix . 'Increase chance' . $surfix);
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
-		$inv->setItem(46, $i, false);
-
-		$i = Item::get(Item::STONE);
-		$i->setCustomName($prefix . 'Decrease chance' . $surfix);
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
-		$inv->setItem(47, $i, false);
 	}
 
 	protected function transactionCallback(InvMenuTransaction $transaction) : void {
@@ -241,7 +223,6 @@ class InvMenuSession {
 			case self::ITEM_REMOVE:
 			case self::ITEM_LUCK:
 			case self::ITEM_UNLUCK:
-				if (!isset($this->selected)) break;
 				$selected = $this->selected;
 				$this->selected = null;
 
