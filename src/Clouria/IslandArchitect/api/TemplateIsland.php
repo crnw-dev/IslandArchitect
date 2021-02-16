@@ -88,7 +88,7 @@ class TemplateIsland {
 	}
 
 	public function setLevel(Level $level) : void {
-		$this->level = $level->getFolderName(0);
+		$this->level = $level->getFolderName();
 	}
 
 	/**
@@ -148,7 +148,7 @@ class TemplateIsland {
 		$data['endcoord'] = $this->getEndCoord();
 		foreach ($this->randoms as $random) $data['randoms'][] = $random->getAllElements();
 
-		$this->encode($data);
+		return $this->encode($data);
 	}
 
 	/**
@@ -166,7 +166,7 @@ class TemplateIsland {
 		asort($zl, SORT_NUMERIC);
 		foreach ($chunks as $chunk) $chunksmap[$chunk->getX()][$chunk->getZ()] = $chunk;
 		for ($x = $xl[0]; $x <= $xl[1]; $x++) for ($z = $zl[0]; $z <= $zl[1]; $z++) {
-			$chunk = $chunksmap[$x << 4][$y << 4];
+			$chunk = $chunksmap[$x << 4][$z << 4];
 			for ($y = $yl[0]; $y <= $yl[1]; $y++) {
 				if (($id = $chunk->getBlockId($x, $y, $z)) === Block::AIR) continue;
 				$x -= $xl[0];
@@ -184,7 +184,7 @@ class TemplateIsland {
 
 		if (!empty($usedrandoms ?? [])) foreach ($this->randoms as $id => $random) if (in_array($id, $usedrandoms)) $data['randoms'][] = $random->getAllElements();
 
-		$this->encode($data);
+		return $this->encode($data);
 	}
 
 	protected function getFilePath() : string {

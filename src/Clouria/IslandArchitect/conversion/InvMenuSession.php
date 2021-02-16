@@ -78,7 +78,12 @@ class InvMenuSession {
 	 */
 	private $regexid;
 
-	public function __construct(PlayerSession $session, ?int $regexid = null) {
+	/**
+	 * @var Closure|null
+	 */
+	private $callback;
+
+	public function __construct(PlayerSession $session, ?int $regexid = null, ?\Closure $callback = null) {
 		if ($regexid === null) {
 			$regex = new RandomGeneration;
 			$regexid = $session->getIsland()->addRandom($regex);
@@ -89,6 +94,7 @@ class InvMenuSession {
 		$this->session = $session;
 		$this->regexid = $regexid;
 		$this->regex = $regex;
+		$this->callback = $callback;
 
 		$this->panelInit();
 		$this->menu->send($session->getPlayer());
@@ -158,6 +164,7 @@ class InvMenuSession {
 		$this->menu->setListener(InvMenu::readonly(\Closure::fromCallable([$this, 'transactionCallback'])));
 		$this->menu->setInventoryCloseListener(function(Player $p, Inventory $inv) : void {
 			if (!$this->giveitem_lock) $p->getInventory()->addItem($this->getRegex()->getRandomGenerationItem());
+			if (isset($this->callback)) ($this->callback)();
 		});
 
 		$i = Item::get(Item::INVISIBLEBEDROCK);

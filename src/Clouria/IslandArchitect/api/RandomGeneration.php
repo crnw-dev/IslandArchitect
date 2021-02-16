@@ -91,7 +91,7 @@ class RandomGeneration {
 		$rand = $random->nextRange(0, $upperl);
 
 		$upperl = -1;
-		foreach ($blocks as $block => $chance) {
+		foreach ($blocks as $block => $chance) { /** @phpstan-ignore-line */
 			$upperl += $chance;
 			if (($upperl >= $rand) and ($upperl < ($rand + $chance))) {
 				$block = explode(':', $block);

@@ -67,7 +67,7 @@ class PlayerSession {
 		if ($this->getIsland() === null) return;
 		if (($r = $this->getIsland()->getBlockRandom($vec)) === null) return;
 		$this->getPlayer()->sendPopup(TF::BOLD . TF::RED . 'You have destroyed a random generation block, ' . TF::GREEN . 'the item has returned to your inventory!');
-		$this->getPlayer()->getInventory()->addItem($this->getIsland()->getRandomById()->getRandomGenerationItem());
+		$this->getPlayer()->getInventory()->addItem($this->getIsland()->getRandomById($r)->getRandomGenerationItem());
 	}
 
 	/**
@@ -86,7 +86,7 @@ class PlayerSession {
 	}
 
 	public function __destruct() {
-		IslandArchitect::getInstance()->getLogger()->debug('Player session instance (' . spl_object_id($this) . ') of player "' . $player->getName() . '" has been destructed');
+		IslandArchitect::getInstance()->getLogger()->debug('Player session instance (' . spl_object_id($this) . ') of player "' . $this->getPlayer()->getName() . '" has been destructed');
 	}
 
 }
