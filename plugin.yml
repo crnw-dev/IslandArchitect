@@ -11,8 +11,8 @@ permissions:
   island-architect:
     default: op
     children:
-      island-architect.cmd:
-      island-architect.convert: []
+      island-architect.cmd: []
+      island-architect.convert:
         description: Permission to convert a island into JSON island template file
       island-architect.reset-all:
         description: Permission to destruct anyone's convert session for saving for saving up server resource

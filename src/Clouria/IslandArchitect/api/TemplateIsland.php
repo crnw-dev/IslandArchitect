@@ -62,7 +62,7 @@ class TemplateIsland {
 	}
 
 	public function setStartCoord(Vector3 $pos) : void {
-		return $this->startcoord = $pos;
+		$this->startcoord = $pos;
 	}
 
 	/**
@@ -75,7 +75,7 @@ class TemplateIsland {
 	}
 
 	public function setEndCoord(Vector3 $pos) : void {
-		return $this->endcoord = $pos;
+		$this->endcoord = $pos;
 	}
 
 	/**
@@ -88,7 +88,7 @@ class TemplateIsland {
 	}
 
 	public function setLevel(Level $level) : void {
-		return $this->level = $level->getFolderName(0);
+		$this->level = $level->getFolderName(0);
 	}
 
 	/**
@@ -158,9 +158,9 @@ class TemplateIsland {
 	public function export(array $chunks) : string {
 		$sc = $this->getStartCoord();
 		$ec = $this->getEndCoord();
-		$xl[$sc->getFloorX(), $ec->getFloorX()];
-		$yl[$sc->getFloorY(), $ec->getFloorY()];
-		$zl[$sc->getFloorZ(), $ec->getFloorZ()];
+		$xl = [$sc->getFloorX(), $ec->getFloorX()];
+		$yl = [$sc->getFloorY(), $ec->getFloorY()];
+		$zl = [$sc->getFloorZ(), $ec->getFloorZ()];
 		asort($xl, SORT_NUMERIC);
 		asort($yl, SORT_NUMERIC);
 		asort($zl, SORT_NUMERIC);

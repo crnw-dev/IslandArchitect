@@ -26,7 +26,10 @@ use pocketmine\{
 	utils\TextFormat as TF
 };
 
-use Clouria\IslandArchitect\IslandArchitect;
+use Clouria\IslandArchitect\{
+	IslandArchitect,
+	api\TemplateIsland
+};
 
 use function spl_object_id;
 use function time;
@@ -48,15 +51,15 @@ class PlayerSession {
 	}
 
 	/**
-	 * @var IslandTemplate|null
+	 * @var TemplateIsland|null
 	 */
 	protected $island = null;
 
-	public function checkOutIsland(IslandTemplate $island) : void {
+	public function checkOutIsland(TemplateIsland $island) : void {
 		$this->island = $island;
 	}
 
-	public function getIsland() : ?IslandTemplate {
+	public function getIsland() : ?TemplateIsland {
 		return $this->island;
 	}
 

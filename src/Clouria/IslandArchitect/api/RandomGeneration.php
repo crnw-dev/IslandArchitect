@@ -32,7 +32,7 @@ use pocketmine\nbt\tag\{
 	ListTag,
 	ShortTag,
 	CompoundTag
-}
+};
 
 use function explode;
 use function array_diff;
