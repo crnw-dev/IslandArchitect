@@ -81,6 +81,13 @@ class RandomGeneration {
 		return $totalchance;
 	}
 
+	public static function fromNBT(ListTag $nbt) : self {
+		$self = new self;
+		foreach ($nbt as $block) $self->increaseElementChance($block->getShort('id'), $block->getByte('meta', 0), $block->getShort('chance'));
+		return $self;
+	}
+
+
 	public function randomElementItem(Random $random) : Item {
 		$blocks = $this->getAllElements();
 

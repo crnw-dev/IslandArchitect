@@ -136,7 +136,7 @@ class TemplateIsland {
 		return true;
 	}
 
-	public function getBlockRandom(Vector3 $block) : ?int {
+	public function getRandomByVector(Vector3 $block) : ?int {
 		return $this->random_blocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()] ?? null;
 	}
 

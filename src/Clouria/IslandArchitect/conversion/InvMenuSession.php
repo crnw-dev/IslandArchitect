@@ -163,7 +163,10 @@ class InvMenuSession {
 		$this->menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
 		$this->menu->setListener(InvMenu::readonly(\Closure::fromCallable([$this, 'transactionCallback'])));
 		$this->menu->setInventoryCloseListener(function(Player $p, Inventory $inv) : void {
-			if (!$this->giveitem_lock) $p->getInventory()->addItem($this->getRegex()->getRandomGenerationItem());
+			if ($this->giveitem_lock) return;
+			$i = $this->getRegex()->getRandomGenerationItem();
+			$i->getNamedTagEntry('IslandArchitect')->getCompoundTag('random-generation')->setShort('regexid', $this->getRegexId());
+			$p->getInventory()->addItem();
 			if (isset($this->callback)) ($this->callback)();
 		});
 
@@ -284,7 +287,7 @@ class InvMenuSession {
 			return;
 		}
 		$nbt = $out->getNamedTagEntry('IslandArchitect') ?? null;
-		if ($nbt !== null) $nbt = $nbt->getTag('action') ?? null;
+		if ($nbt !== null) $nbt = $nbt->getTag('action', ByteTag::class) ?? null;
 		if ($nbt !== null) switch ($nbt->getValue()) {
 
 			case self::ITEM_REMOVE:

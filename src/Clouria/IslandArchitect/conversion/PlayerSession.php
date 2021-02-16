@@ -23,12 +23,19 @@ namespace Clouria\IslandArchitect\conversion;
 use pocketmine\{
 	Player,
 	math\Vector3,
+	item\Item,
 	utils\TextFormat as TF
+};
+use pocketmine\nbt\tag\{
+	CompoundTag,
+	ShortTag,
+	ListTag
 };
 
 use Clouria\IslandArchitect\{
 	IslandArchitect,
-	api\TemplateIsland
+	api\TemplateIsland,
+	api\RandomGeneration
 };
 
 use function spl_object_id;
@@ -70,6 +77,19 @@ class PlayerSession {
 		$this->getPlayer()->getInventory()->addItem($this->getIsland()->getRandomById($r)->getRandomGenerationItem());
 	}
 
+	public function onBlockPlace(Vector3 $vec, Item $item) : void {
+		if (($nbt = $item->getNamedTagEntry('IslandArchitect')) === null) return;
+		if (($nbt = $nbt->getTag('random-generation', CompoundTag::class)) === null) return;
+		if (($regex = $nbt->getTag('regex', ListTag::class)) === null) return;
+		$regex = RandomGeneration::fromNBT($regex);
+		if (
+			($regexid = $nbt->getTag('regexid', ShortTag::class)) === null or
+			($r = $this->getIsland()->getRandomById($regexid = $regexid->getValue())) === null or
+			!$r->equals($regex)
+		) $regexid = $this->getIsland()->addRandom($r = $regex);
+		$this->getIsland()->setBlockRandom($vec, $regexid);
+	}
+
 	/**
 	 * @var bool
 	 */
@@ -77,12 +97,18 @@ class PlayerSession {
 
 	public function onPlayerInteract(Vector3 $vec) : void {
 		if ($this->interact_lock) return;
-		$this->interact_lock = true;
 		if ($this->getIsland() === null) return;
-		if (($r = $this->getIsland()->getBlockRandom($vec)) === null) return;
-		new InvMenuSession($this, $r, function () : void {
+		$this->interact_lock = true;
+		if (($r = $this->getIsland()->getRandomByVector($vec)) === null) return;
+		new InvMenuSession($this, $r, function() : void {
 			$this->interact_lock = false;
 		});
+	}
+
+	public function errorCheckOutRequired() : bool {
+		if ($this->getIsland() !== null) return false;
+		$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Please check out an island first!');
+		return true;
 	}
 
 	public function __destruct() {

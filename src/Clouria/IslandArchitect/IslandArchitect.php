@@ -48,8 +48,10 @@ use Clouria\IslandArchitect\{
 
 use function strtolower;
 use function implode;
-use function count;
 use function class_exists;
+use function microtime;
+use function basename;
+use function round;
 
 class IslandArchitect extends PluginBase implements Listener {
 
@@ -109,6 +111,7 @@ class IslandArchitect extends PluginBase implements Listener {
 			case 'p1':
 			case '1':
 				if (!$sender->hasPermission('island-architect.convert')) return false;
+				if ($s->errorCheckOutRequired()) break;
 				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
 				$vec = $vec ?? $sender->asPosition();
 				$sender->sendMessage(TF::YELLOW . 'Start coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
@@ -119,24 +122,47 @@ class IslandArchitect extends PluginBase implements Listener {
 			case 'p2':
 			case '2':
 				if (!$sender->hasPermission('island-architect.convert')) return false;
+				if ($s->errorCheckOutRequired()) break;
 				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
 				$vec = $vec ?? $sender->asPosition();
 				$sender->sendMessage(TF::YELLOW . 'End coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
 				$this->getSession($sender)->getIsland()->setEndCoord($vec);
 				break;
 
+			case 'island':
+			case 'checkout':
+			case 'check-out':
+			case 'i':
+				if (!isset($args[1])) {
+					$sender->sendMessage(TF::BOLD . TF::RED . 'Please enter the island data file name!');
+					break;
+				}
+				$time = microtime(true);
+				$sender->sendMessage(TF::YELLOW . 'Loading island ' . TF::GOLD . '"' . $args . '"...');
+				$task = new IslandDataLoadTask($args[1], function(?TemplateIsland $is, string $filepath) use ($sender, $time) : void {
+					if (!$sender->isOnline()) return;
+					if (!isset($is)) $is = new TemplateIsland(basename($filepath, '.json'));
+					$this->getSession($sender, true)->checkOutIsland($is);
+					$sender->sendMessage(TF::BOLD . TF::RED . 'Checked out island "' . $is->getName() '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . ')');
+				});
+				break;
+
 			case 'random':
-				new InvMenuSession($this->getSession($sender, true), isset($args[1]) ? (int)$args[1] : null);
+			case 'regex':
+			case 'r':
+				$s = $this->getSession($sender, true);
+				if ($s->errorCheckOutRequired()) break;
+				new InvMenuSession($s, isset($args[1]) ? (int)$args[1] : null);
 				break;
 		
 			default:
 				$cmds[] = 'help ' . TF::ITALIC . TF::GRAY . '(Display available subcommands)';
 				if ($sender->hasPermission('island-architect.convert')) {
-					$cmds[] = 'island [Template island file name: string] ' . TF::ITALIC . TF::GRAY . '(Check out or create an island)';
+					$cmds[] = 'island <Island data file name: string> ' . TF::ITALIC . TF::GRAY . '(Check out or create an island)';
 					$cmds[] = 'pos1 [xyz: int] ' . TF::ITALIC . TF::GRAY . '(Set the start coordinate of the island for convert)';
 					$cmds[] = 'pos2 [xyz: int] ' . TF::ITALIC . TF::GRAY . '(Set the end coordinate of the island for convert)';
-					$cmds[] = 'convert ' . TF::ITALIC . TF::GRAY . '(Convert the selected island area to JSON island template file)';
-					$cmds[] = 'random [Random function ID: int] ' . TF::ITALIC . TF::GRAY . '(Setup random blocks generation)';
+					$cmds[] = 'export ' . TF::ITALIC . TF::GRAY . '(Export the checked out island into template island data file)';
+					$cmds[] = 'random [Random regex ID: int] ' . TF::ITALIC . TF::GRAY . '(Setup random blocks generation)';
 				}
 				$sender->sendMessage(TF::BOLD . TF::GOLD . 'Available subcommands: ' . ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $cmds ?? ['help']));
 				break;
@@ -168,6 +194,16 @@ class IslandArchitect extends PluginBase implements Listener {
 	public function onBlockBreak(BlockBreakEvent $ev) : void {
 		$s = $this->getSession($ev->getPlayer());
 		if (isset($s)) $s->onBlockBreak($ev->getBlock()->asVector3());
+	}
+
+	/**
+	 * @priority HIGH
+	 * @ignoreCancelled
+	 */
+	public function onBlockPlace(BlockPlaceEvent $ev) : void {
+		if (($s = $this->getSession($ev->getPlayer())) === null) return;;
+		if ($s->errorCheckOutRequired()) $ev->setCancelled();
+		else $s->onBlockPlace($ev->getBlock()->asVector3(), $ev->getItem());
 	}
 
 	public static function getInstance() : ?self {
