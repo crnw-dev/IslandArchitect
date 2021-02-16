@@ -112,7 +112,7 @@ class IslandArchitect extends PluginBase implements Listener {
 				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
 				$vec = $vec ?? $sender->asPosition();
 				$sender->sendMessage(TF::YELLOW . 'Start coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
-				$this->getSession($sender)->startCoord($vec);
+				$this->getSession($sender)->setStartCoord($vec);
 				break;
 
 			case 'pos2':
@@ -122,7 +122,7 @@ class IslandArchitect extends PluginBase implements Listener {
 				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
 				$vec = $vec ?? $sender->asPosition();
 				$sender->sendMessage(TF::YELLOW . 'End coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
-				$this->getSession($sender)->endCoord($vec);
+				$this->getSession($sender)->setEndCoord($vec);
 				break;
 
 			case 'random':
