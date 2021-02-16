@@ -104,7 +104,7 @@ class TemplateIsland {
 	}
 
 	public function getRandomById(int $id) : ?RandomGeneration {
-		return $this->randoms[$id];
+		return $this->randoms[$id] ?? null;
 	}
 
 	public function removeRandomById(int $id) : bool {

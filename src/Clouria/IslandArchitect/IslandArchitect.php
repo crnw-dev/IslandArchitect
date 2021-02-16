@@ -95,8 +95,10 @@ class IslandArchitect extends PluginBase implements Listener {
 
 	public function getSession(Player $player, bool $nonnull = false) : ?PlayerSession {
 		if (($this->sessions[$player->getName()] ?? null) !== null) $s = $this->sessions[$player->getName()];
-		elseif ($nonnull) $s = ($this->sessions[$player->getName()] = new PlayerSession($player));
-		if (self::DEV_ISLAND and isset($s)) $s->checkOutIsland(new TemplateIsland('test'));
+		elseif ($nonnull) {
+			$s = ($this->sessions[$player->getName()] = new PlayerSession($player));
+			if (self::DEV_ISLAND) $s->checkOutIsland(new TemplateIsland('test'));
+		}
 		return $s ?? null;
 	}
 
@@ -124,8 +126,7 @@ class IslandArchitect extends PluginBase implements Listener {
 				break;
 
 			case 'random':
-				if (isset($args[1])) $args[1] = (int)$args[1];
-				new InvMenuSession($this->getSession($sender, true));
+				new InvMenuSession($this->getSession($sender, true), isset($args[1]) ? (int)$args[1] : null);
 				break;
 		
 			default:

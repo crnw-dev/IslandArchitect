@@ -31,15 +31,15 @@ use pocketmine\{
 use pocketmine\nbt\tag\{
 	ListTag,
 	ShortTag,
+	ByteTag,
 	CompoundTag
 };
 
 use function explode;
-use function array_diff;
 
 class RandomGeneration {
 
-	private $blocks = [];
+	protected $blocks = [];
 
 	public function increaseElementChance(int $id, int $meta = 0, int $chance = 1) : bool {
 		if (($this->blocks[$id . ':' . $meta] ?? 0) + $chance > 32767) return false;
@@ -76,14 +76,9 @@ class RandomGeneration {
 	}
 
 	public function getTotalChance() : int {
-		static $blocks = [];
-		static $chance = 0;
-		if (array_diff($blocks, $this->blocks)) {
-			$blocks = $this->blocks;
-			$chance = 0;
-			foreach ($this->blocks as $elementchance) $chance += (int)$elementchance;
-		}
-		return $chance;
+		$totalchance = 0;
+		foreach ($this->getAllElements() as $chance) $totalchance += $chance;
+		return $totalchance;
 	}
 
 	public function randomElementItem(Random $random) : Item {
