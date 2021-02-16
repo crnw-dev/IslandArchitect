@@ -164,7 +164,9 @@ class InvMenuSession {
 		$this->menu->setListener(InvMenu::readonly(\Closure::fromCallable([$this, 'transactionCallback'])));
 		$this->menu->setInventoryCloseListener(function(Player $p, Inventory $inv) : void {
 			if ($this->giveitem_lock) return;
-			$i = $this->getRegex()->getRandomGenerationItem();
+			$i = $this->getSession()->getIsland()->getRandomSymbolic($this->getRegexId());
+			$i->setCount(64);
+			$i = $this->getRegex()->getRandomGenerationItem($i);
 			$i->getNamedTagEntry('IslandArchitect')->getCompoundTag('random-generation')->setShort('regexid', $this->getRegexId());
 			$p->getInventory()->addItem();
 			if (isset($this->callback)) ($this->callback)();

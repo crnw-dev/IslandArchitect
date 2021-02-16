@@ -25,7 +25,8 @@ use pocketmine\{
 	math\AxisAlignedBB as BB,
 	level\Level,
 	level\format\Chunk,
-	block\Block
+	block\Block,
+	item\Item
 };
 
 use function array_push;
@@ -34,6 +35,7 @@ use function explode;
 use function asort;
 use function in_array;
 use function json_encode;
+use function array_rand;
 
 use const SORT_NUMERIC;
 
@@ -138,6 +140,33 @@ class TemplateIsland {
 
 	public function getRandomByVector(Vector3 $block) : ?int {
 		return $this->random_blocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()] ?? null;
+	}
+
+	/**
+	 * @var array<int, int[]>
+	 */
+	protected $symbolic = [];
+
+	protected const SYMBOLICS = [
+		[Item::PURPLE_GLAZED_TERRACOTTA],
+		[Item::WHITE_GLAZED_TERRACOTTA],
+		[Item::ORANGE_GLAZED_TERRACOTTA],
+		[Item::MAGENTA_GLAZED_TERRACOTTA],
+		[Item::LIGHT_BLUE_GLAZED_TERRACOTTA],
+		[Item::YELLOW_GLAZED_TERRACOTTA],
+		[Item::LIME_GLAZED_TERRACOTTA],
+		[Item::PINK_GLAZED_TERRACOTTA],
+		[Item::GRAY_GLAZED_TERRACOTTA],
+		[Item::SILVER_GLAZED_TERRACOTTA],
+		[Item::CYAN_GLAZED_TERRACOTTA]
+	];
+
+	/**
+	 * @todo Allow user to customize symbolic in panel(inventory)
+	 */
+	public function getRandomSymbolic(int $id) : Item {
+		if (!isset($this->symbolic[$id])) $this->symbolic[$id] = self::SYMBOLICS[array_rand(self::SYMBOLICS)];
+		return Item::get($this->symbolic[$id][0], $this->symbolic[$id][1] ?? 0);
 	}
 
 	public const VERSION = 1;

@@ -117,7 +117,7 @@ class RandomGeneration {
 		return true;
 	}
 
-	public function getRandomGenerationItem(int $count = 64) : Item {
+	public function getRandomGenerationItem(Item $item) : Item {
 		foreach ($this->getAllElements() as $block => $chance) {
 			$block = explode(':', $block);
 			$regex[] = new CompoundTag('', [
@@ -128,7 +128,7 @@ class RandomGeneration {
 			$bi = Item::get((int)$block[0], (int)($block[1] ?? 0));
 			$blockslore[] = $bi->getName() . ' (' . $bi->getId() . ':' . $bi->getDamage() . '): ' . TF::BOLD . TF::GREEN . $chance . TF::ITALIC . ' (' . round((int)$chance / ($totalchance ?? (int)$chance) * 100, 2) . '%%)';
 		}
-		$i = Item::get(Item::CYAN_GLAZED_TERRACOTTA, 0, $count);
+		$i = $item;
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . 'Random generation' . (!empty($blockslore ?? []) ? ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $blockslore ?? []) : ''));
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new CompoundTag('random-generation', [
 			new ListTag('regex', $regex ?? [])
