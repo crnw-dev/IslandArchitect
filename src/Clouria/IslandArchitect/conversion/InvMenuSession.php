@@ -55,10 +55,7 @@ use function random_int;
 use function ceil;
 use function count;
 use function preg_replace;
-use function time;
-use function array_push;
 use function class_exists;
-use function implode;
 use function spl_object_hash;
 
 use const INT32_MIN;
@@ -137,6 +134,11 @@ class InvMenuSession {
 	 */
 	protected $collapse = false;
 
+	/**
+	 * @var bool
+	 */
+	protected $giveitem_lock = false;
+
 	public const PANEL_AVAILABLE_SLOTS_SIZE = 33;
 
 	public const ITEM_REMOVE = 0;
@@ -152,7 +154,7 @@ class InvMenuSession {
 		$this->menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
 		$this->menu->setListener(InvMenu::readonly(\Closure::fromCallable([$this, 'transactionCallback'])));
 		$this->menu->setInventoryCloseListener(function(Player $p, Inventory $inv) : void {
-			if (!$this->item_lock) $p->getInventory()->addItem($this->getRegex()->getRandomGenerationItem());
+			if (!$this->giveitem_lock) $p->getInventory()->addItem($this->getRegex()->getRandomGenerationItem());
 		});
 		$this->menu->setName(TF::DARK_BLUE . 'Random regex ' . TF::BOLD . '#' . $this->getRegexId());
 
@@ -174,13 +176,14 @@ class InvMenuSession {
 		}
 		$this->menu->getInventory()->setItem(48, $i, false);
 
-		$this->panelElementSlotsUpdate();
+		$this->panelElementSlots();
 		$this->panelSelect();
-		$this->panelPageUpdate();
-		$this->panelCollapseUpdate();
+		$this->panelPage();
+		$this->panelCollapse();
+		$this->panelRandom();
 	}
 
-	protected function panelElementSlotsUpdate() : void {
+	protected function panelElementSlots() : void {
 		for ($i=0; $i < self::PANEL_AVAILABLE_SLOTS_SIZE; $i++) $this->menu->getInventory()->clear($i, false);
 		$totalchance = $this->getRegex()->getTotalChance();
 		foreach ($this->getRegex()->getAllElements() as $block => $chance) {
@@ -193,7 +196,7 @@ class InvMenuSession {
 				TF::RESET . $item->getVanillaName() . "\n" .
 				TF::YELLOW . 'ID: ' . TF::BOLD . TF::GOLD . (int)$block[0] . "\n" .
 				TF::RESET . TF::YELLOW . 'Meta: ' . TF::BOLD . TF::GOLD . (int)$block[1] . "\n" .
-				TF::RESET . TF::YELLOW . TF::YELLOW . 'Chance: ' . TF::BOLD . TF::GREEN . (int)$chance . TF::ITALIC . ' (' . round((int)$chance / ($totalchance ?? (int)$chance) * 100, 2) . '%)' . "\n\n" .
+				TF::RESET . TF::YELLOW . TF::YELLOW . 'Chance: ' . TF::BOLD . TF::GREEN . (int)$chance . TF::ITALIC . ' (' . round((int)$chance / ($totalchance == 0 ? (int)$chance : $totalchance) * 100, 2) . '%%)' . "\n\n" .
 				TF::RESET . TF::ITALIC . TF::GRAY . (!$selected ? '(Click / drop to select this block)' : '(Click / drop again to cancel the select)'));
 			$item->setNamedTagEntry(new CompoundTag('IslandArchitect', [
 				new ShortTag('id', (int)$block[0]),
@@ -221,20 +224,20 @@ class InvMenuSession {
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', $s ? self::ITEM_REMOVE : -1)]));
 		$this->menu->getInventory()->setItem(45, $i, false);
 
-		$e = $s and ($this->getRegex()->getElementChance($this->selected[0] . $this->selected[1]) < 32767);
+		$e = $s and ($this->getRegex()->getElementChance($this->selected[0], $this->selected[1]) < 32767);
 		$i = Item::get($e ? Item::EMERALD_ORE : Item::STONE);
 		$i->setCustomName($e ? TF::RESET . TF::BOLD . TF::GREEN . 'Increase chance' : $prefix . 'Increase chance' . $surfix);
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', $e ? self::ITEM_LUCK : -1)]));
 		$this->menu->getInventory()->setItem(46, $i, false);
 
-		$e = $s and ($this->getRegex()->getElementChance($this->selected[0] . $this->selected[1]) > 1);
+		$e = $s and ($this->getRegex()->getElementChance($this->selected[0], $this->selected[1]) > 1);
 		$i = Item::get($e ? Item::REDSTONE_ORE : Item::STONE);
 		$i->setCustomName($e ? TF::RESET . TF::BOLD . TF::RED . 'Decrease chance' : $prefix . 'Decrease chance' . $surfix);
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', $e ? self::ITEM_UNLUCK : -1)]));
 		$this->menu->getInventory()->setItem(47, $i, false);
 
 		if (!isset($this->selected)) {
-			$i = Item::get(Item::END_PORTAL);
+			$i = Item::get(-161);
 			$i->setCustomName(TF::GRAY . '(No selected block)');
 		} else {
 			$i = Item::get($this->selected[0], $this->selected[1]);
@@ -252,7 +255,7 @@ class InvMenuSession {
 			$in->getBlock()->getId() !== Item::AIR
 		) {
 			$this->getRegex()->increaseElementChance($in->getId(), $in->getDamage(), $in->getCount());
-			$this->panelElementSlotsUpdate();
+			$this->panelElementSlots();
 			$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
 			return;
 		}
@@ -263,59 +266,71 @@ class InvMenuSession {
 			case self::ITEM_REMOVE:
 				$selected = $this->selected;
 				$this->selected = null;
-				$this->getRegex()->decreaseElementChance($selected->getId(), $selected->getDamage());
+				$this->getRegex()->decreaseElementChance($selected[0], $selected[1]);
 				$this->panelSelect();
+				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
+				break;
 
 			case self::ITEM_LUCK:
 				$selected = $this->selected;
 				$this->selected = null;
-				$this->getRegex()->increaseElementChance($selected->getId(), $selected->getDamage());
+				$this->getRegex()->increaseElementChance($selected[0], $selected[1]);
 				$this->panelSelect();
+				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
+				break;
 
 			case self::ITEM_UNLUCK:
 				$selected = $this->selected;
 				$this->selected = null;
-				$this->getRegex()->decreaseElementChance($selected->getId(), $selected->getDamage(), 1);
+				$this->getRegex()->decreaseElementChance($selected[0], $selected[1], 1);
 				$this->panelSelect();
+				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
+				break;
 
 			case self::ITEM_PREVIOUS:
 				if ($this->display <= 0) break;
 				$this->display -= self::PANEL_AVAILABLE_SLOTS_SIZE;
 				$this->selected = null;
-				$this->panelPageUpdate();
-				$this->panelElementSlotsUpdate();
+				$this->panelPage();
+				$this->panelElementSlots();
 				$this->panelSelect();
+				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
+				break;
 
 			case self::ITEM_NEXT:
 				$totalitem = 0;
-				if (!$this->collapse) foreach ($r->getAllElements() as $chance) $totalitem += $chance;
-				else $totalitem = count($r->getAllElements());
+				if (!$this->collapse) foreach ($this->getRegex()->getAllElements() as $chance) $totalitem += $chance;
+				else $totalitem = count($this->getRegex()->getAllElements());
 				if (($this->display + self::PANEL_AVAILABLE_SLOTS_SIZE) / self::PANEL_AVAILABLE_SLOTS_SIZE >= (int)ceil($totalitem / self::PANEL_AVAILABLE_SLOTS_SIZE)) break;
 				$this->display += self::PANEL_AVAILABLE_SLOTS_SIZE;
 				$this->selected = null;
-				$this->panelPageUpdate();
-				$this->panelElementSlotsUpdate();
+				$this->panelPage();
+				$this->panelElementSlots();
 				$this->panelSelect();
+				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
+				break;
 
 			case self::ITEM_SEED:
-				$this->getPlayer()->removeWindow($inv);
-				$transaction->then(function() use ($id, $m) : void {
+				$this->giveitem_lock = true;
+				$this->getSession()->getPlayer()->removeWindow($this->menu->getInventory());
+				$this->giveitem_lock = false;
+				$transaction->then(function() : void {
 					$this->editSeed();
 				});
 				break;
 
 			case self::ITEM_ROLL:
-				$this->panelRandomResultUpdate();
+				$this->panelRandom();
+				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
+				break;
 
 			case self::ITEM_COLLAPSE:
 				$this->collapse = !$this->collapse;
 				$this->display = 0;
 				$this->selected = null;
 				$this->panelSelect();
-				$this->panelElementSlotsUpdate();
-				$this->panelCollapseUpdate();
-
-			default:
+				$this->panelElementSlots();
+				$this->panelCollapse();
 				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
 				break;
 
@@ -329,51 +344,51 @@ class InvMenuSession {
 		}
 	}
 
-	protected function panelPageUpdate() : void {
+	protected function panelPage() : void {
 		$i = Item::get(($this->display >= self::PANEL_AVAILABLE_SLOTS_SIZE ? Item::EMPTYMAP : Item::PAPER), 0, (int)ceil(($this->display + self::PANEL_AVAILABLE_SLOTS_SIZE) / self::PANEL_AVAILABLE_SLOTS_SIZE));
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Previous page');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_PREVIOUS)]));
 		$this->menu->getInventory()->setItem(52, $i, false);
 
-		$tdi = !$this->collapse ? $this->getRegex()->getTotalChance() : count($r->getAllElements()); // Total display item
+		$tdi = !$this->collapse ? $this->getRegex()->getTotalChance() : count($this->getRegex()->getAllElements()); // Total display item
 		$i = $i = Item::get($tdi / self::PANEL_AVAILABLE_SLOTS_SIZE < 1 ? Item::PAPER : Item::EMPTYMAP, max((int)ceil($tdi / self::PANEL_AVAILABLE_SLOTS_SIZE) - 1, 1));
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Next page');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_NEXT)]));
 		$this->menu->getInventory()->setItem(53, $i, false);
 	}
 
-	protected function panelRandomUpate() : void {
-		$i = Item::get(Item::EXPERIENCE_BOTTLE, 0, $roll_next ? ++$this->random_rolled_times : $this->random_rolled_times);
+	protected function panelRandom() : void {
+		$i = Item::get(Item::EXPERIENCE_BOTTLE, 0,++$this->random_rolled_times);
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Next roll');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_ROLL)]));
 		$this->menu->getInventory()->setItem(49, $i, false);
 		
-		if ($roll_next) {
-			$i = $r->randomElementItem($this->random);
-			if ($i->getBlock()->getId() === Item::AIR) {
-				$i = Item::get(Item::END_PORTAL);
-				$i->setCustomName(TF::GRAY . '(No random output)');
-			} else $i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
-			$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
-			$this->menu->getInventory()->setItem(50, $i, false);
-		}
+		$i = $this->getRegex()->randomElementItem($this->random);
+		if ($i->getBlock()->getId() === Item::AIR) {
+			$i = Item::get(-161);
+			$i->setCustomName(TF::GRAY . '(No random output)');
+		} else $i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
+		$this->menu->getInventory()->setItem(50, $i, false);
 	}
 
-	protected function panelCollapseUpdate() : void {
+	protected function panelCollapse() : void {
 		$i = Item::get(Item::SHULKER_BOX, $this->collapse ? 14 : 5);
 		$i->setCustomName(TF::RESET . TF::YELLOW . 'Show chance as block (Expand mode): ' . TF::BOLD . ($this->collapse ? TF::RED . 'Off' : TF::GREEN . 'On') . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to toggle)');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_COLLAPSE)]));
 		$this->menu->getInventory()->setItem(44, $i, false);
 	}
 
-	public function editSeed(?int $id = null, ?InvMenu $menu = null) : void {
-		$f = new CustomForm(function(Player $p, array $d = null) use ($id, $menu) : void {
-			if ($d !== null and !empty($d[0] ?? null)) $this->random = new Random(empty(preg_replace('/[0-9-]+/i', '', $d[0])) ? (int)$d[0] : TemplateIslandGenerator::convertSeed($d[0]));
-			$this->editRandom($id, $menu);
-			$menu->send($this->getPlayer());
+	public function editSeed() : void {
+		$f = new CustomForm(function(Player $p, array $d = null) : void {
+			if ($d !== null and !empty($d[0] ?? null)) {
+					$this->random = new Random(empty(preg_replace('/[0-9-]+/i', '', $d[0])) ? (int)$d[0] : TemplateIslandGenerator::convertSeed($d[0]));
+					$this->panelRandom();
+				}
+			$this->menu->send($this->getSession()->getPlayer());
 		});
 		$f->addInput(TF::BOLD . TF::GOLD . 'Seed: ', 'Empty box to discard change', isset($this->random) ? (string)$this->random->getSeed() : '');
-		$this->getPlayer()->sendForm($f);
+		$this->getSession()->getPlayer()->sendForm($f);
 	}
 
 }

@@ -41,7 +41,7 @@ class RandomGeneration {
 
 	private $blocks = [];
 
-	public function inElementChance(int $id, int $meta = 0, int $chance = 1) : bool {
+	public function increaseElementChance(int $id, int $meta = 0, int $chance = 1) : bool {
 		if (($this->blocks[$id . ':' . $meta] ?? 0) + $chance > 32767) return false;
 		if (!isset($this->blocks[$id . ':' . $meta])) $this->blocks[$id . ':' . $meta] = 0;
 		$this->blocks[$id . ':' . $meta] += $chance;
@@ -87,7 +87,7 @@ class RandomGeneration {
 	}
 
 	public function randomElementItem(Random $random) : Item {
-		$blocks = $this->getAllRandomBlocks();
+		$blocks = $this->getAllElements();
 
 		// Random crap "proportional random algorithm" code copied from my old plugin
 		$upperl = -1;
@@ -106,20 +106,17 @@ class RandomGeneration {
 	}
 
 	public function equals(RandomGeneration $regex) : bool {
-		$blocks = $regex->getAllRandomBlocks();
-		foreach ($this->getAllRandomBlocks() as $block => $chance) {
-			if (!isset($blocks[$block])) return false;
-			if ($blocks[$block] != $chance) return false;
+		$blocks = $regex->getAllElements();
+		foreach ($this->getAllElements() as $block => $chance) {
+			if (($blocks[$block] ?? null) !== $chance) return false;
+			unset($blocks[$block]);
 		}
-		foreach ($blocks = $regex->getAllRandomBlocks() as $block => $chance) {
-			if (!isset($this->blocks[$block])) return false;
-			if ($this->blocks[$block] != $chance) return false;
-		}
+		if (!empty($blocks)) return false;
 		return true;
 	}
 
 	public function getRandomGenerationItem(int $count = 64) : Item {
-		foreach ($randomgeneration->getAllElements() as $block => $chance) {
+		foreach ($this->getAllElements() as $block => $chance) {
 			$block = explode(':', $block);
 			$regex[] = new CompoundTag('', [
 				new ShortTag('id', (int)$block[0]),
@@ -136,6 +133,4 @@ class RandomGeneration {
 		])]));
 		return $i;
 	}
-
-
 }
