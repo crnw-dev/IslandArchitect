@@ -57,6 +57,7 @@ use function count;
 use function preg_replace;
 use function class_exists;
 use function spl_object_hash;
+use function min;
 
 use const INT32_MIN;
 use const INT32_MAX;
@@ -148,7 +149,12 @@ class InvMenuSession {
 	 */
 	protected $giveitem_lock = false;
 
-	public const PANEL_AVAILABLE_SLOTS_SIZE = 33;
+	/**
+	 * @var bool When this is true all the original item action buttons will be disabled
+	 */
+	protected $symbolic_lock = false;
+
+	public const PANEL_AVAILABLE_SLOTS_SIZE = 32;
 
 	public const ITEM_REMOVE = 0;
 	public const ITEM_LUCK = 1;
@@ -158,25 +164,28 @@ class InvMenuSession {
 	public const ITEM_SEED = 5;
 	public const ITEM_ROLL = 6;
 	public const ITEM_COLLAPSE = 7;
+	public const ITEM_SYMBOLIC = 8;
 
 	protected function panelInit() : void {
-		$this->menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
+		if (!isset($this->menu)) {
+			$this->menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
+			$this->menu->setInventoryCloseListener(function(Player $p, Inventory $inv) : void {
+				if ($this->giveitem_lock) return;
+				$i = $this->getSession()->getIsland()->getRandomSymbolic($this->getRegexId());
+				$i->setCount(64);
+				$i = $this->getRegex()->getRandomGenerationItem($i);
+				$i->getNamedTagEntry('IslandArchitect')->getCompoundTag('random-generation')->setInt('regexid', $this->getRegexId());
+				$p->getInventory()->addItem($i);
+				if (isset($this->callback)) ($this->callback)();
+			});
+			$this->menu->setName(TF::DARK_BLUE . 'Random regex ' . TF::BOLD . '#' . $this->getRegexId());
+		}
 		$this->menu->setListener(InvMenu::readonly(\Closure::fromCallable([$this, 'transactionCallback'])));
-		$this->menu->setInventoryCloseListener(function(Player $p, Inventory $inv) : void {
-			if ($this->giveitem_lock) return;
-			$i = $this->getSession()->getIsland()->getRandomSymbolic($this->getRegexId());
-			$i->setCount(64);
-			$i = $this->getRegex()->getRandomGenerationItem($i);
-			$i->getNamedTagEntry('IslandArchitect')->getCompoundTag('random-generation')->setShort('regexid', $this->getRegexId());
-			$p->getInventory()->addItem($i);
-			if (isset($this->callback)) ($this->callback)();
-		});
-		$this->menu->setName(TF::DARK_BLUE . 'Random regex ' . TF::BOLD . '#' . $this->getRegexId());
 
 		$i = Item::get(Item::INVISIBLEBEDROCK);
 		$i->setCustomName('');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
-		foreach ([33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 51] as $slot) $this->menu->getInventory()->setItem($slot, $i, false);
+		foreach ([32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 50] as $slot) $this->menu->getInventory()->setItem($slot, $i, false);
 
 		$this->random = new Random(random_int(INT32_MIN, INT32_MAX));
 		if (class_exists(CustomForm::class)) $this->panelSeed();
@@ -186,6 +195,7 @@ class InvMenuSession {
 			$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
 			$this->menu->getInventory()->setItem(48, $i, false);
 		}
+
 		$this->panelElementSlots();
 		$this->panelSelect();
 		$this->panelPage();
@@ -231,7 +241,7 @@ class InvMenuSession {
 		$i = Item::get(Item::CONCRETE, $s ? 14 : 7);
 		$i->setCustomName($s ? TF::RESET . TF::BOLD . TF::RED . 'Remove' : $prefix . 'Remove' . $surfix);
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', $s ? self::ITEM_REMOVE : -1)]));
-		$this->menu->getInventory()->setItem(45, $i, false);
+		$this->menu->getInventory()->setItem(46, $i, false);
 
 		$limit = "\n" . TF::ITALIC . TF::RED . '(Limit reached)';
 		$e = ($s and ($this->getRegex()->getElementChance($this->selected[0], $this->selected[1]) < 32767));
@@ -240,7 +250,7 @@ class InvMenuSession {
 			!$s ? $prefix . 'Increase chance' . $surfix : $prefix . 'Increase chance' . $limit
 		));
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', $e ? self::ITEM_LUCK : -1)]));
-		$this->menu->getInventory()->setItem(46, $i, false);
+		$this->menu->getInventory()->setItem(49, $i, false);
 
 		$e = ($s and ($this->getRegex()->getElementChance($this->selected[0], $this->selected[1]) > 1));
 		$i = Item::get($e ? Item::REDSTONE_ORE : Item::STONE);
@@ -248,7 +258,7 @@ class InvMenuSession {
 			!$s ? $prefix . 'Decrease chance' . $surfix : $prefix . 'Decrease chance' . $limit
 		));
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', $e ? self::ITEM_UNLUCK : -1)]));
-		$this->menu->getInventory()->setItem(47, $i, false);
+		$this->menu->getInventory()->setItem(48, $i, false);
 
 		if (!isset($this->selected)) {
 			$i = Item::get(-161);
@@ -266,20 +276,20 @@ class InvMenuSession {
 			);
 		}
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
-		$this->menu->getInventory()->setItem(43, $i, false);
+		$this->menu->getInventory()->setItem(47, $i, false);
 	}
 
 	protected function panelSeed() : void {
 		$i = Item::get(Item::SEEDS);
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . (int)$this->random->getSeed() . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to edit seed or reset random)');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_SEED)]));
-		$this->menu->getInventory()->setItem(48, $i, false);
+		$this->menu->getInventory()->setItem(42, $i, false);
 	}
 
 	protected function transactionCallback(InvMenuTransaction $transaction) : void {
 		$in = $transaction->getIn();
 		$out = $transaction->getOut();
-		if (self::itemConversion($in)->getBlock()->getId() !== Item::AIR and isset($transaction->getTransaction()->getInventories()[spl_object_hash($this->getSession()->getPlayer()->getInventory())])) {
+		if (self::itemConversion($in)->getBlock()->getId() !==   and isset($transaction->getTransaction()->getInventories()[spl_object_hash($this->getSession()->getPlayer()->getInventory())])) {
 			$this->getRegex()->increaseElementChance($in->getId(), $in->getDamage(), $in->getCount());
 			$this->panelSelect();
 			$this->panelElementSlots();
@@ -381,23 +391,23 @@ class InvMenuSession {
 	}
 
 	protected function panelPage() : void {
-		$i = Item::get((($enabled = $this->display >= self::PANEL_AVAILABLE_SLOTS_SIZE) ? Item::EMPTYMAP : Item::PAPER), 0, $pages = max((int)ceil(($this->display + self::PANEL_AVAILABLE_SLOTS_SIZE) / self::PANEL_AVAILABLE_SLOTS_SIZE) - 1, 1));
-		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Previous page' . ($enabled ? TF::ITALIC . TF::GOLD . ' (' . $pages . ')' : ''));
+		$i = Item::get((($enabled = $this->display >= self::PANEL_AVAILABLE_SLOTS_SIZE) ? Item::EMPTYMAP : Item::PAPER), 0, min($pages = max((int)ceil(($this->display + self::PANEL_AVAILABLE_SLOTS_SIZE) / self::PANEL_AVAILABLE_SLOTS_SIZE) - 1, 1), 100));
+		$i->setCustomName(TF::RESET . TF::BOLD . ($enabled ? TF::YELLOW . 'Previous page' . TF::ITALIC . TF::GOLD . ' (' . $pages . ')' : TF::GRAY . 'Previous page'));
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_PREVIOUS)]));
 		$this->menu->getInventory()->setItem(52, $i, false);
 
 		$tdi = !$this->collapse ? $this->getRegex()->getTotalChance() : count($this->getRegex()->getAllElements()); // Total display item
-		$i = Item::get(($enabled = (($tdi - $this->display) / self::PANEL_AVAILABLE_SLOTS_SIZE >= 1)) ? Item::EMPTYMAP : Item::PAPER, 0, $pages = max((int)ceil(($tdi - $this->display) / self::PANEL_AVAILABLE_SLOTS_SIZE) - 1, 1));
-		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Next page' . ($enabled ? TF::ITALIC . TF::GOLD . ' (' . $pages .')' : ''));
+		$i = Item::get(($enabled = (($tdi - $this->display) / self::PANEL_AVAILABLE_SLOTS_SIZE > 1)) ? Item::EMPTYMAP : Item::PAPER, 0, min($pages = max((int)ceil(($tdi - $this->display) / self::PANEL_AVAILABLE_SLOTS_SIZE) - 1, 1), 100));
+		$i->setCustomName(TF::RESET . TF::BOLD . ($enabled ? TF::YELLOW . 'Next page' . TF::ITALIC . TF::GOLD . ' (' . $pages .')' : TF::GRAY . 'Next page'));
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_NEXT)]));
 		$this->menu->getInventory()->setItem(53, $i, false);
 	}
 
 	protected function panelRandom() : void {
-		$i = Item::get(Item::EXPERIENCE_BOTTLE, 0, max($this->random_rolled_times++, 1));
+		$i = Item::get(Item::EXPERIENCE_BOTTLE, 0, min(max($this->random_rolled_times++, 1), 100));
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Next roll' . "\n" . TF::RESET . TF::YELLOW . 'Rolled times: ' . TF::BOLD . TF::GOLD . ($this->random_rolled_times - 1));
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_ROLL)]));
-		$this->menu->getInventory()->setItem(49, $i, false);
+		$this->menu->getInventory()->setItem(44, $i, false);
 		
 		if (empty($this->getRegex()->getAllElements())) {
 			$i = Item::get(-161);
@@ -407,14 +417,21 @@ class InvMenuSession {
 			$i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
 		}
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
-		$this->menu->getInventory()->setItem(50, $i, false);
+		$this->menu->getInventory()->setItem(43, $i, false);
 	}
 
 	protected function panelCollapse() : void {
 		$i = Item::get(Item::SHULKER_BOX, $this->collapse ? 14 : 5);
 		$i->setCustomName(TF::RESET . TF::YELLOW . 'Show chance as block (Expand mode): ' . TF::BOLD . ($this->collapse ? TF::RED . 'Off' : TF::GREEN . 'On') . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to toggle)');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_COLLAPSE)]));
-		$this->menu->getInventory()->setItem(44, $i, false);
+		$this->menu->getInventory()->setItem(51, $i, false);
+	}
+
+	protected function panelSymbolic() : void {
+		$i = $this->getSession()->getIsland()->getRandomSymbolic($this->getRegexId());
+		$i->setCustomName(TF::YELLOW . 'Change regex symbolic');
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_SYMBOLIC)]));
+		$this->menu->getInventory()->setItem(45, $i, false);
 	}
 
 	public function editSeed() : void {

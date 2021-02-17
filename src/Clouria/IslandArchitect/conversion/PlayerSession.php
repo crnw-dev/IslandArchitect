@@ -28,7 +28,7 @@ use pocketmine\{
 };
 use pocketmine\nbt\tag\{
 	CompoundTag,
-	ShortTag,
+	IntTag,
 	ListTag
 };
 
@@ -85,7 +85,7 @@ class PlayerSession {
 		if (($regex = $nbt->getTag('regex', ListTag::class)) === null) return;
 		$regex = RandomGeneration::fromNBT($regex);
 		if (
-			($regexid = $nbt->getTag('regexid', ShortTag::class)) === null or
+			($regexid = $nbt->getTag('regexid', IntTag::class)) === null or
 			($r = $this->getIsland()->getRandomById($regexid = $regexid->getValue())) === null or
 			!$r->equals($regex)
 		) $regexid = $this->getIsland()->addRandom($r = $regex);
