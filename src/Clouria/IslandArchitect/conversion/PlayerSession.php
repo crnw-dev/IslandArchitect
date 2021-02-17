@@ -72,7 +72,7 @@ class PlayerSession {
 
 	public function onBlockBreak(Vector3 $vec) : void {
 		if ($this->getIsland() === null) return;
-		if (($r = $this->getIsland()->getBlockRandom($vec)) === null) return;
+		if (($r = $this->getIsland()->getRandomByVector3($vec)) === null) return;
 		$this->getPlayer()->sendPopup(TF::BOLD . TF::RED . 'You have destroyed a random generation block, ' . TF::GREEN . 'the item has returned to your inventory!');
 		$i = $this->getIsland()->getRandomById($r)->getRandomGenerationItem($r);
 		$i->setCount(64);

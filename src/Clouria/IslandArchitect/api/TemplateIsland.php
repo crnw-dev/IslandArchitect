@@ -128,6 +128,9 @@ class TemplateIsland {
 	 */
 	private $random_blocks = [];
 
+	/**
+	 * @see TemplateIsland::getRandomByVector3()
+	 */
 	public function setBlockRandom(Vector3 $block, int $id) : bool {
 		if (!isset($this->getRandoms()[$id])) return false;
 		if (($sc = $this->getStartCoord()) === null or ($ec = $this->getEndCoord()) === null) return false;
@@ -138,7 +141,10 @@ class TemplateIsland {
 		return true;
 	}
 
-	public function getRandomByVector(Vector3 $block) : ?int {
+	/**
+	 * @see TemplateIsland::setBlockRandom()
+	 */
+	public function getRandomByVector3(Vector3 $block) : ?int {
 		return $this->random_blocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()] ?? null;
 	}
 
