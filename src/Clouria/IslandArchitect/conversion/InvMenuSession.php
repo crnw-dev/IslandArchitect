@@ -381,21 +381,21 @@ class InvMenuSession {
 	}
 
 	protected function panelPage() : void {
-		$i = Item::get(($this->display >= self::PANEL_AVAILABLE_SLOTS_SIZE ? Item::EMPTYMAP : Item::PAPER), 0, max((int)ceil(($this->display + self::PANEL_AVAILABLE_SLOTS_SIZE) / self::PANEL_AVAILABLE_SLOTS_SIZE) - 1, 1));
-		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Previous page');
+		$i = Item::get((($enabled = $this->display >= self::PANEL_AVAILABLE_SLOTS_SIZE) ? Item::EMPTYMAP : Item::PAPER), 0, $pages = max((int)ceil(($this->display + self::PANEL_AVAILABLE_SLOTS_SIZE) / self::PANEL_AVAILABLE_SLOTS_SIZE) - 1, 1));
+		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Previous page' . ($enabled ? TF::ITALIC . TF::GOLD . ' (' . $pages . ')' : ''));
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_PREVIOUS)]));
 		$this->menu->getInventory()->setItem(52, $i, false);
 
 		$tdi = !$this->collapse ? $this->getRegex()->getTotalChance() : count($this->getRegex()->getAllElements()); // Total display item
-		$i = Item::get(($tdi - $this->display) / self::PANEL_AVAILABLE_SLOTS_SIZE < 1 ? Item::PAPER : Item::EMPTYMAP, 0, max((int)ceil(($tdi - $this->display) / self::PANEL_AVAILABLE_SLOTS_SIZE) - 1, 1));
-		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Next page');
+		$i = Item::get(($enabled = (($tdi - $this->display) / self::PANEL_AVAILABLE_SLOTS_SIZE >= 1)) ? Item::EMPTYMAP : Item::PAPER, 0, $pages = max((int)ceil(($tdi - $this->display) / self::PANEL_AVAILABLE_SLOTS_SIZE) - 1, 1));
+		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Next page' . ($enabled ? TF::ITALIC . TF::GOLD . ' (' . $pages .')' : ''));
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_NEXT)]));
 		$this->menu->getInventory()->setItem(53, $i, false);
 	}
 
 	protected function panelRandom() : void {
-		$i = Item::get(Item::EXPERIENCE_BOTTLE, 0,++$this->random_rolled_times);
-		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Next roll');
+		$i = Item::get(Item::EXPERIENCE_BOTTLE, 0, max($this->random_rolled_times++, 1));
+		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Next roll' . "\n" . TF::RESET . TF::YELLOW . 'Rolled times: ' . TF::BOLD . TF::GOLD . ($this->random_rolled_times - 1));
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_ROLL)]));
 		$this->menu->getInventory()->setItem(49, $i, false);
 		

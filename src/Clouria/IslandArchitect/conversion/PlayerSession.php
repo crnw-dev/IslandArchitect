@@ -110,7 +110,7 @@ class PlayerSession {
 		if ($this->interact_lock) return;
 		if ($this->getIsland() === null) return;
 		$this->interact_lock = true;
-		if (($r = $this->getIsland()->getRandomByVector($vec)) === null) return;
+		if (($r = $this->getIsland()->getRandomByVector3($vec)) === null) return;
 		new InvMenuSession($this, $r, function() : void {
 			$this->interact_lock = false;
 		});

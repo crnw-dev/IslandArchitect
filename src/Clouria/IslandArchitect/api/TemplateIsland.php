@@ -167,11 +167,18 @@ class TemplateIsland {
 		[Item::CYAN_GLAZED_TERRACOTTA]
 	];
 
+	private $unused_symbols = self::SYMBOLICS;
+
 	/**
 	 * @todo Allow user to customize symbolic in panel(inventory)
 	 */
 	public function getRandomSymbolic(int $id) : Item {
-		if (!isset($this->symbolic[$id])) $this->symbolic[$id] = self::SYMBOLICS[array_rand(self::SYMBOLICS)];
+		if (!isset($this->symbolic[$id])) {
+			if (empty($this->unused_symbols)) $this->unused_symbols = self::SYMBOLICS;
+			$chosenone = array_rand($this->unused_symbols);
+			$this->symbolic[$id] = $this->unused_symbols[$chosenone];
+			unset($this->unused_symbols[$chosenone]);
+		}
 		return Item::get($this->symbolic[$id][0], $this->symbolic[$id][1] ?? 0);
 	}
 
