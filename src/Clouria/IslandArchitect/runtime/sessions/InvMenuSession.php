@@ -40,7 +40,7 @@ use muqsit\invmenu\{
 	InvMenu,
 	transaction\DeterministicInvMenuTransaction as InvMenuTransaction
 };
-use jojoe77777\Formruntime\CustomForm;
+use jojoe77777\FormAPI\CustomForm;
 
 use Clouria\IslandArchitect\{
 	IslandArchitect,
@@ -188,10 +188,10 @@ class InvMenuSession {
 			$i = Item::get(Item::PUMPKIN_SEEDS);
 			$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . (int)$this->random->getSeed() . "\n\n" . TF::RESET . TF::BOLD . TF::RED . 'Cannot edit seed due to ' . "\n" . 'required virion "FormAPI" is not installed.');
 			$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
-			$this->menu->getInventory()->setItem(48, $i, false);
+			$this->menu->getInventory()->setItem(42, $i, false);
 		}
 
-		$this->panelElementSlots();
+		$this->panelElement();
 		$this->panelSelect();
 		$this->panelPage();
 		$this->panelCollapse();
@@ -199,7 +199,7 @@ class InvMenuSession {
 		$this->panelSymbolic();
 	}
 
-	protected function panelElementSlots() : void {
+	protected function panelElement() : void {
 		for ($i=0; $i < self::PANEL_AVAILABLE_SLOTS_SIZE; $i++) $this->menu->getInventory()->clear($i, false);
 		$totalchance = $this->getRegex()->getTotalChance();
 		foreach ($this->getRegex()->getAllElements() as $block => $chance) {
@@ -209,6 +209,7 @@ class InvMenuSession {
 			$item = Item::get((int)$block[0], (int)($block[1]));
 			$itemname = $item->getVanillaName();
 			if ($selected) $item = Item::get(Item::WOOL, 5);
+			elseif ($item->getId() === Item::AIR) $item = self::displayConversion($item);
 			$item->setCustomName(
 				TF::RESET . $itemname . "\n" .
 				TF::YELLOW . 'ID: ' . TF::BOLD . TF::GOLD . (int)$block[0] . "\n" .
@@ -257,14 +258,16 @@ class InvMenuSession {
 		$this->menu->getInventory()->setItem(48, $i, false);
 
 		if (!isset($this->selected)) {
-			$i = Item::get(-161);
+			$i = self::getBarrier();
 			$i->setCustomName(TF::GRAY . '(No selected element)');
 		} else {
 			$chance = $this->getRegex()->getElementChance($this->selected[0], $this->selected[1]);
 			$totalchance = $this->getRegex()->getTotalChance();
 			$i = Item::get($this->selected[0], $this->selected[1]);
+			$itemname = $i->getVanillaName();
+			$i = self::displayConversion($i);
 			$i->setCustomName(
-				TF::RESET . $i->getVanillaName() . "\n" .
+				TF::RESET . $itemname . "\n" .
 				TF::YELLOW . 'ID: ' . TF::BOLD . TF::GOLD . (int)$this->selected[0] . "\n" .
 				TF::RESET . TF::YELLOW . 'Meta: ' . TF::BOLD . TF::GOLD . (int)$this->selected[1] . "\n" .
 				TF::RESET . TF::YELLOW . TF::YELLOW . 'Chance: ' . TF::BOLD . TF::GREEN . (int)$chance . ' / ' . ($totalchanceNonZero = $totalchance == 0 ? (int)$chance : $totalchance) . TF::ITALIC . ' (' . round((int)$chance / $totalchanceNonZero * 100, 2) . '%%)' . "\n\n" .
@@ -283,12 +286,20 @@ class InvMenuSession {
 	}
 
 	protected function transactionCallback(InvMenuTransaction $transaction) : void {
-		$in = $transaction->getIn();
+		$inraw = $transaction->getIn();
+		$in = $inraw;
+		$in = self::inputConversion($in, $successed);
 		$out = $transaction->getOut();
-		if (self::itemConversion($in)->getBlock()->getId() !== Item::AIR and ($transaction->getTransaction()->getInventories()[spl_object_hash($this->getSession()->getPlayer()->getInventory())] ?? null) !== null) {
+		if (
+			(
+				$successed or
+				$in->getBlock()->getId() !== Item::AIR
+			) and
+			($transaction->getTransaction()->getInventories()[spl_object_hash($this->getSession()->getPlayer()->getInventory())] ?? null) !== null
+		) {
 			$this->getRegex()->increaseElementChance($in->getId(), $in->getDamage(), $in->getCount());
 			$this->panelSelect();
-			$this->panelElementSlots();
+			$this->panelElement();
 			$this->panelRandom();
 			$this->panelPage();
 			$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
@@ -303,7 +314,7 @@ class InvMenuSession {
 				$this->selected = null;
 				$this->getRegex()->decreaseElementChance($selected[0], $selected[1]);
 				$this->panelSelect();
-				$this->panelElementSlots();
+				$this->panelElement();
 				$this->panelRandom();
 				$this->panelPage();
 				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
@@ -313,7 +324,7 @@ class InvMenuSession {
 				$selected = $this->selected;
 				$this->getRegex()->increaseElementChance($selected[0], $selected[1]);
 				$this->panelSelect();
-				$this->panelElementSlots();
+				$this->panelElement();
 				$this->panelRandom();
 				$this->panelPage();
 				if (!$this->collapse) $this->panelPage();
@@ -324,7 +335,7 @@ class InvMenuSession {
 				$selected = $this->selected;
 				$this->getRegex()->decreaseElementChance($selected[0], $selected[1], 1);
 				$this->panelSelect();
-				$this->panelElementSlots();
+				$this->panelElement();
 				$this->panelRandom();
 				$this->panelPage();
 				if (!$this->collapse) $this->panelPage();
@@ -335,7 +346,7 @@ class InvMenuSession {
 				if ($this->display <= 0) break;
 				$this->display -= self::PANEL_AVAILABLE_SLOTS_SIZE;
 				$this->panelPage();
-				$this->panelElementSlots();
+				$this->panelElement();
 				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
 				break;
 
@@ -346,7 +357,7 @@ class InvMenuSession {
 				if (($this->display + self::PANEL_AVAILABLE_SLOTS_SIZE) / self::PANEL_AVAILABLE_SLOTS_SIZE >= (int)ceil($totalitem / self::PANEL_AVAILABLE_SLOTS_SIZE)) break;
 				$this->display += self::PANEL_AVAILABLE_SLOTS_SIZE;
 				$this->panelPage();
-				$this->panelElementSlots();
+				$this->panelElement();
 				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
 				break;
 
@@ -370,7 +381,7 @@ class InvMenuSession {
 					$this->display = 0;
 					$this->panelPage();
 				}
-				$this->panelElementSlots();
+				$this->panelElement();
 				$this->panelCollapse();
 				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
 				break;
@@ -381,10 +392,10 @@ class InvMenuSession {
 
 		} else {
 			if ($out->getId() !== Item::AIR) {
-				if (!isset($this->selected)) $this->selected = [$out->getId(), $out->getDamage()];
+				if (!isset($this->selected)) $this->selected = [$out->getNamedTagEntry('IslandArchitect')->getShort('id'), $out->getNamedTagEntry('IslandArchitect')->getByte('meta')];
 				else $this->selected = null;
 				$this->panelSelect();
-				$this->panelElementSlots();
+				$this->panelElement();
 				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
 			}
 		}
@@ -410,11 +421,13 @@ class InvMenuSession {
 		$this->menu->getInventory()->setItem(44, $i, false);
 		
 		if (empty($this->getRegex()->getAllElements())) {
-			$i = Item::get(-161);
+			$i = self::getBarrier();
 			$i->setCustomName(TF::GRAY . '(No random output)');
 		} else {
 			$i = $this->getRegex()->randomElementItem($this->random);
-			$i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
+			$itemname = $i->getVanillaName();
+			$i = self::displayConversion($i);	
+			$i->setCustomName(TF::RESET . $itemname . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
 		}
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
 		$this->menu->getInventory()->setItem(43, $i, false);
@@ -482,6 +495,7 @@ class InvMenuSession {
 			$out = $transaction->getOut();
 			if ($out->getId() === Item::AIR) {
 				if ($in->getBlock()->getId() === Item::AIR or ($transaction->getTransaction()->getInventories()[spl_object_hash($this->getSession()->getPlayer()->getInventory())] ?? null) === null) return;
+				$in = self::inputConversion($in);
 				$this->getSession()->getIsland()->setRandomSymbolic($this->getRegexId(), $in->getId(), $in->getDamage());
 			}
 			$this->panelInit();
@@ -493,15 +507,52 @@ class InvMenuSession {
 	/**
 	 * @return Item|\pocketmine\item\ItemBlock
 	 */
-	protected static function itemConversion(Item &$item) : Item {
+	protected static function inputConversion(Item $item, &$successed = false) : Item {
+		$successed = false;
+		$count = $item->getCount();
+		$nbt = $item->getNamedTag();
 		switch (true) {
 			case $item->getId() === Item::BUCKET and $item->getDamage() === 8:
-				return ($item = Item::get(Item::WATER));
+			case $item->getId() === Item::POTION and $item->getDamage() === 0:
+				$item = Item::get(Item::WATER);
+				$successed = true;
+				break;
 
 			case $item->getId() === Item::BUCKET and $item->getDamage() === 10:
-				return ($item = Item::get(Item::LAVA));
+				$item = Item::get(Item::LAVA);
+				$successed = true;
+				break;
+
+			case $item->getId() === Item::BUCKET and $item->getDamage() === 0:
+			case $item->getId() === Item::GLASS_BOTTLE and $item->getDamage() === 0:
+			case $item->getId() === Item::BOWL and $item->getDamage() === 0:
+			case $item->getId() === Item::MINECART and $item->getDamage() === 0:
+				$item = Item::get(Item::AIR);
+				$successed = true;
+				break;
 		}
+		$item->setCount($count);
+		foreach ($nbt as $tag) $item->setNamedTagEntry($tag);
 		return $item;
+	}
+
+	protected static function displayConversion(Item $item, &$successed = false) : Item {
+		$successed = false;
+		$count = $item->getCount();
+		$nbt = $item->getNamedTag();
+		switch (true) {
+			case $item->getId() === Item::AIR:
+				$item = Item::get(217);
+				$successed = true;
+				break;
+		}
+		$item->setCount($count);
+		foreach ($nbt as $tag) $item->setNamedTagEntry($tag);
+		return $item;
+	}
+
+	protected static function getBarrier() : Item {
+		return Item::get(-161);
 	}
 
 }

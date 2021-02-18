@@ -202,7 +202,7 @@ class IslandArchitect extends PluginBase implements Listener {
 	 */
 	public function onBlockPlace(BlockPlaceEvent $ev) : void {
 		if (($s = $this->getSession($ev->getPlayer())) === null) return;;
-		if ($s->errorCheckOutRequired()) $ev->setCancelled();
+		if (PlayerSession::errorCheckOutRequired($ev->getPlayer(), $this->getSession($ev->getPlayer()))) $ev->setCancelled();
 		else $s->onBlockPlace($ev);
 	}
 
