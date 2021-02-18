@@ -449,13 +449,32 @@ class InvMenuSession {
 	}
 
 	protected function editSymbolic() : void {
-		$item = Item::get(Item::INVISIBLEBEDROCK);
-		$item->setCustomName(TF::GRAY . '(Move your symbolic block into the empty slot' . "\n" . 'or click / drop item in other slots to cancel)');
 		for ($i=0; $i < $this->menu->getInventory()->getSize(); $i++) {
-			if ($i === 45) {
-				$this->menu->getInventory()->setItem($i, Item::get(Item::AIR), false);
-				continue;
+			switch ($i) {
+				case 45:
+					$item = Item::get(Item::AIR);
+					break;
+
+				// Arrow head
+				case 19:
+				case 28:
+				case 37:
+				case 38:
+				case 39:
+
+				// Arrow body
+				case 29:
+				case 21:
+				case 13:
+				case 5:
+					$item = Item::get(Item::IRON_BARS);
+					break;
+
+				default:
+					$item = Item::get(Item::INVISIBLEBEDROCK);
+					break;
 			}
+			$item->setCustomName(TF::GRAY . '(Move your symbolic block into the empty slot' . "\n" . 'or click / drop item in other slots to cancel)');
 			$this->menu->getInventory()->setItem($i, $item, false);
 		}
 		$this->menu->setListener(InvMenu::readonly(function(InvMenuTransaction $transaction) : void {
