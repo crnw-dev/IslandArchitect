@@ -149,11 +149,6 @@ class InvMenuSession {
 	 */
 	protected $giveitem_lock = false;
 
-	/**
-	 * @var bool When this is true all the original item action buttons will be disabled
-	 */
-	protected $symbolic_lock = false;
-
 	public const PANEL_AVAILABLE_SLOTS_SIZE = 32;
 
 	public const ITEM_REMOVE = 0;
@@ -183,7 +178,7 @@ class InvMenuSession {
 		$this->menu->setListener(InvMenu::readonly(\Closure::fromCallable([$this, 'transactionCallback'])));
 
 		$i = Item::get(Item::INVISIBLEBEDROCK);
-		$i->setCustomName('');
+		$i->setCustomName(' ');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
 		foreach ([32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 50] as $slot) $this->menu->getInventory()->setItem($slot, $i, false);
 
@@ -201,6 +196,7 @@ class InvMenuSession {
 		$this->panelPage();
 		$this->panelCollapse();
 		$this->panelRandom();
+		$this->panelSymbolic();
 	}
 
 	protected function panelElementSlots() : void {
@@ -209,7 +205,7 @@ class InvMenuSession {
 		foreach ($this->getRegex()->getAllElements() as $block => $chance) {
 			$block = explode(':', $block);
 			$selected = false;
-			if (isset($this->selected)) $selected = (int)$block[0] === (int)$this->selected[0] and (int)$block[1] === (int)$this->selected[1];
+			if (isset($this->selected)) $selected = ((int)$block[0] === (int)$this->selected[0] and (int)$block[1] === (int)$this->selected[1]);
 			$item = Item::get((int)$block[0], (int)($block[1]));
 			$itemname = $item->getVanillaName();
 			if ($selected) $item = Item::get(Item::WOOL, 5);
@@ -218,7 +214,7 @@ class InvMenuSession {
 				TF::YELLOW . 'ID: ' . TF::BOLD . TF::GOLD . (int)$block[0] . "\n" .
 				TF::RESET . TF::YELLOW . 'Meta: ' . TF::BOLD . TF::GOLD . (int)$block[1] . "\n" .
 				TF::RESET . TF::YELLOW . TF::YELLOW . 'Chance: ' . TF::BOLD . TF::GREEN . (int)$chance . ' / ' . ($totalchanceNonZero = $totalchance == 0 ? (int)$chance : $totalchance) . TF::ITALIC . ' (' . round((int)$chance / $totalchanceNonZero * 100, 2) . '%%)' . "\n\n" .
-				TF::RESET . TF::ITALIC . TF::GRAY . (!$selected ? '(Click / drop to select this block)' : '(Click / drop again to cancel the select)'));
+				TF::RESET . TF::ITALIC . TF::GRAY . (!$selected ? '(Click / drop to select this element)' : '(Click / drop again to cancel the select)'));
 			$item->setNamedTagEntry(new CompoundTag('IslandArchitect', [
 				new ShortTag('id', (int)$block[0]),
 				new ByteTag('meta', (int)$block[1])
@@ -236,7 +232,7 @@ class InvMenuSession {
 	protected function panelSelect() : void {
 		$s = $this->selected !== null;
 		$prefix = TF::RESET . TF::BOLD . TF::GRAY;
-		$surfix = "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Please select a block first)';
+		$surfix = "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Please select a element first)';
 
 		$i = Item::get(Item::CONCRETE, $s ? 14 : 7);
 		$i->setCustomName($s ? TF::RESET . TF::BOLD . TF::RED . 'Remove' : $prefix . 'Remove' . $surfix);
@@ -262,7 +258,7 @@ class InvMenuSession {
 
 		if (!isset($this->selected)) {
 			$i = Item::get(-161);
-			$i->setCustomName(TF::GRAY . '(No selected block)');
+			$i->setCustomName(TF::GRAY . '(No selected element)');
 		} else {
 			$chance = $this->getRegex()->getElementChance($this->selected[0], $this->selected[1]);
 			$totalchance = $this->getRegex()->getTotalChance();
@@ -272,7 +268,7 @@ class InvMenuSession {
 				TF::YELLOW . 'ID: ' . TF::BOLD . TF::GOLD . (int)$this->selected[0] . "\n" .
 				TF::RESET . TF::YELLOW . 'Meta: ' . TF::BOLD . TF::GOLD . (int)$this->selected[1] . "\n" .
 				TF::RESET . TF::YELLOW . TF::YELLOW . 'Chance: ' . TF::BOLD . TF::GREEN . (int)$chance . ' / ' . ($totalchanceNonZero = $totalchance == 0 ? (int)$chance : $totalchance) . TF::ITALIC . ' (' . round((int)$chance / $totalchanceNonZero * 100, 2) . '%%)' . "\n\n" .
-				TF::RESET . TF::ITALIC . TF::GRAY . '(Selected item)'
+				TF::RESET . TF::ITALIC . TF::GRAY . '(Selected element)'
 			);
 		}
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
@@ -281,7 +277,7 @@ class InvMenuSession {
 
 	protected function panelSeed() : void {
 		$i = Item::get(Item::SEEDS);
-		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . (int)$this->random->getSeed() . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to edit seed or reset random)');
+		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . (int)$this->random->getSeed() . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to edit seed or reset random noises)');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_SEED)]));
 		$this->menu->getInventory()->setItem(42, $i, false);
 	}
@@ -289,7 +285,7 @@ class InvMenuSession {
 	protected function transactionCallback(InvMenuTransaction $transaction) : void {
 		$in = $transaction->getIn();
 		$out = $transaction->getOut();
-		if (self::itemConversion($in)->getBlock()->getId() !==   and isset($transaction->getTransaction()->getInventories()[spl_object_hash($this->getSession()->getPlayer()->getInventory())])) {
+		if (self::itemConversion($in)->getBlock()->getId() !== Item::AIR and ($transaction->getTransaction()->getInventories()[spl_object_hash($this->getSession()->getPlayer()->getInventory())] ?? null) !== null) {
 			$this->getRegex()->increaseElementChance($in->getId(), $in->getDamage(), $in->getCount());
 			$this->panelSelect();
 			$this->panelElementSlots();
@@ -379,6 +375,10 @@ class InvMenuSession {
 				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
 				break;
 
+			case self::ITEM_SYMBOLIC:
+				$this->editSymbolic();
+				break;
+
 		} else {
 			if ($out->getId() !== Item::AIR) {
 				if (!isset($this->selected)) $this->selected = [$out->getId(), $out->getDamage()];
@@ -422,14 +422,14 @@ class InvMenuSession {
 
 	protected function panelCollapse() : void {
 		$i = Item::get(Item::SHULKER_BOX, $this->collapse ? 14 : 5);
-		$i->setCustomName(TF::RESET . TF::YELLOW . 'Show chance as block (Expand mode): ' . TF::BOLD . ($this->collapse ? TF::RED . 'Off' : TF::GREEN . 'On') . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to toggle)');
+		$i->setCustomName(TF::RESET . TF::YELLOW . 'Expand mode: ' . TF::BOLD . ($this->collapse ? TF::RED . 'Off' : TF::GREEN . 'On') . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to toggle)');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_COLLAPSE)]));
 		$this->menu->getInventory()->setItem(51, $i, false);
 	}
 
 	protected function panelSymbolic() : void {
 		$i = $this->getSession()->getIsland()->getRandomSymbolic($this->getRegexId());
-		$i->setCustomName(TF::YELLOW . 'Change regex symbolic');
+		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Change regex symbolic');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_SYMBOLIC)]));
 		$this->menu->getInventory()->setItem(45, $i, false);
 	}
@@ -446,6 +446,29 @@ class InvMenuSession {
 		});
 		$f->addInput(TF::BOLD . TF::GOLD . 'Seed: ', 'Empty box to discard change', isset($this->random) ? (string)$this->random->getSeed() : '');
 		$this->getSession()->getPlayer()->sendForm($f);
+	}
+
+	protected function editSymbolic() : void {
+		$item = Item::get(Item::INVISIBLEBEDROCK);
+		$item->setCustomName(TF::GRAY . '(Move your symbolic block into the empty slot' . "\n" . 'or click / drop item in other slots to cancel)');
+		for ($i=0; $i < $this->menu->getInventory()->getSize(); $i++) {
+			if ($i === 45) {
+				$this->menu->getInventory()->setItem($i, Item::get(Item::AIR), false);
+				continue;
+			}
+			$this->menu->getInventory()->setItem($i, $item, false);
+		}
+		$this->menu->setListener(InvMenu::readonly(function(InvMenuTransaction $transaction) : void {
+			$in = $transaction->getIn();
+			$out = $transaction->getOut();
+			if ($out->getId() === Item::AIR) {
+				if ($in->getBlock()->getId() === Item::AIR or ($transaction->getTransaction()->getInventories()[spl_object_hash($this->getSession()->getPlayer()->getInventory())] ?? null) === null) return;
+				$this->getSession()->getIsland()->setRandomSymbol($this->getRegexId(), $in->getId(), $in->getDamage());
+			}
+			$this->panelInit();
+			$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
+		}));
+		$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
 	}
 
 	/**
