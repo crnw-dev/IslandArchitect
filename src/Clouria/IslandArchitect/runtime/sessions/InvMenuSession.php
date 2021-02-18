@@ -182,7 +182,7 @@ class InvMenuSession {
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
 		foreach ([32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 50] as $slot) $this->menu->getInventory()->setItem($slot, $i, false);
 
-		$this->random = new Random(random_int(INT32_MIN, INT32_MAX));
+		$this->random = new Random(self::getDefaultSeed() ?? random_int(INT32_MIN, INT32_MAX));
 		if (class_exists(CustomForm::class)) $this->panelSeed();
 		else {
 			$i = Item::get(Item::PUMPKIN_SEEDS);
@@ -526,7 +526,6 @@ class InvMenuSession {
 			case $item->getId() === Item::BUCKET and $item->getDamage() === 0:
 			case $item->getId() === Item::GLASS_BOTTLE and $item->getDamage() === 0:
 			case $item->getId() === Item::BOWL and $item->getDamage() === 0:
-			case $item->getId() === Item::MINECART and $item->getDamage() === 0:
 				$item = Item::get(Item::AIR);
 				$successed = true;
 				break;
@@ -542,7 +541,7 @@ class InvMenuSession {
 		$nbt = $item->getNamedTag();
 		switch (true) {
 			case $item->getId() === Item::AIR:
-				$item = Item::get(217);
+				$item = Item::get(self::allowUnstableItem() ? 217 : Item::INFO_UPDATE);
 				$successed = true;
 				break;
 		}
@@ -552,7 +551,17 @@ class InvMenuSession {
 	}
 
 	protected static function getBarrier() : Item {
-		return Item::get(-161);
+		return self::allowUnstableItem() ? Item::get(-161) : Item::get(Item::WOOL, 14);
+	}
+
+	public static function allowUnstableItem() : bool {
+		return (bool)IslandArchitect::getInstance()->getConfig()->get('panel-allow-unstable-item', true);
+	}
+
+	public static function getDefaultSeed() : int {
+		$seed = IslandArchitect::getInstance()->getConfig()->get('panel-default-seed', null);
+		if ($seed !== null) $seed = (int)$seed;
+		return $seed;
 	}
 
 }

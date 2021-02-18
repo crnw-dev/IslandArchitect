@@ -91,6 +91,8 @@ class IslandArchitect extends PluginBase implements Listener {
 
 		$conf->set('enable-plugin', (bool)($all['enable-plugin'] ?? true));
 		$conf->set('island-data-folder', (bool)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'));
+		$conf->set('panel-allow-unstable-item', (bool)($all['panel-allow-unstable-item'] ?? true));
+		$conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
 
 		return (bool)$conf->get('enable-plugin', true);
 	}
