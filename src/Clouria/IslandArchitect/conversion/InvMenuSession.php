@@ -482,7 +482,7 @@ class InvMenuSession {
 			$out = $transaction->getOut();
 			if ($out->getId() === Item::AIR) {
 				if ($in->getBlock()->getId() === Item::AIR or ($transaction->getTransaction()->getInventories()[spl_object_hash($this->getSession()->getPlayer()->getInventory())] ?? null) === null) return;
-				$this->getSession()->getIsland()->setRandomSymbol($this->getRegexId(), $in->getId(), $in->getDamage());
+				$this->getSession()->getIsland()->setRandomSymbolic($this->getRegexId(), $in->getId(), $in->getDamage());
 			}
 			$this->panelInit();
 			$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());

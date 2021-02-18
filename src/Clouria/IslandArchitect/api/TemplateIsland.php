@@ -133,10 +133,6 @@ class TemplateIsland {
 	 */
 	public function setBlockRandom(Vector3 $block, int $id) : bool {
 		if (!isset($this->getRandoms()[$id])) return false;
-		if (($sc = $this->getStartCoord()) === null or ($ec = $this->getEndCoord()) === null) return false;
-		$bb = new BB($sc->getX(), $sc->getY() , $sc->getZ(), $ec->getX(), $ec->getY() , $ec->getZ());
-		$bb->expand(1.0, 1.0, 1.0);
-		if (!$bb->isVectorInside($block)) return false;
 		$this->random_blocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()] = $id;
 		return true;
 	}
@@ -182,7 +178,7 @@ class TemplateIsland {
 		return Item::get($this->symbolic[$regex][0], $this->symbolic[$regex][1] ?? 0);
 	}
 
-	public function setRandomSymbol(int $regex, int $id, int $meta = 0) : void {
+	public function setRandomSymbolic(int $regex, int $id, int $meta = 0) : void {
 		if (isset($this->symbolic[$regex])) $this->unused_symbols[] = $this->symbolic[$regex];
 		$this->symbolic[$regex] = [$id, $meta];
 	}

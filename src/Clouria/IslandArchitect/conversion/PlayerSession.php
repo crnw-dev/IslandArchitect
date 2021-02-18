@@ -24,7 +24,8 @@ use pocketmine\{
 	Player,
 	math\Vector3,
 	item\Item,
-	utils\TextFormat as TF
+	utils\TextFormat as TF,
+	event\block\BlockPlaceEvent
 };
 use pocketmine\nbt\tag\{
 	CompoundTag,
@@ -73,13 +74,14 @@ class PlayerSession {
 	public function onBlockBreak(Vector3 $vec) : void {
 		if ($this->getIsland() === null) return;
 		if (($r = $this->getIsland()->getRandomByVector3($vec)) === null) return;
-		$this->getPlayer()->sendPopup(TF::BOLD . TF::RED . 'You have destroyed a random generation block, ' . TF::GREEN . 'the item has returned to your inventory!');
-		$i = $this->getIsland()->getRandomById($r)->getRandomGenerationItem($r);
+		$this->getPlayer()->sendPopup(TF::BOLD . TF::YELLOW . 'You have destroyed a random generation block, ' . TF::GOLD . 'the item has returned to your inventory!');
+		$i = $this->getIsland()->getRandomById($r)->getRandomGenerationItem($this->getIsland()->getRandomSymbolic($r));
 		$i->setCount(64);
 		$this->getPlayer()->getInventory()->addItem($i);
 	}
 
-	public function onBlockPlace(Vector3 $vec, Item $item) : void {
+	public function onBlockPlace(BlockPlaceEvent $ev) : void {
+		$item = $ev->getItem();
 		if (($nbt = $item->getNamedTagEntry('IslandArchitect')) === null) return;
 		if (($nbt = $nbt->getTag('random-generation', CompoundTag::class)) === null) return;
 		if (($regex = $nbt->getTag('regex', ListTag::class)) === null) return;
@@ -89,13 +91,15 @@ class PlayerSession {
 			($r = $this->getIsland()->getRandomById($regexid = $regexid->getValue())) === null or
 			!$r->equals($regex)
 		) $regexid = $this->getIsland()->addRandom($r = $regex);
-		$this->getIsland()->setBlockRandom($vec, $regexid);
+		$this->getIsland()->setBlockRandom($ev->getBlock()->asVector3(), $regexid);
 		$symbolic = $this->getIsland()->getRandomSymbolic($regexid);
 		$item = clone $item;
 		if (!$item->equals($symbolic, true, false)) {
 			$nbt = $item->getNamedTag();
 			$item = $symbolic;
-			foreach ($nbt as $tag) $item->addNamedTagEntry($tag);
+			foreach ($nbt as $tag) $item->setNamedTagEntry($tag);
+			$ev->setCancelled();
+			$ev->getBlock()->getLevel()->setBlock($ev->getBlock()->asVector3(), $item->getBlock());
 		}
 		$item->setCount(64);
 		$this->getPlayer()->getInventory()->setItemInHand($item);
@@ -109,8 +113,9 @@ class PlayerSession {
 	public function onPlayerInteract(Vector3 $vec) : void {
 		if ($this->interact_lock) return;
 		if ($this->getIsland() === null) return;
-		$this->interact_lock = true;
+		if ($this->getPlayer()->isSneaking()) return;
 		if (($r = $this->getIsland()->getRandomByVector3($vec)) === null) return;
+		$this->interact_lock = true;
 		new InvMenuSession($this, $r, function() : void {
 			$this->interact_lock = false;
 		});
