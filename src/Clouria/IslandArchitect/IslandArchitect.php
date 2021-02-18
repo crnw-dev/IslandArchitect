@@ -41,9 +41,9 @@ use pocketmine\event\{
 use muqsit\invmenu\InvMenuHandler;
 
 use Clouria\IslandArchitect\{
-	api\TemplateIsland,
-	conversion\PlayerSession,
-	conversion\InvMenuSession
+	runtime\TemplateIsland,
+	runtime\sessions\PlayerSession,
+	runtime\sessions\InvMenuSession
 };
 
 use function strtolower;

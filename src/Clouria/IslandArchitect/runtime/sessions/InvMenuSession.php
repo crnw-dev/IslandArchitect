@@ -18,7 +18,7 @@
 														*/
 
 declare(strict_types=1);
-namespace Clouria\IslandArchitect\conversion;
+namespace Clouria\IslandArchitect\runtime\sessions;
 
 use pocketmine\{
 	Player,
@@ -40,13 +40,13 @@ use muqsit\invmenu\{
 	InvMenu,
 	transaction\DeterministicInvMenuTransaction as InvMenuTransaction
 };
-use jojoe77777\FormAPI\CustomForm;
+use jojoe77777\Formruntime\CustomForm;
 
 use Clouria\IslandArchitect\{
 	IslandArchitect,
-	api\RandomGeneration,
-	api\IslandAttributeTile,
-	api\TemplateIslandGenerator
+	runtime\RandomGeneration,
+	runtime\IslandAttributeTile,
+	runtime\TemplateIslandGenerator
 };
 
 use function max;

@@ -18,7 +18,7 @@
 														*/
 
 declare(strict_types=1);
-namespace Clouria\IslandArchitect\conversion;
+namespace Clouria\IslandArchitect\runtime\sessions;
 
 use pocketmine\{
 	Player,
@@ -35,8 +35,8 @@ use pocketmine\nbt\tag\{
 
 use Clouria\IslandArchitect\{
 	IslandArchitect,
-	api\TemplateIsland,
-	api\RandomGeneration
+	runtime\TemplateIsland,
+	runtime\RandomGeneration
 };
 
 use function spl_object_id;

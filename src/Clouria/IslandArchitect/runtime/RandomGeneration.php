@@ -18,7 +18,7 @@
 														*/
 
 declare(strict_types=1);
-namespace Clouria\IslandArchitect\api;
+namespace Clouria\IslandArchitect\runtime;
 
 use Clouria\IslandArchitect\IslandArchitect;
 
