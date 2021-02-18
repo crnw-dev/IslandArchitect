@@ -89,22 +89,31 @@ class RandomGeneration {
 
 
 	public function randomElementItem(Random $random) : Item {
+		$array = $this->randomElementArray($random);
+		return Item::get($array[0], $array[1]);
+	}
+
+	/**
+	 * @return int[]
+	 */
+	public function randomElementArray(Random $random) : array {
 		$blocks = $this->getAllElements();
 
 		// Random crap "proportional random algorithm" code copied from my old plugin
 		$upperl = -1;
 		foreach ($blocks as $block => $chance) $upperl += $chance;
-		if ($upperl < 0) return Item::get(Item::AIR);
+		if ($upperl < 0) return [Item::AIR, 0];
 		$rand = $random->nextRange(0, $upperl);
 
 		$upperl = -1;
-		foreach ($blocks as $block => $chance) { /** @phpstan-ignore-line */
+		foreach ($blocks as $block => $chance) {
 			$upperl += $chance;
 			if (($upperl >= $rand) and ($upperl < ($rand + $chance))) {
 				$block = explode(':', $block);
-				return Item::get((int)$block[0], (int)($block[1] ?? 0));
+				return [(int)$block[0], (int)$block[1]];
 			}
 		}
+		return [Item::AIR, 0];
 	}
 
 	public function equals(RandomGeneration $regex) : bool {

@@ -26,7 +26,8 @@ use pocketmine\{
 	level\Level,
 	level\format\Chunk,
 	block\Block,
-	item\Item
+	item\Item,
+	utils\Random
 };
 
 use function array_push;
@@ -35,6 +36,7 @@ use function explode;
 use function asort;
 use function in_array;
 use function json_encode;
+use function json_decode;
 use function array_rand;
 
 use const SORT_NUMERIC;
@@ -163,32 +165,53 @@ class TemplateIsland {
 		[Item::CYAN_GLAZED_TERRACOTTA]
 	];
 
-	private $unused_symbols = self::SYMBOLICS;
+	private $unused_symbolics = self::SYMBOLICS;
 
 	/**
 	 * @todo Allow user to customize symbolic in panel(inventory)
 	 */
 	public function getRandomSymbolic(int $regex) : Item {
 		if (!isset($this->symbolic[$regex])) {
-			if (empty($this->unused_symbols)) $this->unused_symbols = self::SYMBOLICS;
-			$chosenone = array_rand($this->unused_symbols);
-			$this->symbolic[$regex] = $this->unused_symbols[$chosenone];
-			unset($this->unused_symbols[$chosenone]);
+			if (empty($this->unused_symbolics)) $this->unused_symbolics = self::SYMBOLICS;
+			$chosenone = array_rand($this->unused_symbolics);
+			$this->symbolic[$regex] = $this->unused_symbolics[$chosenone];
+			unset($this->unused_symbolics[$chosenone]);
 		}
 		return Item::get($this->symbolic[$regex][0], $this->symbolic[$regex][1] ?? 0);
 	}
 
+
 	public function setRandomSymbolic(int $regex, int $id, int $meta = 0) : void {
-		if (isset($this->symbolic[$regex])) $this->unused_symbols[] = $this->symbolic[$regex];
+		if (isset($this->symbolic[$regex])) $this->unused_symbolics[] = $this->symbolic[$regex];
 		$this->symbolic[$regex] = [$id, $meta];
 	}
 
-	public const VERSION = 1;
+	/**
+	 * @var array<string, string>
+	 */
+	protected $structure;
+
+	public function getChunkBlocks(int $cx, int $cz, Random $random) : array {
+		for ($z=$cz << 4; $z < ($cz + 1) << 4; $z++) for ($x=$cx << 4; $x < ($cx + 1) << 4; $x++) for ($y=0; $y <= Level::Y_MAX; $y++) {
+			$block = $this->structure[$x . ':' . $y . ':' . $z] ?? null;
+			if (!isset($block)) continue;
+			$block = explode(':', $block);
+			if ((int)$block[0] === 0) $blocks[][$y] = [(int)$block[0], (int)$block[1]];
+			if ((int)$block[0] === 1) $blocks[][$y] = $this->randomElementArray();
+			/**
+			 * @todo
+			 */
+		}
+	}
+
+	public const VERSION = 1.0;
 
 	public function save() : string {
 		$data['level'] = $this->getLevel();
 		$data['startcoord'] = $this->getStartCoord();
 		$data['endcoord'] = $this->getEndCoord();
+		$data['unused_symbolics'] = $this->unused_symbolics;
+		$data['symbolics'] = $this->symbolic;
 		foreach ($this->randoms as $random) $data['randoms'][] = $random->getAllElements();
 
 		return $this->encode($data);
@@ -230,14 +253,36 @@ class TemplateIsland {
 		return $this->encode($data);
 	}
 
-	protected function getFilePath() : string {
-		return '';
-	}
-
 	protected function encode(array $data) : string {
 		$data['version'] = self::VERSION;
 		$data['name'] = $this->getName();
 
 		return json_encode($data);
+	}
+
+	public static function load(string $data) : ?TemplateIsland {
+		$data = json_decode($data, true);
+		if ($data === false) return null;
+		if (
+			(int)($version = $data['version'] ?? -1) === -1 or
+			((int)$version > self::VERSION) or
+			!isset($data['name'])
+		) return null;
+
+		$self = new self($data['name']);
+		if (isset($data['level'])) $self->level = $data['level'];
+		if (isset($data['startcoord'])) $self->startcoord = $data['startcoord'];
+		if (isset($data['endcoord'])) $self->endcoord = $data['endcoord'];
+		if (isset($data['unused_symbolics'])) $self->unused_symbolics = $data['unused_symbolics'];
+		if (isset($data['symbolic'])) $self->symbolic = $data['symbolic'];
+		foreach ($data['randoms'] ?? [] as $regexdata) {
+			$regex = new RandomGeneration;
+			foreach ($regexdata as $element => $chance) {
+				$element = explode(':', $element);
+				$regex->increaseElementChance($element[0], $element[1] ?? 0, $chance);
+			}
+			$self->randoms[] = $regex;
+		}
+		if (isset($data['structure'])) $self->structure = $data['structure'];
 	}
 }

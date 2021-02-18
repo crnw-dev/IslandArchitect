@@ -142,6 +142,9 @@ class IslandArchitect extends PluginBase implements Listener {
 				}
 				$time = microtime(true);
 				$sender->sendMessage(TF::YELLOW . 'Loading island ' . TF::GOLD . '"' . $args . '"...');
+				/**
+				 * @see IslandDataLoadTask::__construct()
+				 */
 				$task = new IslandDataLoadTask($args[1], function(?TemplateIsland $is, string $filepath) use ($sender, $time) : void {
 					if (!$sender->isOnline()) return;
 					if (!isset($is)) $is = new TemplateIsland(basename($filepath, '.json'));
