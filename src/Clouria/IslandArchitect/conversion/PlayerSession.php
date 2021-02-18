@@ -121,9 +121,13 @@ class PlayerSession {
 		});
 	}
 
-	public function errorCheckOutRequired() : bool {
-		if ($this->getIsland() !== null) return false;
-		$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Please check out an island first!');
+	/**
+	 * @param PlayerSession|null $island
+	 * @return bool true = error triggered
+	 */
+	public static function errorCheckOutRequired(Player $player, $session) : bool {
+		if ($session !== null and $session->getIsland() !== null) return false;
+		$player->sendMessage(TF::BOLD . TF::RED . 'Please check out an island first!');
 		return true;
 	}
 

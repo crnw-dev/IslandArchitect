@@ -96,6 +96,7 @@ class IslandArchitect extends PluginBase implements Listener {
 	}
 
 	public function getSession(Player $player, bool $nonnull = false) : ?PlayerSession {
+		if (self::DEV_ISLAND) $nonnull = true;
 		if (($this->sessions[$player->getName()] ?? null) !== null) $s = $this->sessions[$player->getName()];
 		elseif ($nonnull) {
 			$s = ($this->sessions[$player->getName()] = new PlayerSession($player));
@@ -111,7 +112,7 @@ class IslandArchitect extends PluginBase implements Listener {
 			case 'p1':
 			case '1':
 				if (!$sender->hasPermission('island-architect.convert')) return false;
-				if ($s->errorCheckOutRequired()) break;
+				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
 				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
 				$vec = $vec ?? $sender->asPosition();
 				$sender->sendMessage(TF::YELLOW . 'Start coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
@@ -122,7 +123,7 @@ class IslandArchitect extends PluginBase implements Listener {
 			case 'p2':
 			case '2':
 				if (!$sender->hasPermission('island-architect.convert')) return false;
-				if ($s->errorCheckOutRequired()) break;
+				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
 				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
 				$vec = $vec ?? $sender->asPosition();
 				$sender->sendMessage(TF::YELLOW . 'End coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
@@ -150,8 +151,7 @@ class IslandArchitect extends PluginBase implements Listener {
 			case 'random':
 			case 'regex':
 			case 'r':
-				$s = $this->getSession($sender, true);
-				if ($s->errorCheckOutRequired()) break;
+				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
 				new InvMenuSession($s, isset($args[1]) ? (int)$args[1] : null);
 				break;
 		
