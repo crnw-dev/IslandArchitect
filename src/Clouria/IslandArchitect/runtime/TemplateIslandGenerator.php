@@ -21,37 +21,38 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
 use pocketmine\{
-	math\Vector3
+	math\Vector3,
+	utils\Utils,
+	item\Item
 };
 
 use room17\SkyBlock\island\generator\IslandGenerator;
 
 use function unserialize;
-use function set_exception_handler;
-use function restore_exception_handler;
 use function is_file;
 use function file_get_contents;
-use function json_decode;
 
 class TemplateIslandGenerator extends IslandGenerator {
 
-	public function generateChunk(int $chunkX, int $chunkZ) : void {
-		set_exception_handler(function(\Throwable $err) : void {
-			throw new TheCloudTemplateException($err->getMessage());
-		});
+	/**
+	 * @var TemplateIsland|null
+	 */
+	protected $island = null;
 
+	public function generateChunk(int $chunkX, int $chunkZ) : void {
 		$chunk = $this->level->getChunk($chunkX, $chunkZ);
         $chunk->setGenerated();
-        static $data = null;
-        if (!isset($data)) {
-	        $path = unserialize($this->getSettings()['preset'][0]);
+        if (!isset($this->island)) {
+	        $path = Utils::cleanPath(unserialize($this->getSettings()['preset'][0]));
 			if (!is_file($path)) throw new \RuntimeException('Island data file (' . $path . ') is missing');
-			$data = json_decode(file_get_contents($path), true);
-			if ($path === false) throw new \RuntimeException('Failed to parse island data file');
+			$island = TemplateIsland::load(file_get_contents($path));
+			if ($island === null) throw new \RuntimeException('Island "' . basename($path, '.json') . '"("' . $path . '") failed to load');
+			$this->island = $island;
 		}
-		$data->locateChunk($chunk);
-		foreach ($data->getBlockData() as $blockdata) $chunk->setBlock($blockdata[0], $blockdata[1], $blockdata[2], $blockdata[3], $blockdata[4]);
-		restore_exception_handler();
+		foreach ($this->island->getChunkBlocks($chunk->getX(), $chunk->getZ(), $this->random) as $x => $xd) foreach ($xd as $z => $zd) foreach ($zd as $y => $yd) {
+			if ((int)$yd[0] === Block::AIR) continue;
+			$chunk->setBlock((int)$x, (int)$y, (int)$z, (int)$yd[0], (int)$yd[1]);
+		}
 	}
 
 	public function getName() : string {

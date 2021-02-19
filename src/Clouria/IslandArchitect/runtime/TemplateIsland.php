@@ -38,6 +38,8 @@ use function in_array;
 use function json_encode;
 use function json_decode;
 use function array_rand;
+use function array_search;
+use function array_push;
 
 use const SORT_NUMERIC;
 
@@ -196,11 +198,8 @@ class TemplateIsland {
 			$block = $this->structure[$x . ':' . $y . ':' . $z] ?? null;
 			if (!isset($block)) continue;
 			$block = explode(':', $block);
-			if ((int)$block[0] === 0) $blocks[][$y] = [(int)$block[0], (int)$block[1]];
-			if ((int)$block[0] === 1) $blocks[][$y] = $this->randomElementArray();
-			/**
-			 * @todo
-			 */
+			if ((int)$block[0] === 0) $blocks[$x][$z][$y] = [(int)$block[1], (int)$block[2]];
+			if ((int)$block[0] === 1) $blocks[$x][$z][$y] = $this->randomElementArray((int)$block[1]);
 		}
 	}
 
@@ -230,6 +229,8 @@ class TemplateIsland {
 		asort($xl, SORT_NUMERIC);
 		asort($yl, SORT_NUMERIC);
 		asort($zl, SORT_NUMERIC);
+
+		$usedrandoms = [];
 		foreach ($chunks as $chunk) $chunksmap[$chunk->getX()][$chunk->getZ()] = $chunk;
 		for ($x = $xl[0]; $x <= $xl[1]; $x++) for ($z = $zl[0]; $z <= $zl[1]; $z++) {
 			$chunk = $chunksmap[$x << 4][$z << 4];
@@ -239,11 +240,13 @@ class TemplateIsland {
 				$y -= $yl[0];
 				$z -= $zl[0];
 				$coord = $x . ':' . $y . ':' . $z . ':';
-				if (isset($this->random_blocks[$coord])) {
-					$coord = '1:' . ($id = $this->random_blocks[$coord]);
-					$usedrandoms[] = $id;
+				$id = $this->random_blocks[$coord] ?? null;
+				if (isset($id)) {
 					if (($r = $this->getRandomById($this->random_blocks[$coord])) === null) continue;
 					if (!$r->isValid()) continue;
+					if (($i = array_search($id, $usedrandoms, true)) === false) $id = array_push($usedrandoms, $id) - 1;
+					else $id = $usedrandoms[$i];
+					$data['structure'][$coord] = '1:' . $id;
 				} else $data['structure'][$coord] = '0:' . $id . ':' . $chunk->getBlockData($x, $y, $z);
 			}
 		}
