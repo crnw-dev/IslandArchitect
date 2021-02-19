@@ -147,6 +147,7 @@ class PlayerSession {
 		$task = new IslandDataEmitTask($island, [], function() use ($island) : void {
 			$this->save_lock = false;
 			IslandArchitect::getLogger()->debug('Island "' . $island->getName() . '" (' . spl_object_id($island) . ') save completed (' . round(microtime(true) - $time, 2) . 's)');
+			$island->noMoreChanges();
 		});
 		Server::getInstance()->getAsyncPool()->submitTask($task);
 	}

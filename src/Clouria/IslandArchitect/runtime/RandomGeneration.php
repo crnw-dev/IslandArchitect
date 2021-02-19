@@ -144,4 +144,8 @@ class RandomGeneration {
 		])]));
 		return $i;
 	}
+
+	public function isValid() : bool {
+		return !empty($this->getAllElements());
+	}
 }

@@ -69,6 +69,7 @@ class TemplateIsland {
 
 	public function setStartCoord(Vector3 $pos) : void {
 		$this->startcoord = $pos;
+		$this->changed = true;
 	}
 
 	/**
@@ -82,6 +83,7 @@ class TemplateIsland {
 
 	public function setEndCoord(Vector3 $pos) : void {
 		$this->endcoord = $pos;
+		$this->changed = true;
 	}
 
 	/**
@@ -95,6 +97,7 @@ class TemplateIsland {
 
 	public function setLevel(Level $level) : void {
 		$this->level = $level->getFolderName();
+		$this->changed = true;
 	}
 
 	/**
@@ -116,6 +119,7 @@ class TemplateIsland {
 	public function removeRandomById(int $id) : bool {
 		if (!isset($this->randoms[$id])) return false;
 		unset($this->randoms[$id]);
+		$this->changed = true;
 		return true;
 	}
 
@@ -124,6 +128,7 @@ class TemplateIsland {
 	 * @return int The random generation regex ID
 	 */
 	public function addRandom(RandomGeneration $random) : int {
+		$this->changed = true;
 		return array_push($this->randoms, $random) - 1;
 	}
 
@@ -138,6 +143,7 @@ class TemplateIsland {
 	public function setBlockRandom(Vector3 $block, int $id) : bool {
 		if (!isset($this->getRandoms()[$id])) return false;
 		$this->random_blocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()] = $id;
+		$this->changed = true;
 		return true;
 	}
 
@@ -186,6 +192,7 @@ class TemplateIsland {
 	public function setRandomSymbolic(int $regex, int $id, int $meta = 0) : void {
 		if (isset($this->symbolic[$regex])) $this->unused_symbolics[] = $this->symbolic[$regex];
 		$this->symbolic[$regex] = [$id, $meta];
+		$this->changed = true;
 	}
 
 	/**
@@ -288,4 +295,18 @@ class TemplateIsland {
 		}
 		if (isset($data['structure'])) $self->structure = $data['structure'];
 	}
+
+	/**
+	 * @var bool
+	 */
+	protected $changed = false;
+
+	public function noMoreChanges() : void {
+		$this->changed = false;
+	}
+
+	public function hasChanges() : bool {
+		return $this->changed;
+	}
+
 }
