@@ -39,7 +39,6 @@ use function json_encode;
 use function json_decode;
 use function array_rand;
 use function array_search;
-use function array_push;
 
 use const SORT_NUMERIC;
 
@@ -59,7 +58,7 @@ class TemplateIsland {
 	}
 
 	/**
-	 * @var Vector3
+	 * @var Vector3|null
 	 */
 	protected $startcoord = null;
 
@@ -68,12 +67,12 @@ class TemplateIsland {
 	}
 
 	public function setStartCoord(Vector3 $pos) : void {
-		$this->startcoord = $pos;
+		$this->startcoord = $pos->asVector3();
 		$this->changed = true;
 	}
 
 	/**
-	 * @var Vector3
+	 * @var Vector3|null
 	 */
 	protected $endcoord = null;
 
@@ -82,16 +81,16 @@ class TemplateIsland {
 	}
 
 	public function setEndCoord(Vector3 $pos) : void {
-		$this->endcoord = $pos;
+		$this->endcoord = $pos->asVector3();
 		$this->changed = true;
 	}
 
 	/**
-	 * @var string
+	 * @var string|null
 	 */
 	protected $level = null;
 	
-	public function getLevel() : string {
+	public function getLevel() : ?string {
 		return $this->level;
 	}
 
@@ -294,6 +293,7 @@ class TemplateIsland {
 			$self->randoms[] = $regex;
 		}
 		if (isset($data['structure'])) $self->structure = $data['structure'];
+		return $self;
 	}
 
 	/**
@@ -313,7 +313,7 @@ class TemplateIsland {
 		return (
 			isset($this->startcoord) and
 			isset($this->endcoord) and
-			isset($this->level) and
+			isset($this->level)
 		);
 	}
 

@@ -26,14 +26,17 @@ use pocketmine\{
 	utils\Utils
 };
 
-use Clouria\IslandArchitect\runtime\TemplateIsland;
+use Clouria\IslandArchitect\{
+	IslandArchitect,
+	runtime\TemplateIsland
+};
 
 use function serialize;
 use function unserialize;
 use function file_get_contents;
 use function is_file;
 
-class IslandDataEmitTask extends AsyncTask {
+class IslandDataLoadTask extends AsyncTask {
 
 	/**
 	 * @var string
@@ -50,22 +53,25 @@ class IslandDataEmitTask extends AsyncTask {
 	 */
 	public function __construct(string $islandname, ?\Closure $callback = null) {
 		$this->islandname = $islandname;
-		$this->path = IslandArchitect::getInstance()->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/');
+		$this->path = (string)IslandArchitect::getInstance()->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/');
 
 		$this->storeLocal([$callback]);
 	}
 
 	public function onRun() : void {
 		if (
-			is_file($ppath = ($spath = Utils::cleanPath($this->islandname))) or // ppath = Primary path (Don't question lol)
+			is_file($spath = Utils::cleanPath($this->islandname)) or // ppath = Primary path (Don't question lol)
 			is_file($spath = Utils::cleanPath($this->islandname) . '.json') or
 			is_file($spath = Utils::cleanPath($this->path) . ($this->path[-1] === '/' ? '' : '/') . $this->islandname . '.json')
-		) $this->setResult([serialize(TemplateIsland::load(file_get_contents($spath))), $ppath]);
-		else $this->setResult([serialize(null), $ppath]);
+		) $r = [serialize(TemplateIsland::load(file_get_contents($spath)))];
+		else $r = [serialize(null)];
+		$r[] = Utils::cleanPath($this->path) . ($this->path[-1] === '/' ? '' : '/') . $this->islandname . '.json';
+		$this->setResult($r);
 	}
 
 	public function onCompletion(Server $server) : void {
 		$r = $this->getResult();
+		var_dump($r);
 		$callback = $this->fetchLocal()[0];
 		if (isset($callback)) $callback(unserialize($r[0]), $r[1]);
 	}

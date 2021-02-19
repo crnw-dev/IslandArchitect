@@ -71,9 +71,9 @@ class IslandDataEmitTask extends AsyncTask {
 
 		if (empty($chunks ?? [])) $data = $island->save();
 		else $data = $island->export($chunks);
-		$path = Utils::cleanPath($island->getFilePath());
+		$path = Utils::cleanPath($this->path);
 		@mkdir($path);
-		$path = $path . ($path[-1] === '/' ? '' : '/') . $island->getName() . '.json'；
+		$path = $path . ($path[-1] === '/' ? '' : '/') . $island->getName() . '.json';
 		file_put_contents($path, $data);
 
 		$this->setResult(null);

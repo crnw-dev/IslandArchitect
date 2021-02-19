@@ -45,7 +45,8 @@ use muqsit\invmenu\InvMenuHandler;
 use Clouria\IslandArchitect\{
 	runtime\TemplateIsland,
 	runtime\sessions\PlayerSession,
-	runtime\sessions\InvMenuSession
+	runtime\sessions\InvMenuSession,
+	conversion\IslandDataLoadTask
 };
 
 use function strtolower;
@@ -92,9 +93,12 @@ class IslandArchitect extends PluginBase implements Listener {
 		foreach ($all = $conf->getAll() as $k => $v) $conf->remove($k);
 
 		$conf->set('enable-plugin', (bool)($all['enable-plugin'] ?? true));
-		$conf->set('island-data-folder', (bool)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'));
+		$conf->set('island-data-folder', (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'));
 		$conf->set('panel-allow-unstable-item', (bool)($all['panel-allow-unstable-item'] ?? true));
 		$conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
+
+		$conf->save();
+		$conf->reload();
 
 		return (bool)$conf->get('enable-plugin', true);
 	}
@@ -143,7 +147,7 @@ class IslandArchitect extends PluginBase implements Listener {
 					break;
 				}
 				$time = microtime(true);
-				$sender->sendMessage(TF::YELLOW . 'Loading island ' . TF::GOLD . '"' . $args . '"...');
+				$sender->sendMessage(TF::YELLOW . 'Loading island ' . TF::GOLD . '"' . $args[1] . '"...');
 				/**
 				 * @see IslandDataLoadTask::__construct()
 				 */
@@ -151,8 +155,9 @@ class IslandArchitect extends PluginBase implements Listener {
 					if (!$sender->isOnline()) return;
 					if (!isset($is)) $is = new TemplateIsland(basename($filepath, '.json'));
 					$this->getSession($sender, true)->checkOutIsland($is);
-					$sender->sendMessage(TF::BOLD . TF::RED . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . ')');
+					$sender->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . ')');
 				});
+				$this->getServer()->getAsyncPool()->submitTask($task);
 				break;
 
 			case 'random':

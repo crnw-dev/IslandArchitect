@@ -38,7 +38,9 @@ use pocketmine\nbt\tag\{
 use Clouria\IslandArchitect\{
 	IslandArchitect,
 	runtime\TemplateIsland,
-	runtime\RandomGeneration
+	runtime\RandomGeneration,
+	conversion\IslandDataLoadTask,
+	conversion\IslandDataEmitTask
 };
 
 use function spl_object_id;
@@ -143,10 +145,10 @@ class PlayerSession {
 		if (!$island->hasChanges()) return;
 		$this->save_lock = true;
 		$time = microtime(true);
-		IslandArchitect::getLogger()->debug('Saving island "' . $island->getName() . '" (' . spl_object_id($island) . ')');
+		IslandArchitect::getInstance()->getLogger()->debug('Saving island "' . $island->getName() . '" (' . spl_object_id($island) . ')');
 		$task = new IslandDataEmitTask($island, [], function() use ($island) : void {
 			$this->save_lock = false;
-			IslandArchitect::getLogger()->debug('Island "' . $island->getName() . '" (' . spl_object_id($island) . ') save completed (' . round(microtime(true) - $time, 2) . 's)');
+			IslandArchitect::getInstance()->getLogger()->debug('Island "' . $island->getName() . '" (' . spl_object_id($island) . ') save completed (' . round(microtime(true) - $time, 2) . 's)');
 			$island->noMoreChanges();
 		});
 		Server::getInstance()->getAsyncPool()->submitTask($task);
