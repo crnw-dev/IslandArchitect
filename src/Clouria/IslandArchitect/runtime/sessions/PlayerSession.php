@@ -21,11 +21,13 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime\sessions;
 
 use pocketmine\{
+	Server,
 	Player,
 	math\Vector3,
 	item\Item,
 	utils\TextFormat as TF,
-	event\block\BlockPlaceEvent
+	event\block\BlockPlaceEvent,
+	level\format\Chunk
 };
 use pocketmine\nbt\tag\{
 	CompoundTag,
@@ -41,6 +43,11 @@ use Clouria\IslandArchitect\{
 
 use function spl_object_id;
 use function time;
+use function microtime;
+use function round;
+use function asort;
+
+use const SORT_NUMERIC;
 
 class PlayerSession {
 
@@ -50,7 +57,6 @@ class PlayerSession {
 	private $player;
 
 	public function __construct(Player $player) {
-		IslandArchitect::getInstance()->getLogger()->debug('Created player session instance (' . spl_object_id($this) . ') for player "' . $player->getName() . '"');
 		$this->player = $player;
 	}
 
@@ -64,7 +70,8 @@ class PlayerSession {
 	protected $island = null;
 
 	public function checkOutIsland(TemplateIsland $island) : void {
-		$this->island = $island;
+		if ($this->export_lock) $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'An island is exporting in background, please wait untol the island export is finished!');
+		else $this->island = $island;
 	}
 
 	public function getIsland() : ?TemplateIsland {
@@ -121,6 +128,97 @@ class PlayerSession {
 		});
 	}
 
+	public function close() : void {
+		$this->saveIsland();
+	}
+
+	/**
+	 * @var bool
+	 */
+	protected $save_lock = false;
+
+	public function saveIsland() : void {
+		if ($this->save_lock) return;
+		if (($island = $this->getIsland()) === null) return;
+		if (!$island->hasChanges()) return;
+		$this->save_lock = true;
+		$time = microtime(true);
+		IslandArchitect::getLogger()->debug('Saving island "' . $island->getName() . '" (' . spl_object_id($island) . ')');
+		$task = new IslandDataEmitTask($island, [], function() use ($island) : void {
+			$this->save_lock = false;
+			IslandArchitect::getLogger()->debug('Island "' . $island->getName() . '" (' . spl_object_id($island) . ') save completed (' . round(microtime(true) - $time, 2) . 's)');
+		});
+		Server::getInstance()->getAsyncPool()->submitTask($task);
+	}
+
+	/**
+	 * @var bool
+	 */
+	private $export_lock = false;
+
+	public function exportIsland() : void {
+		if (($island = $this->getIsland()) === null) return;
+		if (!$island->readyToExport()) return;
+		$this->export_lock = true;
+		$this->island = null;
+
+		$sc = $this->getStartCoord();
+		$ec = $this->getEndCoord();
+		$xl = [$sc->getFloorX(), $ec->getFloorX()];
+		$zl = [$sc->getFloorZ(), $ec->getFloorZ()];
+		asort($xl, SORT_NUMERIC);
+		asort($zl, SORT_NUMERIC);
+
+		for ($x=$xl[0] >> 4; $x <= $xl[1]; $x++) for ($z=$zl[0] >> 4; $z <= $zl[1]; $z++) {
+			$chunk = $island->getLevel()->getChunk($x, $z);
+			if ($chunk === null) $this->missingchunks++;
+			else $chunks[] = $chunk;
+		}
+		$this->chunkqueue = $chunks ?? [];
+		if ($this->missingchunks <= 0) $this->startExport();
+	}
+
+	/**
+	 * @var Chunk[]|null
+	 */
+	protected $chunkqueue = [];
+
+	/**
+	 * @var int
+	 */
+	protected $missingchunks = 0;
+
+	protected function startExport() : void {
+		$task = new IslandDataEmitTask($island, $this->chunkqueue, function() use ($island) : void {
+			$this->export_lock = false;
+		});
+		$this->chunkqueue = null;
+		$this->missingchunks = 0;
+		Server::getInstance()->getAsyncPool()->submitTask($task);
+	}
+
+	public function onChunkLoad(Chunk $chunk) : void {
+		if (!$this->export_lock) return;
+		if ($this->chunkqueue === null) return;
+
+		$sc = $this->getStartCoord();
+		$ec = $this->getEndCoord();
+		$xl = [$sc->getFloorX(), $ec->getFloorX()];
+		$zl = [$sc->getFloorZ(), $ec->getFloorZ()];
+		asort($xl, SORT_NUMERIC);
+		asort($zl, SORT_NUMERIC);
+
+		if (!(
+			($chunk->getX() >= ($xl[0] >> 4)) and
+			($chunk->getX() <= ($xl[1] >> 4)) and
+			($chunk->getZ() >= ($zl[0] >> 4)) and
+			($chunk->getZ() <= ($zl[1] >> 4))
+		)) return;
+
+		$this->chunkqueue[] = $chunk;
+		if (--$this->missingchunks <= 0) $this->exportChunk();
+	}
+
 	/**
 	 * @param PlayerSession|null $island
 	 * @return bool true = error triggered
@@ -130,9 +228,4 @@ class PlayerSession {
 		$player->sendMessage(TF::BOLD . TF::RED . 'Please check out an island first!');
 		return true;
 	}
-
-	public function __destruct() {
-		IslandArchitect::getInstance()->getLogger()->debug('Player session instance (' . spl_object_id($this) . ') of player "' . $this->getPlayer()->getName() . '" has been destructed');
-	}
-
 }

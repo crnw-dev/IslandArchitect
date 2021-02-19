@@ -66,6 +66,7 @@ class IslandDataEmitTask extends AsyncTask {
 
 	public function onCompletion(Server $server) : void {
 		$r = $this->getResult();
-		$this->fetchLocal()[0](unserialize($r[0]), $r[1]);
+		$callback = $this->fetchLocal()[0];
+		if (isset($callback)) $callback(unserialize($r[0]), $r[1]);
 	}
 }

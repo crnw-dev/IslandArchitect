@@ -35,7 +35,9 @@ use pocketmine\event\{
 	player\PlayerInteractEvent,
 	player\PlayerQuitEvent,
 	block\BlockPlaceEvent,
-	block\BlockBreakEvent
+	block\BlockBreakEvent,
+	level\LevelSaveEvent,
+	level\ChunkLoadEvent
 };
 
 use muqsit\invmenu\InvMenuHandler;
@@ -179,6 +181,8 @@ class IslandArchitect extends PluginBase implements Listener {
 	 * @priority MONITOR
 	 */
 	public function onPlayerQuit(PlayerQuitEvent $ev) : void {
+		if (($s = $this->getSession($ev->getPlayer())) === null) return;
+		$s->close();
 		unset($this->sessions[$ev->getPlayer()->getName()]);
 	}
 
@@ -209,6 +213,20 @@ class IslandArchitect extends PluginBase implements Listener {
 		if (($s = $this->getSession($ev->getPlayer())) === null) return;;
 		if (PlayerSession::errorCheckOutRequired($ev->getPlayer(), $this->getSession($ev->getPlayer()))) $ev->setCancelled();
 		else $s->onBlockPlace($ev);
+	}
+
+	/**
+	 * @priority MONITOR
+	 */
+	public function onLevelSave(LevelSaveEvent $ev) : void {
+		foreach ($this->sessions as $s) $s->saveIsland();
+	}
+
+	/**
+	 * @priority HIGH
+	 */
+	public function onChunkLoad(ChunkLoadEvent $ev) : void {
+		foreach ($this->sessions as $s) $s->onChunkLoad($ev->getChunk());
 	}
 
 	public static function getInstance() : ?self {
