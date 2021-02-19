@@ -167,25 +167,38 @@ class PlayerSession {
 			return;
 		}
 		$this->export_lock = true;
+		$this->export_island = $island;
 		$this->island = null;
 		$this->getPlayer()->sendMessage(TF::YELLOW . 'Queued export task for island "' . $island->getName() . '"...');
 
-		$sc = $this->getStartCoord();
-		$ec = $this->getEndCoord();
+		$sc = $island->getStartCoord();
+		$ec = $island->getEndCoord();
 		$xl = [$sc->getFloorX(), $ec->getFloorX()];
 		$zl = [$sc->getFloorZ(), $ec->getFloorZ()];
 		asort($xl, SORT_NUMERIC);
 		asort($zl, SORT_NUMERIC);
 
 		for ($x=$xl[0] >> 4; $x <= $xl[1]; $x++) for ($z=$zl[0] >> 4; $z <= $zl[1]; $z++) {
-			$chunk = $island->getLevel()->getChunk($x, $z);
+			while (($level = Server::getInstance()->getLevelByName($island->getLevel())) === null) {
+				if ($wlock ?? false) {
+					$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Island world (' . $island->getLevel() . ') is missing!');
+					$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Export task aborted.');
+					$this->chunkqueue = null;
+					$this->missingchunks = 0;
+					$this->export_island = null;
+					$this->export_lock = false;
+					return;
+				}
+				Server::getInstance()->loadLevel($island->getLevel());
+				$wlock = true;
+			}
+			$chunk = $level->getChunk($x, $z);
 			if ($chunk === null) $this->missingchunks++;
 			else $chunks[] = $chunk;
 		}
-		$this->chunkqueue = $chunks ?? [];
-		$this->island_level = $island->getLevel();
+		foreach ($chunks as $chunk) $this->chunkqueue[] = $chunk;
 		if ($this->missingchunks <= 0) $this->startExport();
-		else $this->getPlayer()->sendMessage(TF::BOLD . TF::YELLOW . 'Waiting for ' . TF::BOLD . TF::AQUA . $this->missingchunks . TF::RESET . TF::YELLOw . ' chunks to be load...');
+		else $this->getPlayer()->sendMessage(TF::BOLD . TF::YELLOW . 'Waiting for ' . TF::BOLD . TF::AQUA . $this->missingchunks . TF::RESET . TF::YELLOW . ' chunks to be load...');
 	}
 
 	/**
@@ -199,35 +212,35 @@ class PlayerSession {
 	protected $missingchunks = 0;
 
 	/**
-	 * @var string|null
+	 * @var TemplateIsland|null
 	 */
-	protected $islandlevel = null;
+	protected $export_island = null;
 
 	protected function startExport() : void {
+		$this->chunkqueue = null;
+		$this->missingchunks = 0;
+		$this->export_island = null;
 		$this->getPlayer()->sendMessage(TF::GOLD . 'Start exporting...');
 		$task = new IslandDataEmitTask($island, $this->chunkqueue, function() use ($island) : void {
 			$this->export_lock = false;
 			$this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Export completed!');
 		});
-		$this->chunkqueue = null;
-		$this->missingchunks = 0;
-		$this->island_level = null;
 
 		Server::getInstance()->getAsyncPool()->submitTask($task);
 	}
 
 	public function onChunkLoad(Chunk $chunk, Level $level) : void {
 		if (!$this->export_lock) return;
-		if ($this->chunkqueue === null) return;
-		if ($level->getFolderName() !== $this->island_level) return;
+		if ($level->getFolderName() !== $this->export_island->getLevel()) return;
 
-		$sc = $this->getStartCoord();
-		$ec = $this->getEndCoord();
+		$sc = $this->export_island->getStartCoord();
+		$ec = $this->export_island->getEndCoord();
 		$xl = [$sc->getFloorX(), $ec->getFloorX()];
 		$zl = [$sc->getFloorZ(), $ec->getFloorZ()];
 		asort($xl, SORT_NUMERIC);
 		asort($zl, SORT_NUMERIC);
 
+		var_dump('x', $chunk->getX(), 'z', $chunk->getZ(), 'xl', $xl[0] >> 4, $xl[1] >> 4, 'zl', $zl[0] >> 4, $zl[1] >> 4);
 		if (!(
 			($chunk->getX() >= ($xl[0] >> 4)) and
 			($chunk->getX() <= ($xl[1] >> 4)) and
