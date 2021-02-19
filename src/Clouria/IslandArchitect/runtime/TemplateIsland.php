@@ -309,4 +309,12 @@ class TemplateIsland {
 		return $this->changed;
 	}
 
+	public function readyToExport() : bool {
+		return (
+			isset($this->startcoord) and
+			isset($this->endcoord) and
+			isset($this->level) and
+		);
+	}
+
 }

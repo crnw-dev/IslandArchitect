@@ -162,6 +162,7 @@ class PlayerSession {
 		if (!$island->readyToExport()) return;
 		$this->export_lock = true;
 		$this->island = null;
+		$this->getPlayer()->sendMessage(TF::YELLOW . 'Queued export task for island "' . $this->getIsland()->getName() . '"...');
 
 		$sc = $this->getStartCoord();
 		$ec = $this->getEndCoord();
@@ -177,6 +178,7 @@ class PlayerSession {
 		}
 		$this->chunkqueue = $chunks ?? [];
 		if ($this->missingchunks <= 0) $this->startExport();
+		else $this->getPlayer()->sendMessage(TF::BOLD . TF::YELLOW . 'Waiting for ' . TF::BOLD . TF::AQUA . $this->missingchunks . TF::RESET . TF::YELLOw . ' chunks to be load...');
 	}
 
 	/**
@@ -190,8 +192,10 @@ class PlayerSession {
 	protected $missingchunks = 0;
 
 	protected function startExport() : void {
+		$this->getPlayer()->sendMessage(TF::GOLD . 'Start exporting...');
 		$task = new IslandDataEmitTask($island, $this->chunkqueue, function() use ($island) : void {
 			$this->export_lock = false;
+			$this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Export completed!');
 		});
 		$this->chunkqueue = null;
 		$this->missingchunks = 0;
@@ -217,7 +221,9 @@ class PlayerSession {
 		)) return;
 
 		$this->chunkqueue[] = $chunk;
-		if (--$this->missingchunks <= 0) $this->exportChunk();
+		$this->missingchunks--;
+		$this->getPlayer()->sendMessage(TF::GOLD . 'Chunk ' . TF::BOLD . TF::GREEN . $chunk->getX() . ', ' . $chunk->getZ() . TF::RESET . TF::GOLD . ' has been loaded. ' . TF::ITALIC . TF::GRAY . '(' . $this->missingchunks . ' left)');
+		if ($this->missingchunks <= 0) $this->startExport();
 	}
 
 	/**

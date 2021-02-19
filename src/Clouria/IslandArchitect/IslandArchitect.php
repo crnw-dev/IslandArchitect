@@ -57,7 +57,7 @@ use function round;
 
 class IslandArchitect extends PluginBase implements Listener {
 
-	public const DEV_ISLAND = true;
+	public const DEV_ISLAND = false;
 
 	private static $instance = null;
 
@@ -160,6 +160,13 @@ class IslandArchitect extends PluginBase implements Listener {
 			case 'r':
 				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
 				new InvMenuSession($s, isset($args[1]) ? (int)$args[1] : null);
+				break;
+
+			case 'export':
+			case 'convert':
+			case 'e':
+				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
+				$s->exportIsland();
 				break;
 		
 			default:
