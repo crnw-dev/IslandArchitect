@@ -71,7 +71,6 @@ class IslandDataLoadTask extends AsyncTask {
 
 	public function onCompletion(Server $server) : void {
 		$r = $this->getResult();
-		var_dump($r);
 		$callback = $this->fetchLocal()[0];
 		if (isset($callback)) $callback(unserialize($r[0]), $r[1]);
 	}

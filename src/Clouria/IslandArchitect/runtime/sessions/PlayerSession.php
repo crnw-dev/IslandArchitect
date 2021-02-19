@@ -27,7 +27,8 @@ use pocketmine\{
 	item\Item,
 	utils\TextFormat as TF,
 	event\block\BlockPlaceEvent,
-	level\format\Chunk
+	level\format\Chunk,
+	level\Level
 };
 use pocketmine\nbt\tag\{
 	CompoundTag,
@@ -146,7 +147,7 @@ class PlayerSession {
 		$this->save_lock = true;
 		$time = microtime(true);
 		IslandArchitect::getInstance()->getLogger()->debug('Saving island "' . $island->getName() . '" (' . spl_object_id($island) . ')');
-		$task = new IslandDataEmitTask($island, [], function() use ($island) : void {
+		$task = new IslandDataEmitTask($island, [], function() use ($island, $time) : void {
 			$this->save_lock = false;
 			IslandArchitect::getInstance()->getLogger()->debug('Island "' . $island->getName() . '" (' . spl_object_id($island) . ') save completed (' . round(microtime(true) - $time, 2) . 's)');
 			$island->noMoreChanges();
@@ -161,10 +162,13 @@ class PlayerSession {
 
 	public function exportIsland() : void {
 		if (($island = $this->getIsland()) === null) return;
-		if (!$island->readyToExport()) return;
+		if (!$island->readyToExport()) {
+			$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Please set the island start and end coordinate first!');
+			return;
+		}
 		$this->export_lock = true;
 		$this->island = null;
-		$this->getPlayer()->sendMessage(TF::YELLOW . 'Queued export task for island "' . $this->getIsland()->getName() . '"...');
+		$this->getPlayer()->sendMessage(TF::YELLOW . 'Queued export task for island "' . $island->getName() . '"...');
 
 		$sc = $this->getStartCoord();
 		$ec = $this->getEndCoord();
@@ -179,6 +183,7 @@ class PlayerSession {
 			else $chunks[] = $chunk;
 		}
 		$this->chunkqueue = $chunks ?? [];
+		$this->island_level = $island->getLevel();
 		if ($this->missingchunks <= 0) $this->startExport();
 		else $this->getPlayer()->sendMessage(TF::BOLD . TF::YELLOW . 'Waiting for ' . TF::BOLD . TF::AQUA . $this->missingchunks . TF::RESET . TF::YELLOw . ' chunks to be load...');
 	}
@@ -193,6 +198,11 @@ class PlayerSession {
 	 */
 	protected $missingchunks = 0;
 
+	/**
+	 * @var string|null
+	 */
+	protected $islandlevel = null;
+
 	protected function startExport() : void {
 		$this->getPlayer()->sendMessage(TF::GOLD . 'Start exporting...');
 		$task = new IslandDataEmitTask($island, $this->chunkqueue, function() use ($island) : void {
@@ -201,12 +211,15 @@ class PlayerSession {
 		});
 		$this->chunkqueue = null;
 		$this->missingchunks = 0;
+		$this->island_level = null;
+
 		Server::getInstance()->getAsyncPool()->submitTask($task);
 	}
 
-	public function onChunkLoad(Chunk $chunk) : void {
+	public function onChunkLoad(Chunk $chunk, Level $level) : void {
 		if (!$this->export_lock) return;
 		if ($this->chunkqueue === null) return;
+		if ($level->getFolderName() !== $this->island_level) return;
 
 		$sc = $this->getStartCoord();
 		$ec = $this->getEndCoord();

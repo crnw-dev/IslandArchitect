@@ -280,8 +280,14 @@ class TemplateIsland {
 
 		$self = new self($data['name']);
 		if (isset($data['level'])) $self->level = $data['level'];
-		if (isset($data['startcoord'])) $self->startcoord = $data['startcoord'];
-		if (isset($data['endcoord'])) $self->endcoord = $data['endcoord'];
+		if (isset($data['startcoord'])) {
+			$coord = $data['startcoord'];
+			$self->startcoord = new Vector3((int)$coord['x'], (int)$coord['y'], (int)$coord['z']);
+		}
+		if (isset($data['endcoord'])) {
+			$coord = $data['endcoord'];
+			$self->endcoord = new Vector3((int)$coord['x'], (int)$coord['y'], (int)$coord['z']);
+		}
 		if (isset($data['unused_symbolics'])) $self->unused_symbolics = $data['unused_symbolics'];
 		if (isset($data['symbolic'])) $self->symbolic = $data['symbolic'];
 		foreach ($data['randoms'] ?? [] as $regexdata) {

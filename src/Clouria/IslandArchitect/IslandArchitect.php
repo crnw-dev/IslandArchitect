@@ -123,8 +123,14 @@ class IslandArchitect extends PluginBase implements Listener {
 				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
 				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
 				$vec = $vec ?? $sender->asPosition();
+				if (($w = $s->getIsland()->getLevel()) !== null) {
+					if ($w !== $vec->getLevel()->getFolderName()) {
+						$sender->sendMessage(TF::BOLD . TF::RED . 'You must in the same world as the end coordinate!');
+						break;
+					}
+				} else $s->getIsland()->setLevel($vec->getLevel());
 				$sender->sendMessage(TF::YELLOW . 'Start coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
-				$this->getSession($sender, true)->getIsland()->setStartCoord($vec);
+				$s->getIsland()->setStartCoord($vec);
 				break;
 
 			case 'pos2':
@@ -134,8 +140,12 @@ class IslandArchitect extends PluginBase implements Listener {
 				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
 				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
 				$vec = $vec ?? $sender->asPosition();
+				if (($w = $s->getIsland()->getLevel()) !== null) if ($w !== $vec->getLevel()->getFolderName()) {
+					$sender->sendMessage(TF::BOLD . TF::RED . 'You must in the same world as the start coordinate!');
+					break;
+				} else $s->getIsland()->setLevel($vec->getLevel());
 				$sender->sendMessage(TF::YELLOW . 'End coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
-				$this->getSession($sender)->getIsland()->setEndCoord($vec);
+				$s->getIsland()->setEndCoord($vec);
 				break;
 
 			case 'island':
@@ -238,7 +248,7 @@ class IslandArchitect extends PluginBase implements Listener {
 	 * @priority HIGH
 	 */
 	public function onChunkLoad(ChunkLoadEvent $ev) : void {
-		foreach ($this->sessions as $s) $s->onChunkLoad($ev->getChunk());
+		foreach ($this->sessions as $s) $s->onChunkLoad($ev->getChunk(), $ev->getLevel());
 	}
 
 	public static function getInstance() : ?self {
