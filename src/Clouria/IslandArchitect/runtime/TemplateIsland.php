@@ -223,7 +223,7 @@ class TemplateIsland {
 	}
 
 	/**
-	 * @param Chunk[] $chunks 
+	 * @param mixed[] $chunks 
 	 * @return string JSON encoded template island data
 	 */
 	public function export(array $chunks) : string {
@@ -237,23 +237,28 @@ class TemplateIsland {
 		asort($zl, SORT_NUMERIC);
 
 		$usedrandoms = [];
-		foreach ($chunks as $chunk) $chunksmap[$chunk->getX()][$chunk->getZ()] = $chunk;
+		foreach ($chunks[0] as $hash => $chunk) $chunksmap[$hash] = $chunks[1][$hash]::fastDeserialize($chunk);
 		for ($x = $xl[0]; $x <= $xl[1]; $x++) for ($z = $zl[0]; $z <= $zl[1]; $z++) {
-			$chunk = $chunksmap[$x << 4][$z << 4];
+			$chunk = $chunksmap[Level::chunkHash($x, $z)] ?? null;
+			if ($chunk === null) continue;
 			for ($y = $yl[0]; $y <= $yl[1]; $y++) {
-				if (($id = $chunk->getBlockId($x, $y, $z)) === Block::AIR) continue;
+				if (($id = $chunk->getBlockId(
+					$tx = (int)((($x / 16) - (int)($x / 16)) * 16)
+					, $y, 
+					$tz = (int)((($z / 16) - (int)($z / 16)) * 16)
+				)) === Block::AIR) continue;
 				$x -= $xl[0];
 				$y -= $yl[0];
 				$z -= $zl[0];
 				$coord = $x . ':' . $y . ':' . $z . ':';
-				$id = $this->random_blocks[$coord] ?? null;
-				if (isset($id)) {
+				if (isset($this->random_blocks[$coord])) {
+					$id = $this->random_blocks[$coord];
 					if (($r = $this->getRandomById($this->random_blocks[$coord])) === null) continue;
 					if (!$r->isValid()) continue;
 					if (($i = array_search($id, $usedrandoms, true)) === false) $id = array_push($usedrandoms, $id) - 1;
 					else $id = $usedrandoms[$i];
 					$data['structure'][$coord] = '1:' . $id;
-				} else $data['structure'][$coord] = '0:' . $id . ':' . $chunk->getBlockData($x, $y, $z);
+				} else $data['structure'][$coord] = '0:' . $id . ':' . $chunk->getBlockData($tx, $y, $tz);
 			}
 		}
 

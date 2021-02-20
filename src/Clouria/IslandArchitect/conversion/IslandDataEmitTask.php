@@ -23,7 +23,8 @@ namespace Clouria\IslandArchitect\conversion;
 use pocketmine\{
 	Server,
 	scheduler\AsyncTask,
-	utils\Utils
+	utils\Utils,
+	level\Level
 };
 
 use Clouria\IslandArchitect\{
@@ -49,12 +50,12 @@ class IslandDataEmitTask extends AsyncTask {
 	protected $path;
 
 	/**
-	 * @var \pocketmine\level\format\Chunk[]
+	 * @var mixed[]
 	 */
 	protected $chunks;
 
 	/**
-	 * @param \pocketmine\level\format\Chunk[] $chunks If the array is not empty, an export action will be taken instead of normal save action
+	 * @param mixed $chunks If the array is not empty, an export action will be taken instead of normal save action
 	 * @param \Closure|null $callback Compatible with <code>function() {}</code>
 	 */
 	public function __construct(TemplateIsland $island, ?array $chunks, ?\Closure $callback = null) {
