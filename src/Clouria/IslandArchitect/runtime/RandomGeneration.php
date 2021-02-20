@@ -110,7 +110,7 @@ class RandomGeneration {
 			$upperl += $chance;
 			if (($upperl >= $rand) and ($upperl < ($rand + $chance))) {
 				$block = explode(':', $block);
-				return [(int)$block[0], (int)$block[1]];
+				return [(int)($block[0]) & 0xff, (int)($block[1]) & 0xff];
 			}
 		}
 		return [Item::AIR, 0];

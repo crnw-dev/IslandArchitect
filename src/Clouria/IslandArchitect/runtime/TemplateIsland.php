@@ -39,6 +39,7 @@ use function json_encode;
 use function json_decode;
 use function array_rand;
 use function array_search;
+use function array_values;
 
 use const SORT_NUMERIC;
 
@@ -204,7 +205,7 @@ class TemplateIsland {
 			$block = $this->structure[$x . ':' . $y . ':' . $z] ?? null;
 			if (!isset($block)) continue;
 			$block = explode(':', $block);
-			if ((int)$block[0] === 0) $blocks[$x][$z][$y] = [(int)$block[1], (int)$block[2]];
+			if ((int)$block[0] === 0) $blocks[$x][$z][$y] = [(int)($block[1]) & 0xff, (int)($block[2]) & 0xff];
 			if ((int)$block[0] === 1) $blocks[$x][$z][$y] = $this->randomElementArray((int)$block[1]);
 		}
 	}
@@ -235,36 +236,42 @@ class TemplateIsland {
 		asort($xl, SORT_NUMERIC);
 		asort($yl, SORT_NUMERIC);
 		asort($zl, SORT_NUMERIC);
+		$xl = array_values($xl);
+		$yl = array_values($yl);
+		$zl = array_values($zl);
 
 		$usedrandoms = [];
-		foreach ($chunks[0] as $hash => $chunk) $chunksmap[$hash] = $chunks[1][$hash]::fastDeserialize($chunk);
+		foreach ($chunks[0] as $hash => $chunk) {
+			$chunk = $chunks[1][$hash]::fastDeserialize($chunk);
+			$chunksmap[$hash] = $chunk;
+		}
 		for ($x = $xl[0]; $x <= $xl[1]; $x++) for ($z = $zl[0]; $z <= $zl[1]; $z++) {
-			$chunk = $chunksmap[Level::chunkHash($x, $z)] ?? null;
+			$chunk = $chunksmap[Level::chunkHash($x >> 4, $z >> 4)] ?? null;
 			if ($chunk === null) continue;
+			$bx = $x - $xl[0];
+			$bz = $z - $zl[0];
+			/**
+			 * @todo Add crash check
+			 */
 			for ($y = $yl[0]; $y <= $yl[1]; $y++) {
-				if (($id = $chunk->getBlockId(
-					$tx = (int)((($x / 16) - (int)($x / 16)) * 16)
-					, $y, 
-					$tz = (int)((($z / 16) - (int)($z / 16)) * 16)
-				)) === Block::AIR) continue;
-				$x -= $xl[0];
-				$y -= $yl[0];
-				$z -= $zl[0];
+				if (($id = $chunk->getBlockId($x & 0x0f, $y & 0x0f, $z & 0x0f)) === Block::AIR) continue;
+				$by = $y - $yl[0];
 				$coord = $x . ':' . $y . ':' . $z . ':';
+				$bcoord = $bx . ':' . $by . ':' . $bz . ':';
 				if (isset($this->random_blocks[$coord])) {
 					$id = $this->random_blocks[$coord];
 					if (($r = $this->getRandomById($this->random_blocks[$coord])) === null) continue;
 					if (!$r->isValid()) continue;
 					if (($i = array_search($id, $usedrandoms, true)) === false) $id = array_push($usedrandoms, $id) - 1;
 					else $id = $usedrandoms[$i];
-					$data['structure'][$coord] = '1:' . $id;
-				} else $data['structure'][$coord] = '0:' . $id . ':' . $chunk->getBlockData($tx, $y, $tz);
+					$data['structure'][$bcoord] = '1:' . $id;
+				} else $data['structure'][$bcoord] = '0:' . $id . ':' . $chunk->getBlockData($x & 0x0f, $y, $z & 0x0f);
 			}
 		}
 
 		if (!empty($usedrandoms ?? [])) foreach ($this->randoms as $id => $random) if (in_array($id, $usedrandoms)) $data['randoms'][] = $random->getAllElements();
 
-		return $this->encode($data);
+		return $this->encode($data ?? []);
 	}
 
 	protected function encode(array $data) : string {
