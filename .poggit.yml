@@ -1,0 +1,13 @@
+--- # Poggit-CI Manifest. Open the CI at https://poggit.pmmp.io/ci/crnw-dev/IslandArchitect
+build-by-default: true
+branches:
+- stable
+projects:
+  IslandArchitect:
+    path: ""
+    libs:
+    - src: Infernus101/FormAPI/libFormAPI
+      version: ^1.4
+    - src: muqsit\invmenu\invmenu
+      version: ^4.1
+...
