@@ -8,6 +8,6 @@ projects:
     libs:
     - src: Infernus101/FormAPI/libFormAPI
       version: ^1.4
-    - src: muqsit\invmenu\invmenu
+    - src: muqsit/invmenu/invmenu
       version: ^4.1
 ...
