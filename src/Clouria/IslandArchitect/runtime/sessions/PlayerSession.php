@@ -207,7 +207,7 @@ class PlayerSession {
 		$checker = IslandArchitect::getInstance()->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) use (&$checker, $task, &$island) : void {
 			if ($task->isCrashed()) {
 				$this->export_lock = false;
-				$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Critical: Export task crashed' . TF::ITALIC . TF::GRAY . '(The selected region might be too big or an unexpected error occurred)');
+				$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Critical: Export task crashed' . TF::ITALIC . TF::GRAY . ' (The selected region might be too big or an unexpected error occurred)');
 				$this->getPlayer()->sendMessage(TF::BOLD . TF::GOLD . 'Attempting to recover original island settings...');
 				$this->checkOutIsland($island);
 				$restore = new IslandDataEmitTask($island, [], function() : void {
@@ -226,7 +226,7 @@ class PlayerSession {
 	 */
 	public static function errorCheckOutRequired(Player $player, $session) : bool {
 		if ($session !== null and $session->getIsland() !== null) return false;
-		$player->sendMessage(TF::BOLD . TF::RED . 'Please check out an island first!');
+		$player->sendMessage(TF::BOLD . TF::RED . 'Please check out an island first!' . TF::GRAY . TF::ITALIC . ' ("/ia island <Island data file name: string>")');
 		return true;
 	}
 }
