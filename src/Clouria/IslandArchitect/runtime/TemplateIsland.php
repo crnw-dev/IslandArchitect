@@ -216,6 +216,7 @@ class TemplateIsland {
 		$data['level'] = $this->getLevel();
 		$data['startcoord'] = $this->getStartCoord()->floor();
 		$data['endcoord'] = $this->getEndCoord()->floor();
+		$data['random_blocks'] = $this->random_blocks;
 		foreach ($this->symbolic as $regexid => $symbolic) {
 			$symbolic = $symbolic[0] . (isset($symbolic[1]) ? ':' . $symbolic[1] : '');
 			$data['symbolic'][$regexid] = $symbolic;
@@ -259,8 +260,8 @@ class TemplateIsland {
 			for ($y = $yl[0]; $y <= $yl[1]; $y++) {
 				if (($id = $chunk->getBlockId($x & 0x0f, $y & 0x0f, $z & 0x0f)) === Block::AIR) continue;
 				$by = $y - $yl[0];
-				$coord = $x . ':' . $y . ':' . $z . ':';
-				$bcoord = $bx . ':' . $by . ':' . $bz . ':';
+				$coord = $x . ':' . $y . ':' . $z;
+				$bcoord = $bx . ':' . $by . ':' . $bz;
 				if (isset($this->random_blocks[$coord])) {
 					$id = $this->random_blocks[$coord];
 					if (($r = $this->getRandomById($this->random_blocks[$coord])) === null) continue;
@@ -307,6 +308,7 @@ class TemplateIsland {
 			$coord = $data['endcoord'];
 			$self->endcoord = new Vector3((int)$coord['x'], (int)$coord['y'], (int)$coord['z']);
 		}
+		if (isset($data['random_blocks'])) $self->random_blocks = $data['random_blocks'];
 		if (isset($data['symbolic'])) {
 			$unused_symbolics = self::SYMBOLICS;
 			foreach ($data['symbolic'] as $regexid => $symbolic) {
@@ -335,10 +337,13 @@ class TemplateIsland {
 
 	public function noMoreChanges() : void {
 		$this->changed = false;
+		foreach ($this->randoms as $r) $r->noMoreChanges();
 	}
 
 	public function hasChanges() : bool {
-		return $this->changed;
+		if ($this->changed) return $this->changed;
+		foreach ($this->randoms as $r) if ($r->hasChanges()) return true;
+		return false;
 	}
 
 	public function readyToExport() : bool {

@@ -45,6 +45,7 @@ class RandomGeneration {
 		if (($this->blocks[$id . ':' . $meta] ?? 0) + $chance > 32767) return false;
 		if (!isset($this->blocks[$id . ':' . $meta])) $this->blocks[$id . ':' . $meta] = 0;
 		$this->blocks[$id . ':' . $meta] += $chance;
+		$this->changed = true;
 		return true;
 	}
 
@@ -60,6 +61,7 @@ class RandomGeneration {
 		if (($this->blocks[$id . ':' . $meta] ?? 0) - $chance <= 0) return false;
 		if (!isset($this->blocks[$id . ':' . $meta])) $this->blocks[$id . ':' . $meta] = 0;
 		$this->blocks[$id . ':' . $meta] -= $chance;
+		$this->changed = true;
 		return true;
 	}
 
@@ -148,5 +150,18 @@ class RandomGeneration {
 
 	public function isValid() : bool {
 		return !empty($this->getAllElements());
+	}
+
+	/**
+	 * @var bool
+	 */
+	protected $changed = false;
+
+	public function noMoreChanges() : void {
+		$this->changed = false;
+	}
+
+	public function hasChanges() : bool {
+		return $this->changed;
 	}
 }
