@@ -28,7 +28,8 @@ use pocketmine\{
 	utils\TextFormat as TF,
 	event\block\BlockPlaceEvent,
 	level\format\Chunk,
-	level\Level
+	level\Level,
+	scheduler\ClosureTask
 };
 use pocketmine\nbt\tag\{
 	CompoundTag,
@@ -202,6 +203,20 @@ class PlayerSession {
 			$this->export_lock = false;
 			$this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Export completed!');
 		});
+		$checker = null;
+		$checker = IslandArchitect::getInstance()->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) use (&$checker, $task, &$island) : void {
+			if ($task->isCrashed()) {
+				$this->export_lock = false;
+				$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Critical: Export task crashed' . TF::ITALIC . TF::GRAY . '(The selected region might be too big or an unexpected error occurred)');
+				$this->getPlayer()->sendMessage(TF::BOLD . TF::GOLD . 'Attempting to recover original island settings...');
+				$this->checkOutIsland($island);
+				$restore = new IslandDataEmitTask($island, [], function() : void {
+					$this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Restore successed!');
+				});
+				Server::getInstance()->getAsyncPool()->submitTask($restore);
+			}
+			if (!$this->export_lock) $checker->cancel();
+		}), 10);
 
 		Server::getInstance()->getAsyncPool()->submitTask($task);
 	}
