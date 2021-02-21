@@ -205,7 +205,7 @@ class TemplateIsland {
 			$block = $this->structure[$x . ':' . $y . ':' . $z] ?? null;
 			if (!isset($block)) continue;
 			$block = explode(':', $block);
-			if ((int)$block[0] === 0) $blocks[$x][$z][$y] = [(int)($block[1]) & 0xff, (int)($block[2]) & 0xff];
+			if ((int)$block[0] === 0) $blocks[$x][$z][$y] = [(int)($block[1] ?? Item::AIR) & 0xff, (int)($block[2] ?? 0) & 0xff];
 			if ((int)$block[0] === 1) $blocks[$x][$z][$y] = $this->randomElementArray((int)$block[1]);
 		}
 	}
@@ -214,11 +214,17 @@ class TemplateIsland {
 
 	public function save() : string {
 		$data['level'] = $this->getLevel();
-		$data['startcoord'] = $this->getStartCoord();
-		$data['endcoord'] = $this->getEndCoord();
-		$data['unused_symbolics'] = $this->unused_symbolics;
-		$data['symbolics'] = $this->symbolic;
-		foreach ($this->randoms as $random) $data['randoms'][] = $random->getAllElements();
+		$data['startcoord'] = $this->getStartCoord()->floor();
+		$data['endcoord'] = $this->getEndCoord()->floor();
+		foreach ($this->symbolic as $regexid => $symbolic) {
+			$symbolic = $symbolic[0] . (isset($symbolic[1]) ? ':' . $symbolic[1] : '');
+			$data['symbolic'][$regexid] = $symbolic;
+		}
+		foreach ($this->randoms as $regexid => $random) {
+			$elements = $random->getAllElements();
+			if (empty($elements)) $data['randoms'][$regexid] = ['blockid:meta' => 'chance'];
+			else $data['randoms'][$regexid] = $elements;
+		}
 
 		return $this->encode($data);
 	}
@@ -250,9 +256,6 @@ class TemplateIsland {
 			if ($chunk === null) continue;
 			$bx = $x - $xl[0];
 			$bz = $z - $zl[0];
-			/**
-			 * @todo Add crash check
-			 */
 			for ($y = $yl[0]; $y <= $yl[1]; $y++) {
 				if (($id = $chunk->getBlockId($x & 0x0f, $y & 0x0f, $z & 0x0f)) === Block::AIR) continue;
 				$by = $y - $yl[0];
@@ -265,7 +268,11 @@ class TemplateIsland {
 					if (($i = array_search($id, $usedrandoms, true)) === false) $id = array_push($usedrandoms, $id) - 1;
 					else $id = $usedrandoms[$i];
 					$data['structure'][$bcoord] = '1:' . $id;
-				} else $data['structure'][$bcoord] = '0:' . $id . ':' . $chunk->getBlockData($x & 0x0f, $y, $z & 0x0f);
+				} else {
+					$data['structure'][$bcoord] = '0:' . $id;
+					$meta = $chunk->getBlockData($x & 0x0f, $y, $z & 0x0f);
+					if ($meta !== Item::AIR) $data['structure'][$bcoord] .= $meta;
+				}
 			}
 		}
 
@@ -300,13 +307,20 @@ class TemplateIsland {
 			$coord = $data['endcoord'];
 			$self->endcoord = new Vector3((int)$coord['x'], (int)$coord['y'], (int)$coord['z']);
 		}
-		if (isset($data['unused_symbolics'])) $self->unused_symbolics = $data['unused_symbolics'];
-		if (isset($data['symbolic'])) $self->symbolic = $data['symbolic'];
+		if (isset($data['symbolic'])) {
+			$unused_symbolics = self::SYMBOLICS;
+			foreach ($data['symbolic'] as $regexid => $symbolic) {
+				$symbolic = explode(':', $symbolic);
+				$self->symbolic[$regexid] = [(int)$symbolic[0], (int)($symbolic[1] ?? 0)];
+				if (($r = array_search([(int)$symbolic[0], (int)($symbolic[1] ?? 0)], $unused_symbolics, true)) !== false) unset($unused_symbolics[$r]);
+			}
+			$self->unused_symbolics = $unused_symbolics;
+		}
 		foreach ($data['randoms'] ?? [] as $regexdata) {
 			$regex = new RandomGeneration;
 			foreach ($regexdata as $element => $chance) {
 				$element = explode(':', $element);
-				$regex->increaseElementChance($element[0], $element[1] ?? 0, $chance);
+				$regex->increaseElementChance((int)$element[0], (int)($element[1] ?? 0), (int)$chance);
 			}
 			$self->randoms[] = $regex;
 		}

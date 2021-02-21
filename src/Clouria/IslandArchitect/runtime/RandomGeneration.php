@@ -127,6 +127,7 @@ class RandomGeneration {
 	}
 
 	public function getRandomGenerationItem(Item $item) : Item {
+		$totalchance = $this->getTotalChance();
 		foreach ($this->getAllElements() as $block => $chance) {
 			$block = explode(':', $block);
 			$regex[] = new CompoundTag('', [

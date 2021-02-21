@@ -558,7 +558,7 @@ class InvMenuSession {
 		return (bool)IslandArchitect::getInstance()->getConfig()->get('panel-allow-unstable-item', true);
 	}
 
-	public static function getDefaultSeed() : int {
+	public static function getDefaultSeed() : ?int {
 		$seed = IslandArchitect::getInstance()->getConfig()->get('panel-default-seed', null);
 		if ($seed !== null) $seed = (int)$seed;
 		return $seed;
