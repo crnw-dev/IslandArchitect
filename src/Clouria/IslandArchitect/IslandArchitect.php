@@ -28,7 +28,8 @@ use pocketmine\{
 	command\PluginCommand,
 	utils\TextFormat as TF,
 	level\Position,
-	scheduler\ClosureTask
+	scheduler\ClosureTask,
+	utils\Utils
 };
 use pocketmine\event\{
 	Listener,
@@ -157,15 +158,21 @@ class IslandArchitect extends PluginBase implements Listener {
 				}
 				$time = microtime(true);
 				$sender->sendMessage(TF::YELLOW . 'Loading island ' . TF::GOLD . '"' . $args[1] . '"...');
-				/**
-				 * @see IslandDataLoadTask::__construct()
-				 */
-				$task = new IslandDataLoadTask($args[1], function(?TemplateIsland $is, string $filepath) use ($sender, $time) : void {
+				$callback = function(?TemplateIsland $is, string $filepath) use ($sender, $time) : void {
 					if (!$sender->isOnline()) return;
 					if (!isset($is)) $is = new TemplateIsland(basename($filepath, '.json'));
 					$this->getSession($sender, true)->checkOutIsland($is);
 					$sender->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . 's)');
-				});
+				};
+				foreach($this->sessions as $s) if (
+					($i = $s->getIsland()) !== null and
+					$i->getName() === $args[1]
+				) {
+					$path = Utils::cleanPath($this->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/'));
+					$callback($i, $path . ($path[-1] === '/' ? '' : '/') . $i->getName()]);
+					break;
+				}
+				$task = new IslandDataLoadTask($args[1], $callback);
 				$this->getServer()->getAsyncPool()->submitTask($task);
 				break;
 
