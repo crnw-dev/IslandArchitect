@@ -49,10 +49,9 @@ use function spl_object_id;
 use function time;
 use function microtime;
 use function round;
-use function asort;
 use function get_class;
-
-use const SORT_NUMERIC;
+use function max;
+use function min;
 
 class PlayerSession {
 
@@ -175,12 +174,8 @@ class PlayerSession {
 
 		$sc = $island->getStartCoord();
 		$ec = $island->getEndCoord();
-		$xl = [$sc->getFloorX(), $ec->getFloorX()];
-		$zl = [$sc->getFloorZ(), $ec->getFloorZ()];
-		asort($xl, SORT_NUMERIC);
-		asort($zl, SORT_NUMERIC);
 
-		for ($x=$xl[0] >> 4; $x <= ($xl[1] >> 4); $x++) for ($z=$zl[0] >> 4; $z <= ($zl[1] >> 4); $z++) {
+		for ($x=min($sc->getFloorX(), $ec->getFloorX()) >> 4; $x <= (max($sc->getFloorX(), $ec->getFloorX()) >> 4); $x++) for ($z=min($sc->getFloorZ(), $ec->getFloorZ()) >> 4; $z <= (max($sc->getFloorZ(), $ec->getFloorZ()) >> 4); $z++) {
 			while (($level = Server::getInstance()->getLevelByName($island->getLevel())) === null) {
 				if ($wlock ?? false) {
 					$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Island world (' . $island->getLevel() . ') is missing!');
@@ -207,7 +202,7 @@ class PlayerSession {
 		$checker = IslandArchitect::getInstance()->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) use (&$checker, $task, &$island) : void {
 			if ($task->isCrashed()) {
 				$this->export_lock = false;
-				$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Critical: Export task crashed' . TF::ITALIC . TF::GRAY . '(The selected region might be too big or an unexpected error occurred)');
+				$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Critical: Export task crashed' . TF::ITALIC . TF::GRAY . ' (The selected region might be too big or an unexpected error occurred)');
 				$this->getPlayer()->sendMessage(TF::BOLD . TF::GOLD . 'Attempting to recover original island settings...');
 				$this->checkOutIsland($island);
 				$restore = new IslandDataEmitTask($island, [], function() : void {
@@ -226,7 +221,7 @@ class PlayerSession {
 	 */
 	public static function errorCheckOutRequired(Player $player, $session) : bool {
 		if ($session !== null and $session->getIsland() !== null) return false;
-		$player->sendMessage(TF::BOLD . TF::RED . 'Please check out an island first!');
+		$player->sendMessage(TF::BOLD . TF::RED . 'Please check out an island first!' . TF::GRAY . TF::ITALIC . ' ("/ia island <Island data file name: string>")');
 		return true;
 	}
 }
