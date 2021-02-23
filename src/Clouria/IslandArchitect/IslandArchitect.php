@@ -164,7 +164,7 @@ class IslandArchitect extends PluginBase implements Listener {
 					if (!$sender->isOnline()) return;
 					if (!isset($is)) $is = new TemplateIsland(basename($filepath, '.json'));
 					$this->getSession($sender, true)->checkOutIsland($is);
-					$sender->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . ')');
+					$sender->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . 's)');
 				});
 				$this->getServer()->getAsyncPool()->submitTask($task);
 				break;

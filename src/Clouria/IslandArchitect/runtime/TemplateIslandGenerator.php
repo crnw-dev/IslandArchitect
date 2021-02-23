@@ -56,7 +56,7 @@ class TemplateIslandGenerator extends IslandGenerator {
 	}
 
 	public function getName() : string {
-		return 'TemplateIslandGenerator';
+		return isset($this->island) ? $this->island->getName() : 'TemplateIslandGenerator';
 	}
 
 	public static function getWorldSpawn() : Vector3 {

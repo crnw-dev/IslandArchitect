@@ -170,6 +170,7 @@ class PlayerSession {
 		$this->export_lock = true;
 		$this->export_island = $island;
 		$this->island = null;
+		$time = microtime(true);
 		$this->getPlayer()->sendMessage(TF::YELLOW . 'Queued export task for island "' . $island->getName() . '"...');
 
 		$sc = $island->getStartCoord();
@@ -194,9 +195,9 @@ class PlayerSession {
 			}
 		}
 		$this->getPlayer()->sendMessage(TF::GOLD . 'Start exporting...');
-		$task = new IslandDataEmitTask($island, $chunks, function() use ($island) : void {
+		$task = new IslandDataEmitTask($island, $chunks, function() use ($island, $time) : void {
 			$this->export_lock = false;
-			$this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Export completed!');
+			$this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Export completed!' . TF::ITALIC . TF::GRAY . ' (' . round(microtime(true) - $time, 2) . 's)');
 		});
 		$checker = null;
 		$checker = IslandArchitect::getInstance()->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) use (&$checker, $task, &$island) : void {
