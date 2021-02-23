@@ -37,7 +37,8 @@ use pocketmine\event\{
 	player\PlayerQuitEvent,
 	block\BlockPlaceEvent,
 	block\BlockBreakEvent,
-	level\LevelSaveEvent
+	level\LevelSaveEvent,
+	server\QueryRegenerateEvent
 };
 
 use muqsit\invmenu\InvMenuHandler;
@@ -55,6 +56,7 @@ use function class_exists;
 use function microtime;
 use function basename;
 use function round;
+use function array_search;
 
 class IslandArchitect extends PluginBase implements Listener {
 
@@ -92,6 +94,7 @@ class IslandArchitect extends PluginBase implements Listener {
 		foreach ($all = $conf->getAll() as $k => $v) $conf->remove($k);
 
 		$conf->set('enable-commands', (bool)($all['enable-commands'] ?? $all['enable-plugin'] ?? true));
+		$conf->set('hide-plugin-in-query', (bool)($all['hide-plugin-in-query', (bool)($all['hide-plugin-in-query'] ?? false)]));
 		$conf->set('island-data-folder', (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'));
 		$conf->set('panel-allow-unstable-item', (bool)($all['panel-allow-unstable-item'] ?? true));
 		$conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
@@ -280,6 +283,16 @@ class IslandArchitect extends PluginBase implements Listener {
 	 */
 	public function onLevelSave(LevelSaveEvent $ev) : void {
 		foreach ($this->sessions as $s) $s->saveIsland();
+	}
+
+	/**
+	 * @priority NORMAL
+	 */
+	public function onQueryRegenerate(QueryRegenerateEvent $ev) : void {
+		if (!(bool)$this->getConfig()->get('hide-plugin-in-query', false)) return;
+		if (($r = array_search($this, $pl = $ev->getPlugins())) === false) return;
+		unset($pl[$r]);
+		$ev->setPlugins($pl);
 	}
 
 	public static function getInstance() : ?self {
