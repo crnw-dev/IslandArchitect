@@ -1,0 +1,9 @@
+ia-cmd-description: Command of the IslandArchitect plugin
+err-use-cmd-ingame: '{bold}{red}Please use the command in-game!'
+err-level-mismatch-start-coord: '{bold}{red}You must in the same world as the end coordinate!'
+err-level-mismatch-end-coord: '{bold}{red}You must in the same world as the start coordinate!'
+start-coord-set: '{yellow}Start coordinate set to {green}{coord}.'
+end-coord-set: '{yellow}End coordinate set to {green}{coord}.'
+err-no-island-data-file-name: '{bold}{red}Please enter the island data file name!'
+island-loading: '{yellow}Loading island "{gold}{island}{yellow}"...'
+island-checkout: '{bold}{green}Checked out island "{island}"! {italic}{gray}({time}s)'

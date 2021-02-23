@@ -54,6 +54,7 @@ use function class_exists;
 use function microtime;
 use function basename;
 use function round;
+use function fclose;
 
 class IslandArchitect extends PluginBase implements Listener {
 
@@ -79,7 +80,7 @@ class IslandArchitect extends PluginBase implements Listener {
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 
 		$cmd = new PluginCommand('island-architect', $this);
-		$cmd->setDescription('Command of the IslandArchitect plugin');
+		$cmd->setDescription(Message::get('cmd-ia-description'));
 		$cmd->setUsage('/island-architect help');
 		$cmd->setAliases(['ia', 'isarch']);
 		$cmd->setPermission('island-architect.cmd');
@@ -95,6 +96,7 @@ class IslandArchitect extends PluginBase implements Listener {
 		$conf->set('island-data-folder', (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'));
 		$conf->set('panel-allow-unstable-item', (bool)($all['panel-allow-unstable-item'] ?? true));
 		$conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
+		$conf->set('language', $all['language'] ?? $this->validateLanguage($this->getServer()->getLanguage()->getName()));
 
 		$conf->save();
 		$conf->reload();
@@ -113,7 +115,7 @@ class IslandArchitect extends PluginBase implements Listener {
 	}
 
 	public function onCommand(CommandSender $sender, Command $cmd, string $alias, array $args) : bool {
-		if (!$sender instanceof Player) $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
+		if (!$sender instanceof Player) $sender->sendMessage(Message::get('err-use-cmd-ingame'));
 		else switch (strtolower($args[0] ?? 'help')) {
 			case 'pos1':
 			case 'p1':
@@ -124,11 +126,13 @@ class IslandArchitect extends PluginBase implements Listener {
 				$vec = $vec ?? $sender->asPosition();
 				if (($w = $s->getIsland()->getLevel()) !== null) {
 					if ($w !== $vec->getLevel()->getFolderName()) {
-						$sender->sendMessage(TF::BOLD . TF::RED . 'You must in the same world as the end coordinate!');
+						$sender->sendMessage(Message::get('err-level-mismatch-start-coord'));
 						break;
 					}
 				} else $s->getIsland()->setLevel($vec->getLevel());
-				$sender->sendMessage(TF::YELLOW . 'Start coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
+				$sender->sendMessage(Message::get('start-coord-set', [
+					'coord' => $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ()
+				]));
 				$s->getIsland()->setStartCoord($vec);
 				break;
 
@@ -140,10 +144,12 @@ class IslandArchitect extends PluginBase implements Listener {
 				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
 				$vec = $vec ?? $sender->asPosition();
 				if (($w = $s->getIsland()->getLevel()) !== null) if ($w !== $vec->getLevel()->getFolderName()) {
-					$sender->sendMessage(TF::BOLD . TF::RED . 'You must in the same world as the start coordinate!');
+					$sender->sendMessage(Message::get('err-level-mismatch-start-coord'));
 					break;
 				} else $s->getIsland()->setLevel($vec->getLevel());
-				$sender->sendMessage(TF::YELLOW . 'End coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
+				$sender->sendMessage(Message::get('end-coord-set', [
+					'coord' => $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ()
+				]));
 				$s->getIsland()->setEndCoord($vec);
 				break;
 
@@ -152,11 +158,13 @@ class IslandArchitect extends PluginBase implements Listener {
 			case 'check-out':
 			case 'i':
 				if (!isset($args[1])) {
-					$sender->sendMessage(TF::BOLD . TF::RED . 'Please enter the island data file name!');
+					$sender->sendMessage(Message::get('err-no-island-data-file-name'));
 					break;
 				}
 				$time = microtime(true);
-				$sender->sendMessage(TF::YELLOW . 'Loading island ' . TF::GOLD . '"' . $args[1] . '"...');
+				$sender->sendMessage(Message::get('island-loading', [
+					'island' => $args[1]
+				]));
 				/**
 				 * @see IslandDataLoadTask::__construct()
 				 */
@@ -164,7 +172,10 @@ class IslandArchitect extends PluginBase implements Listener {
 					if (!$sender->isOnline()) return;
 					if (!isset($is)) $is = new TemplateIsland(basename($filepath, '.json'));
 					$this->getSession($sender, true)->checkOutIsland($is);
-					$sender->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . ')');
+					$sender->sendMessage(Message::get('island-checkout', [
+						'island' => $is->getName(),
+						'time' => round(microtime(true) - $time, 2)
+					]));
 				});
 				$this->getServer()->getAsyncPool()->submitTask($task);
 				break;
@@ -245,6 +256,15 @@ class IslandArchitect extends PluginBase implements Listener {
 
 	public static function getInstance() : ?self {
 		return self::$instance;
+	}
+
+	protected function validateLanguage(string $langcode) : string {
+		$f = $this->getResource('lang/' . $langcode . '.yml');
+		if (isset($f)) {
+			$return = $langcode;
+			fclose($f);
+		} else $return = 'eng';
+		return $return;
 	}
 	
 }
