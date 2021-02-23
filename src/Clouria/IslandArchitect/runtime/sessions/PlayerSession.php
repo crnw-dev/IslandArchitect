@@ -179,7 +179,7 @@ class PlayerSession {
 		$zl = [$sc->getFloorZ(), $ec->getFloorZ()];
 		asort($xl, SORT_NUMERIC);
 		asort($zl, SORT_NUMERIC);
-
+                $xl = array_values($xl); $zl = array_values($zl);
 		for ($x=$xl[0] >> 4; $x <= ($xl[1] >> 4); $x++) for ($z=$zl[0] >> 4; $z <= ($zl[1] >> 4); $z++) {
 			while (($level = Server::getInstance()->getLevelByName($island->getLevel())) === null) {
 				if ($wlock ?? false) {
