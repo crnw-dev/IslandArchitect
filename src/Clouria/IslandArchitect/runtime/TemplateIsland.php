@@ -76,6 +76,34 @@ class TemplateIsland {
 	}
 
 	/**
+	 * @var Vector3|null
+	 */
+	protected $spawn = null;
+
+	public function getSpawn() : ?Vector3 {
+		return $this->spawn;
+	}
+
+	public function setSpawn(Vector3 $pos) : void {
+		$this->spawn = $pos->asVector3();
+		$this->changed = true;
+	}
+
+	/**
+	 * @var Vector3|null
+	 */
+	protected $chest = null;
+
+	public function getChest() : ?Vector3 {
+		return $this->chest;
+	}
+
+	public function setChest(Vector3 $pos) : void {
+		$this->chest = $pos->asVector3();
+		$this->changed = true;
+	}
+
+	/**
 	 * @var string|null
 	 */
 	protected $level = null;
@@ -306,6 +334,12 @@ class TemplateIsland {
 		$data['version'] = self::VERSION;
 		$data['name'] = $this->getName();
 
+		if (($vec = $this->getSpawn()) !== null) $data['spawn'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
+		else $data['spawn'] = null;
+
+		if (($vec = $this->getChest()) !== null) $data['chest'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
+		else $data['chest'] = null;
+
 		return json_encode($data);
 	}
 
@@ -337,6 +371,15 @@ class TemplateIsland {
 		}
 		if (isset($data['random_blocks']) or isset($data['blocks'])) $self->random_blocks = $data['random_blocks'] ?? $data['blocks'];
 		if (isset($data['random_labels']) or isset($data['labels'])) $self->random_labels = $data['random_labels'] ?? $data['labels'];
+		if (isset($data['spawn'])) {
+			$coord = $data['spawn'];
+			$self->spawn = new Vector3((int)$coord['x'], (int)$coord['y'], (int)$coord['z']);
+		}
+		if (isset($data['chest'])) {
+			$coord = $data['chest'];
+			$self->chest = new Vector3((int)$coord['x'], (int)$coord['y'], (int)$coord['z']);
+		}
+		if (isset($data['random_blocks'])) $self->random_blocks = $data['random_blocks'];
 		if (isset($data['symbolic'])) {
 			$unused_symbolics = self::SYMBOLICS;
 			foreach ($data['symbolic'] as $regexid => $symbolic) {
