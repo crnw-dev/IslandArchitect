@@ -72,35 +72,32 @@ class IslandArchitect extends PluginBase implements Listener {
 	}
 
 	public function onEnable() : void {
-		if (!$this->initConfig()) {
-			$this->getServer()->getPluginManager()->disablePlugin($this);
-			return;
-		}
+		$this->initConfig();
 		if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 
-		$cmd = new PluginCommand('island-architect', $this);
-		$cmd->setDescription('Command of the IslandArchitect plugin');
-		$cmd->setUsage('/island-architect help');
-		$cmd->setAliases(['ia', 'isarch']);
-		$cmd->setPermission('island-architect.cmd');
-		$this->getServer()->getCommandMap()->register($this->getName(), $cmd);
+		if ((string)$this->getConfig()->get('enable-commands', true)) {
+			$cmd = new PluginCommand('island-architect', $this);
+			$cmd->setDescription('Command of the IslandArchitect plugin');
+			$cmd->setUsage('/island-architect help');
+			$cmd->setAliases(['ia', 'isarch']);
+			$cmd->setPermission('island-architect.cmd');
+			$this->getServer()->getCommandMap()->register($this->getName(), $cmd);
+		}
 	}
 
-	private function initConfig() : bool {
+	private function initConfig() : void {
 		$this->saveDefaultConfig();
 		$conf = $this->getConfig();
 		foreach ($all = $conf->getAll() as $k => $v) $conf->remove($k);
 
-		$conf->set('enable-plugin', (bool)($all['enable-plugin'] ?? true));
+		$conf->set('enable-commands', (bool)($all['enable-commands'] ?? $all['enable-plugin'] ?? true));
 		$conf->set('island-data-folder', (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'));
 		$conf->set('panel-allow-unstable-item', (bool)($all['panel-allow-unstable-item'] ?? true));
 		$conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
 
 		$conf->save();
 		$conf->reload();
-
-		return (bool)$conf->get('enable-plugin', true);
 	}
 
 	public function getSession(Player $player, bool $nonnull = false) : ?PlayerSession {
@@ -115,11 +112,16 @@ class IslandArchitect extends PluginBase implements Listener {
 
 	public function onCommand(CommandSender $sender, Command $cmd, string $alias, array $args) : bool {
 		if (!$sender instanceof Player) $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
+		if (
+			strtolower($args[1] ?? 'help') !== 'help'
+			!$sender->hasPermission('island-architect.convert')) {
+			$sender->sendMessage($this->getServer()->getLanguage()->translateString(TF::RED . "%commands.generic.permission"));
+			return true;
+		}
 		else switch (strtolower($args[0] ?? 'help')) {
 			case 'pos1':
 			case 'p1':
 			case '1':
-				if (!$sender->hasPermission('island-architect.convert')) return false;
 				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
 				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
 				$vec = $vec ?? $sender->asPosition();
@@ -136,7 +138,6 @@ class IslandArchitect extends PluginBase implements Listener {
 			case 'pos2':
 			case 'p2':
 			case '2':
-				if (!$sender->hasPermission('island-architect.convert')) return false;
 				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
 				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
 				$vec = $vec ?? $sender->asPosition();
@@ -190,6 +191,34 @@ class IslandArchitect extends PluginBase implements Listener {
 				$s->exportIsland();
 				break;
 		
+			case 'setspawn':
+			case 'spawn':
+			case 's':
+				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
+				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
+				$vec = $vec ?? $sender->asPosition();
+				if (($w = $s->getIsland()->getLevel()) !== null) if ($w !== $vec->getLevel()->getFolderName()) {
+					$sender->sendMessage(TF::BOLD . TF::RED . 'You can only run this command in the same world as the island: ' . $w);
+					break;
+				} else $s->getIsland()->setLevel($vec->getLevel());
+				$sender->sendMessage(TF::YELLOW . 'Island world spawn set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
+				$s->getIsland()->setSpawn($vec);
+				break;
+
+			case 'setchest':
+			case 'chest':
+			case 'c':
+				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
+				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
+				$vec = $vec ?? $sender->asPosition();
+				if (($w = $s->getIsland()->getLevel()) !== null) if ($w !== $vec->getLevel()->getFolderName()) {
+					$sender->sendMessage(TF::BOLD . TF::RED . 'You can only run this command in the same world as the island: ' . $w);
+					break;
+				} else $s->getIsland()->setLevel($vec->getLevel());
+				$sender->sendMessage(TF::YELLOW . 'Island chest position set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
+				$s->getIsland()->setChest($vec);
+				break;
+
 			default:
 				$cmds[] = 'help ' . TF::ITALIC . TF::GRAY . '(Display available subcommands)';
 				if ($sender->hasPermission('island-architect.convert')) {
@@ -198,8 +227,11 @@ class IslandArchitect extends PluginBase implements Listener {
 					$cmds[] = 'pos2 [xyz: int] ' . TF::ITALIC . TF::GRAY . '(Set the end coordinate of the island)';
 					$cmds[] = 'export ' . TF::ITALIC . TF::GRAY . '(Export the checked out island into template island data file)';
 					$cmds[] = 'random [Random regex ID: int] ' . TF::ITALIC . TF::GRAY . '(Setup random blocks generation)';
+					$cmds[] = 'setspawn ' . TF::ITALIC . TF::GRAY . '(Set the island world spawn)';
+					$cmds[] = 'setchest ' . TF::ITALIC . TF::GRAY . '(Set the island chest position)';
 				}
-				$sender->sendMessage(TF::BOLD . TF::GOLD . 'Available subcommands: ' . ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $cmds ?? ['help']));
+				$sender->sendMessage(TF::BOLD . TF::GOLD . 'Available subcommands: ' . ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $cmds ?
+					$cmds[] = 'setspawn ' . TF::ITALIC . TF::GRAY . '(Set the world spawn of the island)';? ['help']));
 				break;
 		}
 		return true;
