@@ -125,7 +125,7 @@ class IslandArchitect extends PluginBase implements Listener {
 				$vec = $vec ?? $sender->asPosition();
 				if (($w = $s->getIsland()->getLevel()) !== null) {
 					if ($w !== $vec->getLevel()->getFolderName()) {
-						$sender->sendMessage(TF::BOLD . TF::RED . 'You must in the same world as the end coordinate!');
+					$sender->sendMessage(TF::BOLD . TF::RED . 'You can only run this command in the same world as the island: ' . $w);
 						break;
 					}
 				} else $s->getIsland()->setLevel($vec->getLevel());
@@ -141,7 +141,7 @@ class IslandArchitect extends PluginBase implements Listener {
 				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
 				$vec = $vec ?? $sender->asPosition();
 				if (($w = $s->getIsland()->getLevel()) !== null) if ($w !== $vec->getLevel()->getFolderName()) {
-					$sender->sendMessage(TF::BOLD . TF::RED . 'You must in the same world as the start coordinate!');
+					$sender->sendMessage(TF::BOLD . TF::RED . 'You can only run this command in the same world as the island: ' . $w);
 					break;
 				} else $s->getIsland()->setLevel($vec->getLevel());
 				$sender->sendMessage(TF::YELLOW . 'End coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
