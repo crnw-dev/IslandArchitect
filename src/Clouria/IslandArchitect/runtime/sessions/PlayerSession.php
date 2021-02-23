@@ -49,10 +49,9 @@ use function spl_object_id;
 use function time;
 use function microtime;
 use function round;
-use function asort;
 use function get_class;
-
-use const SORT_NUMERIC;
+use function max;
+use function min;
 
 class PlayerSession {
 
@@ -175,12 +174,8 @@ class PlayerSession {
 
 		$sc = $island->getStartCoord();
 		$ec = $island->getEndCoord();
-		$xl = [$sc->getFloorX(), $ec->getFloorX()];
-		$zl = [$sc->getFloorZ(), $ec->getFloorZ()];
-		asort($xl, SORT_NUMERIC);
-		asort($zl, SORT_NUMERIC);
 
-		for ($x=$xl[0] >> 4; $x <= ($xl[1] >> 4); $x++) for ($z=$zl[0] >> 4; $z <= ($zl[1] >> 4); $z++) {
+		for ($x=min($sc->getFloorX(), $ec->getFloorX()) >> 4; $x <= max($sc->getFloorX(), $ec->getFloorX()) >> 4); $x++) for ($x=min($sc->getFloorZ(), $ec->getFloorZ()) >> 4; $x <= max($sc->getFloorZ(), $ec->getFloorZ()) >> 4); $x++) {
 			while (($level = Server::getInstance()->getLevelByName($island->getLevel())) === null) {
 				if ($wlock ?? false) {
 					$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Island world (' . $island->getLevel() . ') is missing!');

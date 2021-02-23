@@ -33,13 +33,13 @@ use pocketmine\{
 use function array_push;
 use function implode;
 use function explode;
-use function asort;
 use function in_array;
 use function json_encode;
 use function json_decode;
 use function array_rand;
 use function array_search;
-use function array_values;
+use function max;
+use function min;
 
 use const SORT_NUMERIC;
 
@@ -239,29 +239,20 @@ class TemplateIsland {
 	public function export(array $chunks) : string {
 		$sc = $this->getStartCoord();
 		$ec = $this->getEndCoord();
-		$xl = [$sc->getFloorX(), $ec->getFloorX()];
-		$yl = [$sc->getFloorY(), $ec->getFloorY()];
-		$zl = [$sc->getFloorZ(), $ec->getFloorZ()];
-		asort($xl, SORT_NUMERIC);
-		asort($yl, SORT_NUMERIC);
-		asort($zl, SORT_NUMERIC);
-		$xl = array_values($xl);
-		$yl = array_values($yl);
-		$zl = array_values($zl);
 
 		$usedrandoms = [];
 		foreach ($chunks[0] as $hash => $chunk) {
 			$chunk = $chunks[1][$hash]::fastDeserialize($chunk);
 			$chunksmap[$hash] = $chunk;
 		}
-		for ($x = $xl[0]; $x <= $xl[1]; $x++) for ($z = $zl[0]; $z <= $zl[1]; $z++) {
+		for ($x = min($sc->getFloorX(), $ec->getFloorX()); $x <= max($sc->getFloorX(), $ec->getFloorX()); $x++) for ($z = min($sc->getFloorZ(), $ec->getFloorZ()); $z <= max($sc->getFloorZ(), $ec->getFloorZ()); $z++) {
 			$chunk = $chunksmap[Level::chunkHash($x >> 4, $z >> 4)] ?? null;
 			if ($chunk === null) continue;
-			$bx = $x - $xl[0];
-			$bz = $z - $zl[0];
-			for ($y = $yl[0]; $y <= $yl[1]; $y++) {
+			$bx = $x - min($sc->getFloorX(), $ec->getFloorX());
+			$bz = $z - min($sc->getFloorZ(), $ec->getFloorZ());
+			for ($y = min($sc->getFloorY(), $ec->getFloorY()); $y <= max($sc->getFloorY(), $ec->getFloorY()); $y++) {
 				if (($id = $chunk->getBlockId($x & 0x0f, $y & 0x0f, $z & 0x0f)) === Block::AIR) continue;
-				$by = $y - $yl[0];
+				$by = $y - min($sc->getFloorY(), $ec->getFloorY());
 				$coord = $x . ':' . $y . ':' . $z;
 				$bcoord = $bx . ':' . $by . ':' . $bz;
 				if (isset($this->random_blocks[$coord])) {
