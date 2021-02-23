@@ -175,7 +175,7 @@ class PlayerSession {
 		$sc = $island->getStartCoord();
 		$ec = $island->getEndCoord();
 
-		for ($x=min($sc->getFloorX(), $ec->getFloorX()) >> 4; $x <= max($sc->getFloorX(), $ec->getFloorX()) >> 4); $x++) for ($x=min($sc->getFloorZ(), $ec->getFloorZ()) >> 4; $x <= max($sc->getFloorZ(), $ec->getFloorZ()) >> 4); $x++) {
+		for ($x=min($sc->getFloorX(), $ec->getFloorX()) >> 4; $x <= (max($sc->getFloorX(), $ec->getFloorX()) >> 4); $x++) for ($z=min($sc->getFloorZ(), $ec->getFloorZ()) >> 4; $z <= (max($sc->getFloorZ(), $ec->getFloorZ()) >> 4); $z++) {
 			while (($level = Server::getInstance()->getLevelByName($island->getLevel())) === null) {
 				if ($wlock ?? false) {
 					$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Island world (' . $island->getLevel() . ') is missing!');
