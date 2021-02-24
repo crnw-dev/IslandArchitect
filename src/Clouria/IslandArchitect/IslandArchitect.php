@@ -57,6 +57,10 @@ use function microtime;
 use function basename;
 use function round;
 use function array_search;
+use function is_string;
+use function is_dir;
+use function file_exists;
+use function scandir;
 
 class IslandArchitect extends PluginBase implements Listener {
 
@@ -77,6 +81,7 @@ class IslandArchitect extends PluginBase implements Listener {
 		$this->initConfig();
 		if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
+		$this->registerTemplateIslands();
 
 		if ((string)$this->getConfig()->get('enable-commands', true)) {
 			$cmd = new PluginCommand('island-architect', $this);
@@ -94,13 +99,48 @@ class IslandArchitect extends PluginBase implements Listener {
 		foreach ($all = $conf->getAll() as $k => $v) $conf->remove($k);
 
 		$conf->set('enable-commands', (bool)($all['enable-commands'] ?? $all['enable-plugin'] ?? true));
-		$conf->set('hide-plugin-in-query', (bool)($all['hide-plugin-in-query', (bool)($all['hide-plugin-in-query'] ?? false)]));
+		$conf->set('hide-plugin-in-query', (bool)($all['hide-plugin-in-query'] ?? false));
 		$conf->set('island-data-folder', (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'));
+		$conf->set('enable-template-island', (array)($all['enable-template-island'] ?? [$path]));
 		$conf->set('panel-allow-unstable-item', (bool)($all['panel-allow-unstable-item'] ?? true));
 		$conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
 
 		$conf->save();
 		$conf->reload();
+	}
+
+	private function registerTemplateIslands() : void {
+		$paths = $this->getConfig()->get('enable-template-island', $idf = (string)$this->getConfig()->get('island-data-folder', $this->getDataFolder() . 'islands/'));
+		if (is_string($paths)) $paths = [$paths];
+		foreach ($paths as $path) {
+			if (!file_exists($path) and !file_exists($path = $idf . $path)) $this->getLogger()->error('Cannot load template island "' . $path . '", no such file or directory!');
+			elseif (is_dir($path)) foreach (scandir($path) as $file) if (
+				$file !== '.' and
+				$file !== '..' and
+				!is_dir($file)
+			) $this->registerTemplateIsland($file);
+			else $this->registerTemplateIsland($file);
+		}
+	}
+
+	public function registerTemplateIsland(string $file, ?\Closure $callback = null) : void {
+		$this->getServer()->getAsyncPool()->submitTask(new IslandDataLoadTask($file, function(?TemplateIsland $island, string $path) : void {
+			if ($island === null) {
+				$this->getLogger()->error('Cannot load template island "' . $path . '", failed to load file!');
+				return;
+			}
+			$this->islands[$island->getName()] = $island;
+			$this->getLogger()->info('Registered island generator "' . $island->getName() . '"("' . $path . '")');
+		}))
+	}
+
+	/**
+	 * @var TemplateIsland
+	 */
+	private $islands = [];
+
+	public function getTemplateIsland(string $name) : ?TemplateIsland {
+		return $this->islands[$name] ?? null;
 	}
 
 	public function getSession(Player $player, bool $nonnull = false) : ?PlayerSession {
@@ -116,7 +156,7 @@ class IslandArchitect extends PluginBase implements Listener {
 	public function onCommand(CommandSender $sender, Command $cmd, string $alias, array $args) : bool {
 		if (!$sender instanceof Player) $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
 		if (
-			strtolower($args[1] ?? 'help') !== 'help'
+			strtolower($args[1] ?? 'help') !== 'help' and
 			!$sender->hasPermission('island-architect.convert')) {
 			$sender->sendMessage($this->getServer()->getLanguage()->translateString(TF::RED . "%commands.generic.permission"));
 			return true;
@@ -173,7 +213,7 @@ class IslandArchitect extends PluginBase implements Listener {
 					$i->getName() === $args[1]
 				) {
 					$path = Utils::cleanPath($this->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/'));
-					$callback($i, $path . ($path[-1] === '/' ? '' : '/') . $i->getName()]);
+					$callback($i, $path . ($path[-1] === '/' ? '' : '/') . $i->getName());
 					break;
 				}
 				$task = new IslandDataLoadTask($args[1], $callback);
@@ -233,8 +273,7 @@ class IslandArchitect extends PluginBase implements Listener {
 					$cmds[] = 'setspawn ' . TF::ITALIC . TF::GRAY . '(Set the island world spawn)';
 					$cmds[] = 'setchest ' . TF::ITALIC . TF::GRAY . '(Set the island chest position)';
 				}
-				$sender->sendMessage(TF::BOLD . TF::GOLD . 'Available subcommands: ' . ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $cmds ?
-					$cmds[] = 'setspawn ' . TF::ITALIC . TF::GRAY . '(Set the world spawn of the island)';? ['help']));
+				$sender->sendMessage(TF::BOLD . TF::GOLD . 'Available subcommands: ' . ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $cmds));
 				break;
 		}
 		return true;
