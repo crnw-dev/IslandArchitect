@@ -175,9 +175,6 @@ class TemplateIsland {
 
 	private $unused_symbolics = self::SYMBOLICS;
 
-	/**
-	 * @todo Allow user to customize symbolic in panel(inventory)
-	 */
 	public function getRandomSymbolic(int $regex) : Item {
 		if (!isset($this->symbolic[$regex])) {
 			if (empty($this->unused_symbolics)) $this->unused_symbolics = self::SYMBOLICS;
@@ -193,6 +190,19 @@ class TemplateIsland {
 		if (isset($this->symbolic[$regex])) $this->unused_symbolics[] = $this->symbolic[$regex];
 		$this->symbolic[$regex] = [$id, $meta];
 		$this->changed = true;
+	}
+
+	/**
+	 * @var array<int, string>
+	 */
+	private $random_labels = [];
+
+	public function getRandomLabel(int $regex, bool $nullable = false) : ?string {
+		return $this->random_labels[$regex] ?? ($nullable ? null : 'Regex #' . $regex);
+	}
+
+	public function setRandomLabel(int $regex, string $label) : void {
+		$this->random_labels[$regex] = $label;
 	}
 
 	/**
@@ -219,6 +229,7 @@ class TemplateIsland {
 		if (($vec = $this->getEndCoord()) !== null) $data['endcoord'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
 		else $data['endcoord'] = null;
 		$data['random_blocks'] = $this->random_blocks;
+		$data['regex_labels'] = $this->random_labels;
 		foreach ($this->symbolic as $regexid => $symbolic) {
 			$symbolic = $symbolic[0] . (isset($symbolic[1]) ? ':' . $symbolic[1] : '');
 			$data['symbolic'][$regexid] = $symbolic;
@@ -302,6 +313,7 @@ class TemplateIsland {
 			$self->endcoord = new Vector3((int)$coord['x'], (int)$coord['y'], (int)$coord['z']);
 		}
 		if (isset($data['random_blocks'])) $self->random_blocks = $data['random_blocks'];
+		if (isset($data['random_labels'])) $self->random_labels = $data['random_labels'];
 		if (isset($data['symbolic'])) {
 			$unused_symbolics = self::SYMBOLICS;
 			foreach ($data['symbolic'] as $regexid => $symbolic) {
