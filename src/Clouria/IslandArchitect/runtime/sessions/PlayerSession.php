@@ -37,6 +37,8 @@ use pocketmine\nbt\tag\{
 	ListTag
 };
 
+use jojoe77777\FormAPI\SimpleForm;
+
 use Clouria\IslandArchitect\{
 	IslandArchitect,
 	runtime\TemplateIsland,
@@ -52,6 +54,8 @@ use function round;
 use function get_class;
 use function max;
 use function min;
+use function class_exists;
+use function count;
 
 class PlayerSession {
 
@@ -80,6 +84,22 @@ class PlayerSession {
 
 	public function getIsland() : ?TemplateIsland {
 		return $this->island;
+	}
+
+	public function listRandoms() : bool {
+		if ($this->getIsland() === null) return false;
+		switch (class_exists(SimplForm::class)) {
+			case true:
+				$f = new SimpleForm(function(Player $p, int $d = null) : void {
+					if ($d == null) return;
+					new InvMenuSession($this, $d);
+				});
+				foreach ($this->randoms as $i => $r) $f->addButton(TF::BOLD . TF::DARK_BLUE . $this->getIsland()->getRandomLabel($i) . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(' . count($r->getAllElements()) . ' elements)');
+				$f->addButton(TF::BOLD . TF::DARK_GREEN . 'New regex');
+				$this->getPlayer()->sendForm($f);
+				break;
+		}
+		return true;
 	}
 
 	public function onBlockBreak(Vector3 $vec) : void {
