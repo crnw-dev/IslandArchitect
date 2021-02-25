@@ -124,6 +124,8 @@ class PlayerSession {
 			($r = $this->getIsland()->getRandomById($regexid = $regexid->getValue())) === null or
 			!$r->equals($regex)
 		) $regexid = $this->getIsland()->addRandom($r = $regex);
+		$e = new RandomGenerationBlockPlaceEvent($this, $regexid, $ev->getBlock()->asPosition());
+		if ($e->isCancelled()) return;
 		$this->getIsland()->setBlockRandom($ev->getBlock()->asVector3(), $regexid);
 		$symbolic = $this->getIsland()->getRandomSymbolicItem($regexid);
 		$item = clone $item;

@@ -163,7 +163,11 @@ class IslandArchitect extends PluginBase implements Listener {
 				$callback = function(?TemplateIsland $is, string $filepath) use ($sender, $time) : void {
 					if (!$sender->isOnline()) return;
 					if (!isset($is)) $is = new TemplateIsland(basename($filepath, '.json'));
-					$this->getSession($sender, true)->checkOutIsland($is);
+					$s = $this->getSession($sender, true);
+					$ev = new TemplateIslandCheckOutEvent($s, $is);
+					$ev->call();
+					if ($ev->isCancelled()) return;
+					$s->checkOutIsland($is);
 					$sender->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . 's)');
 				};
 				foreach($this->sessions as $s) if (
