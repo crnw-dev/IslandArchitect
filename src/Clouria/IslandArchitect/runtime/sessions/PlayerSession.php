@@ -56,6 +56,7 @@ use function max;
 use function min;
 use function class_exists;
 use function count;
+use function implode;
 
 class PlayerSession {
 
@@ -88,16 +89,17 @@ class PlayerSession {
 
 	public function listRandoms() : bool {
 		if ($this->getIsland() === null) return false;
-		switch (class_exists(SimplForm::class)) {
-			case true:
-				$f = new SimpleForm(function(Player $p, int $d = null) : void {
-					if ($d == null) return;
-					new InvMenuSession($this, $d);
-				});
-				foreach ($this->randoms as $i => $r) $f->addButton(TF::BOLD . TF::DARK_BLUE . $this->getIsland()->getRandomLabel($i) . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(' . count($r->getAllElements()) . ' elements)');
-				$f->addButton(TF::BOLD . TF::DARK_GREEN . 'New regex');
-				$this->getPlayer()->sendForm($f);
-				break;
+		if (class_exists(SimplForm::class)) {
+			$f = new SimpleForm(function(Player $p, int $d = null) : void {
+				if ($d == null) return;
+				new InvMenuSession($this, $d);
+			});
+			foreach ($this->getIsland()->getRandoms() as $i => $r) $f->addButton(TF::BOLD . TF::DARK_BLUE . $this->getIsland()->getRandomLabel($i) . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(' . count($r->getAllElements()) . ' elements)');
+			$f->addButton(TF::BOLD . TF::DARK_GREEN . 'New regex');
+			$this->getPlayer()->sendForm($f);
+		} else {
+			foreach ($this->getIsland()->getRandoms() as $i => $r) $regex[] = TF::YELLOW . $this->getIsland()->getRandomLabel($i) . TF::ITALIC . TF::DARK_GRAY . ' (' . count($r->getAllElements()) . ' elements)';
+			$this->getPlayer()->sendMessage(TF::BOLD . TF::GOLD . 'Random generation regex of island "' . $this->getIsland()->getName() . '": ' . ($glue = "\n" . TF::RESET . ' - '), implode($glue, $regex));
 		}
 		return true;
 	}
@@ -106,7 +108,7 @@ class PlayerSession {
 		if ($this->getIsland() === null) return;
 		if (($r = $this->getIsland()->getRandomByVector3($vec)) === null) return;
 		$this->getPlayer()->sendPopup(TF::BOLD . TF::YELLOW . 'You have destroyed a random generation block, ' . TF::GOLD . 'the item has returned to your inventory!');
-		$i = $this->getIsland()->getRandomById($r)->getRandomGenerationItem($this->getIsland()->getRandomSymbolic($r));
+		$i = $this->getIsland()->getRandomById($r)->getRandomGenerationItem($this->getIsland()->getRandomSymbolicItem($r));
 		$i->setCount(64);
 		$this->getPlayer()->getInventory()->addItem($i);
 	}
@@ -123,7 +125,7 @@ class PlayerSession {
 			!$r->equals($regex)
 		) $regexid = $this->getIsland()->addRandom($r = $regex);
 		$this->getIsland()->setBlockRandom($ev->getBlock()->asVector3(), $regexid);
-		$symbolic = $this->getIsland()->getRandomSymbolic($regexid);
+		$symbolic = $this->getIsland()->getRandomSymbolicItem($regexid);
 		$item = clone $item;
 		if (!$item->equals($symbolic, true, false)) {
 			$nbt = $item->getNamedTag();

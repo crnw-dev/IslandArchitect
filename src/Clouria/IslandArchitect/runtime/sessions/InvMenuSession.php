@@ -166,7 +166,7 @@ class InvMenuSession {
 			$this->menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
 			$this->menu->setInventoryCloseListener(function(Player $p, Inventory $inv) : void {
 				if ($this->giveitem_lock) return;
-				$i = $this->getSession()->getIsland()->getRandomSymbolic($this->getRegexId());
+				$i = $this->getSession()->getIsland()->getRandomSymbolicItem($this->getRegexId());
 				$i->setCount(64);
 				$i = $this->getRegex()->getRandomGenerationItem($i);
 				$i->getNamedTagEntry('IslandArchitect')->getCompoundTag('random-generation')->setInt('regexid', $this->getRegexId());
@@ -441,7 +441,7 @@ class InvMenuSession {
 	}
 
 	protected function panelSymbolic() : void {
-		$i = $this->getSession()->getIsland()->getRandomSymbolic($this->getRegexId());
+		$i = $this->getSession()->getIsland()->getRandomSymbolicItem($this->getRegexId());
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Change regex symbolic');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_SYMBOLIC)]));
 		$this->menu->getInventory()->setItem(45, $i, false);

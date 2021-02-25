@@ -155,6 +155,13 @@ class TemplateIsland {
 	}
 
 	/**
+	 * @return array<string, int>
+	 */
+	public function getRandomBlocks() : array {
+		return $this->random_blocks;
+	}
+
+	/**
 	 * @var array<int, int[]>
 	 */
 	protected $symbolic = [];
@@ -175,7 +182,7 @@ class TemplateIsland {
 
 	private $unused_symbolics = self::SYMBOLICS;
 
-	public function getRandomSymbolic(int $regex) : Item {
+	public function getRandomSymbolicItem(int $regex) : Item {
 		if (!isset($this->symbolic[$regex])) {
 			if (empty($this->unused_symbolics)) $this->unused_symbolics = self::SYMBOLICS;
 			$chosenone = array_rand($this->unused_symbolics);
@@ -183,6 +190,13 @@ class TemplateIsland {
 			unset($this->unused_symbolics[$chosenone]);
 		}
 		return Item::get($this->symbolic[$regex][0], $this->symbolic[$regex][1] ?? 0);
+	}
+
+	/**
+	 * @return array<int, int[]>
+	 */
+	public function getRandomSymbolics() : array {
+		return $this->symbolic;
 	}
 
 
@@ -203,6 +217,13 @@ class TemplateIsland {
 
 	public function setRandomLabel(int $regex, string $label) : void {
 		$this->random_labels[$regex] = $label;
+	}
+
+	/**
+	 * @return array<int, string>
+	 */
+	public function getRandomLabels() : array {
+		return $this->random_labels;
 	}
 
 	/**

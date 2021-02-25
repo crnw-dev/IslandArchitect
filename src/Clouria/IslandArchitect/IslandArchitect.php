@@ -55,6 +55,8 @@ use function class_exists;
 use function microtime;
 use function basename;
 use function round;
+use function pre_replace;
+use function stripos;
 
 class IslandArchitect extends PluginBase implements Listener {
 
@@ -180,7 +182,16 @@ class IslandArchitect extends PluginBase implements Listener {
 			case 'regex':
 			case 'r':
 				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
-				new InvMenuSession($s, isset($args[1]) ? (int)$args[1] : null);
+				if (isset($args[1])) {
+					new InvMenuSession($s);
+					break;
+				}
+				if (empty(preg_replace('/[0-9]+/i', '', $args[1]))) $regexid = (int)$args[1];
+				else foreach ($s->getIsland()->getRandomLabels() as $label => $regexid) if (stripos($label, $args[1]) !== false) {
+					new InvMenuSession($s, $regexid);
+					break;
+				}
+				new InvMenuSession($s);
 				break;
 
 			case 'export':
