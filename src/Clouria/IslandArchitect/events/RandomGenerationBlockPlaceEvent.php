@@ -22,29 +22,41 @@ namespace Clouria\IslandArchitect\events;
 
 use pocketmine\{
 	event\Cancellable,
-	level\Position
+	level\Position,
+	item\ItemBlock
 };
 
 use Clouria\IslandArchitect\{
 	runtime\sessions\PlayerSession,
-	runtime\TemplateIsland
+	runtime\TemplateIsland,
+	runtime\RandomGeneration
 };
 
 class TemplateIslandCheckOutEvent extends IslandArchitectEvent implements Cancellable {
 
-	public function __construct(PlayerSession $session, int $regexid, Position $pos) {
-		$this->regexid = $regexid;
+	public function __construct(PlayerSession $session, RandomGeneration $regex, Position $pos, ItemBlock $item) {
+		$this->regex = $regex;
 		$this->session = $session;
 		$this->pos = $pos;
+		$this->item = $item;
 	}
 
 	/**
-	 * @var int
+	 * @var BlockItem
 	 */
-	protected $regexid;
+	protected $item;
 
-	public function getRegexId() : int {
-		return $this->regexid;
+	public function getItem() : ItemBlock {
+		return $this->item;
+	}
+
+	/**
+	 * @var RandomGeneration
+	 */
+	protected $regex;
+
+	public function getRandom() : int {
+		return $this->regex;
 	}
 
 	/**

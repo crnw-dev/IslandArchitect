@@ -37,6 +37,8 @@ use pocketmine\nbt\tag\{
 	ListTag
 };
 
+use Clouria\IslandArchitect\events\RandomGenerationBlockPlaceEvent;
+
 use jojoe77777\FormAPI\SimpleForm;
 
 use Clouria\IslandArchitect\{
@@ -119,13 +121,14 @@ class PlayerSession {
 		if (($nbt = $nbt->getTag('random-generation', CompoundTag::class)) === null) return;
 		if (($regex = $nbt->getTag('regex', ListTag::class)) === null) return;
 		$regex = RandomGeneration::fromNBT($regex);
+		$e = new RandomGenerationBlockPlaceEvent($this, $regex, $ev->getBlock()->asVector3(), $item);
+		$e->call();
+		if ($e->isCancelled()) return;
 		if (
 			($regexid = $nbt->getTag('regexid', IntTag::class)) === null or
 			($r = $this->getIsland()->getRandomById($regexid = $regexid->getValue())) === null or
 			!$r->equals($regex)
 		) $regexid = $this->getIsland()->addRandom($r = $regex);
-		$e = new RandomGenerationBlockPlaceEvent($this, $regexid, $ev->getBlock()->asPosition());
-		if ($e->isCancelled()) return;
 		$this->getIsland()->setBlockRandom($ev->getBlock()->asVector3(), $regexid);
 		$symbolic = $this->getIsland()->getRandomSymbolicItem($regexid);
 		$item = clone $item;

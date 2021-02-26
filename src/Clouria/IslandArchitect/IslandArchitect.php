@@ -46,7 +46,8 @@ use Clouria\IslandArchitect\{
 	runtime\TemplateIsland,
 	runtime\sessions\PlayerSession,
 	runtime\sessions\InvMenuSession,
-	conversion\IslandDataLoadTask
+	conversion\IslandDataLoadTask,
+	events\TemplateIslandCheckOutEvent
 };
 
 use function strtolower;
