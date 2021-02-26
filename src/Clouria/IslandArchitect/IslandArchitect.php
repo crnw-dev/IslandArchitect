@@ -176,7 +176,7 @@ class IslandArchitect extends PluginBase implements Listener {
 					$i->getName() === $args[1]
 				) {
 					$path = Utils::cleanPath($this->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/'));
-					$callback($i, $path . ($path[-1] === '/' ? '' : '/') . $i->getName()]);
+					$callback($i, $path . ($path[-1] === '/' ? '' : '/') . $i->getName());
 					break;
 				}
 				$task = new IslandDataLoadTask($args[1], $callback);

@@ -245,9 +245,8 @@ class TemplateIsland {
 
 	public function save() : string {
 		$data['level'] = $this->getLevel();
-		if (($vec = $this->getStartCoord()) !== null) $data['startcoord'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
-		else $data['startcoord'] = null;
-		if (($vec = $this->getEndCoord()) !== null) $data['endcoord'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
+		$data['startcoord'] = $this->getStartCoord();
+		$data['endcoord'] = $this->getEndCoord();
 		else $data['endcoord'] = null;
 		$data['random_blocks'] = $this->random_blocks;
 		$data['regex_labels'] = $this->random_labels;
