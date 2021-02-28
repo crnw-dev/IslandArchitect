@@ -238,7 +238,7 @@ class TemplateIsland {
 		return $blocks ?? [];
 	}
 
-	public const VERSION = 1.0;
+	public const VERSION = 1.1;
 
 	public function save() : string {
 		$data['level'] = $this->getLevel();
