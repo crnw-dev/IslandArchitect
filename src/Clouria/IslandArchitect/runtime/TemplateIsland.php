@@ -247,7 +247,6 @@ class TemplateIsland {
 		$data['level'] = $this->getLevel();
 		$data['startcoord'] = $this->getStartCoord();
 		$data['endcoord'] = $this->getEndCoord();
-		else $data['endcoord'] = null;
 		$data['random_blocks'] = $this->random_blocks;
 		$data['regex_labels'] = $this->random_labels;
 		foreach ($this->symbolic as $regexid => $symbolic) {

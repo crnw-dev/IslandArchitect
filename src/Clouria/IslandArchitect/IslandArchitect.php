@@ -28,7 +28,6 @@ use pocketmine\{
 	command\PluginCommand,
 	utils\TextFormat as TF,
 	level\Position,
-	scheduler\ClosureTask,
 	utils\Utils
 };
 use pocketmine\event\{
@@ -56,7 +55,7 @@ use function class_exists;
 use function microtime;
 use function basename;
 use function round;
-use function pre_replace;
+use function preg_replace;
 use function stripos;
 
 class IslandArchitect extends PluginBase implements Listener {
@@ -188,15 +187,13 @@ class IslandArchitect extends PluginBase implements Listener {
 			case 'r':
 				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
 				if (isset($args[1])) {
-					new InvMenuSession($s);
-					break;
-				}
-				if (empty(preg_replace('/[0-9]+/i', '', $args[1]))) $regexid = (int)$args[1];
-				else foreach ($s->getIsland()->getRandomLabels() as $label => $regexid) if (stripos($label, $args[1]) !== false) {
-					new InvMenuSession($s, $regexid);
-					break;
-				}
-				new InvMenuSession($s);
+					if (empty(preg_replace('/[0-9]+/i', '', $args[1]))) $regexid = (int)$args[1];
+					else foreach ($s->getIsland()->getRandomLabels() as $label => $rid) if (stripos($label, $args[1]) !== false) {
+						$regexid = $rid;
+						break;
+					}
+					new InvMenuSession($s, $regexid ?? null);
+				} else $s->listRandoms();
 				break;
 
 			case 'export':

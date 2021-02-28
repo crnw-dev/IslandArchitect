@@ -89,9 +89,9 @@ class PlayerSession {
 		return $this->island;
 	}
 
-	public function listRandoms() : bool {
-		if ($this->getIsland() === null) return false;
-		if (class_exists(SimplForm::class)) {
+	public function listRandoms() : void {
+		if ($this->getIsland() === null) return;
+		if (class_exists(SimpleForm::class)) {
 			$f = new SimpleForm(function(Player $p, int $d = null) : void {
 				if ($d == null) return;
 				new InvMenuSession($this, $d);
@@ -99,11 +99,7 @@ class PlayerSession {
 			foreach ($this->getIsland()->getRandoms() as $i => $r) $f->addButton(TF::BOLD . TF::DARK_BLUE . $this->getIsland()->getRandomLabel($i) . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(' . count($r->getAllElements()) . ' elements)');
 			$f->addButton(TF::BOLD . TF::DARK_GREEN . 'New regex');
 			$this->getPlayer()->sendForm($f);
-		} else {
-			foreach ($this->getIsland()->getRandoms() as $i => $r) $regex[] = TF::YELLOW . $this->getIsland()->getRandomLabel($i) . TF::ITALIC . TF::DARK_GRAY . ' (' . count($r->getAllElements()) . ' elements)';
-			$this->getPlayer()->sendMessage(TF::BOLD . TF::GOLD . 'Random generation regex of island "' . $this->getIsland()->getName() . '": ' . ($glue = "\n" . TF::RESET . ' - '), implode($glue, $regex));
-		}
-		return true;
+		} else new InvMenuSession($this);
 	}
 
 	public function onBlockBreak(Vector3 $vec) : void {

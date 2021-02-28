@@ -20,11 +20,8 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
-use Clouria\IslandArchitect\IslandArchitect;
-
 use pocketmine\{
 	item\Item,
-	block\Block,
 	utils\Random,
 	utils\TextFormat as TF
 };
