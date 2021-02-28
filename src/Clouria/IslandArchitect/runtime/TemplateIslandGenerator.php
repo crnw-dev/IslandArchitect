@@ -23,7 +23,7 @@ namespace Clouria\IslandArchitect\runtime;
 use pocketmine\{
 	math\Vector3,
 	utils\Utils,
-	item\Item
+    block\Block
 };
 
 use room17\SkyBlock\island\generator\IslandGenerator;
