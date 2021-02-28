@@ -30,6 +30,7 @@ use function json_decode;
 use function json_encode;
 use function max;
 use function min;
+use function var_export;
 
 class TemplateIsland {
 
@@ -244,7 +245,7 @@ class TemplateIsland {
 		$data['startcoord'] = $this->getStartCoord();
 		$data['endcoord'] = $this->getEndCoord();
 		$data['random_blocks'] = $this->random_blocks;
-		$data['regex_labels'] = $this->random_labels;
+		$data['random_labels'] = $this->random_labels;
 		foreach ($this->symbolic as $regexid => $symbolic) {
 			$symbolic = $symbolic[0] . (isset($symbolic[1]) ? ':' . $symbolic[1] : '');
 			$data['symbolic'][$regexid] = $symbolic;
@@ -308,9 +309,16 @@ class TemplateIsland {
 		return json_encode($data);
 	}
 
-	public static function load(string $data) : ?TemplateIsland {
+	public static function load(string $data, ?\Logger $logger = null) : ?TemplateIsland {
+	    $dataraw = $data;
 		$data = json_decode($data, true);
-		if ($data === false) return null;
+		if ($data === null) {
+		    if (!isset($logger)) return null;
+		    $log = $logger;
+            $log->critical('Failed to parse island data file (Enable debug log in pocketmine.yml to view the file data), creating a blank island instance instead...');
+            $log->debug(var_export($dataraw, true));
+            return null;
+        }
 		if (
 			(int)($version = $data['version'] ?? -1) === -1 or
 			((int)$version > self::VERSION) or
@@ -327,8 +335,8 @@ class TemplateIsland {
 			$coord = $data['endcoord'];
 			$self->endcoord = new Vector3((int)($coord['x'] ?? $coord[0]), (int)($coord['y'] ?? $coord[1]), (int)($coord['z'] ?? $coord[2]));
 		}
-		if (isset($data['random_blocks'])) $self->random_blocks = $data['random_blocks'];
-		if (isset($data['random_labels'])) $self->random_labels = $data['random_labels'];
+		if (isset($data['random_blocks']) or isset($data['blocks'])) $self->random_blocks = $data['random_blocks'] ?? $data['blocks'];
+		if (isset($data['random_labels']) or isset($data['labels'])) $self->random_labels = $data['random_labels'] ?? $data['labels'];
 		if (isset($data['symbolic'])) {
 			$unused_symbolics = self::SYMBOLICS;
 			foreach ($data['symbolic'] as $regexid => $symbolic) {

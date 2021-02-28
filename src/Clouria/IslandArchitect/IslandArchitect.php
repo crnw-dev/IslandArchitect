@@ -20,19 +20,17 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect;
 
-use pocketmine\{
-	Player,
-	plugin\PluginBase,
-	command\Command,
-	command\CommandSender,
-	command\PluginCommand,
-	utils\TextFormat as TF,
-	level\Position,
-	utils\Utils
-};
+use pocketmine\{Player,
+    plugin\PluginBase,
+    command\Command,
+    command\CommandSender,
+    command\PluginCommand,
+    scheduler\ClosureTask,
+    utils\TextFormat as TF,
+    level\Position,
+    utils\Utils};
 use pocketmine\event\{
 	Listener,
-	player\PlayerInteractEvent,
 	player\PlayerQuitEvent,
 	block\BlockPlaceEvent,
 	block\BlockBreakEvent,
@@ -87,6 +85,14 @@ class IslandArchitect extends PluginBase implements Listener {
 		$cmd->setAliases(['ia', 'isarch']);
 		$cmd->setPermission('island-architect.cmd');
 		$this->getServer()->getCommandMap()->register($this->getName(), $cmd);
+
+		$this->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) : void {
+		    foreach ($this->sessions as $s) if ($s->getIsland() !== null) {
+		        $r = $s->getIsland()->getRandomByVector3($s->getPlayer()->getTargetBlock(12));
+		        if ($r === null) continue;
+		        $s->getPlayer()->sendPopup(TF::YELLOW . 'Random generation block: ' . TF::BOLD . TF::GOLD . $s->getIsland()->getRandomLabel($r));
+            }
+        }), 10);
 	}
 
 	private function initConfig() : bool {
@@ -174,7 +180,7 @@ class IslandArchitect extends PluginBase implements Listener {
 					($i = $s->getIsland()) !== null and
 					$i->getName() === $args[1]
 				) {
-					$path = Utils::cleanPath($this->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/'));
+					$path = Utils::cleanPath($this->getConfig()->get('island-data-folder', $this->getDataFolder() . 'islands/'));
 					$callback($i, $path . ($path[-1] === '/' ? '' : '/') . $i->getName());
 					break;
 				}
@@ -188,10 +194,11 @@ class IslandArchitect extends PluginBase implements Listener {
 				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
 				if (isset($args[1])) {
 					if (empty(preg_replace('/[0-9]+/i', '', $args[1]))) $regexid = (int)$args[1];
-					else foreach ($s->getIsland()->getRandomLabels() as $label => $rid) if (stripos($label, $args[1]) !== false) {
-						$regexid = $rid;
-						break;
-					}
+					else foreach ($s->getIsland()->getRandomLabels() as $rid => $label) if (stripos($label, $args[1]) !== false) {
+                        $regexid = $rid;
+                        break;
+                    }
+                    var_dump($regexid ?? null);
 					new InvMenuSession($s, $regexid ?? null);
 				} else $s->listRandoms();
 				break;
@@ -231,16 +238,6 @@ class IslandArchitect extends PluginBase implements Listener {
 	 * @priority HIGH
 	 * @ignoreCancelled
 	 */
-	public function onPlayerInteract(PlayerInteractEvent $ev) : void {
-		if ($ev->getBlock() === null) return;
-		$s = $this->getSession($ev->getPlayer());
-		if (isset($s)) $s->onPlayerInteract($ev->getBlock()->asVector3());
-	}
-
-	/**
-	 * @priority HIGH
-	 * @ignoreCancelled
-	 */
 	public function onBlockBreak(BlockBreakEvent $ev) : void {
 		$s = $this->getSession($ev->getPlayer());
 		if (isset($s)) $s->onBlockBreak($ev->getBlock()->asVector3());
@@ -251,8 +248,8 @@ class IslandArchitect extends PluginBase implements Listener {
 	 * @ignoreCancelled
 	 */
 	public function onBlockPlace(BlockPlaceEvent $ev) : void {
-		if (($s = $this->getSession($ev->getPlayer())) === null) return;;
-		if (PlayerSession::errorCheckOutRequired($ev->getPlayer(), $this->getSession($ev->getPlayer()))) $ev->setCancelled();
+		if (($s = $this->getSession($ev->getPlayer())) === null) return;
+        if (PlayerSession::errorCheckOutRequired($ev->getPlayer(), $this->getSession($ev->getPlayer()))) $ev->setCancelled();
 		else $s->onBlockPlace($ev);
 	}
 

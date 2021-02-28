@@ -135,22 +135,6 @@ class PlayerSession {
 		$this->getPlayer()->getInventory()->setItemInHand($item);
 	}
 
-	/**
-	 * @var bool
-	 */
-	protected $interact_lock = false;
-
-	public function onPlayerInteract(Vector3 $vec) : void {
-		if ($this->interact_lock) return;
-		if ($this->getIsland() === null) return;
-		if ($this->getPlayer()->isSneaking()) return;
-		if (($r = $this->getIsland()->getRandomByVector3($vec)) === null) return;
-		$this->interact_lock = true;
-		new InvMenuSession($this, $r, function() : void {
-			$this->interact_lock = false;
-		});
-	}
-
 	public function close() : void {
 		$this->saveIsland();
 	}
