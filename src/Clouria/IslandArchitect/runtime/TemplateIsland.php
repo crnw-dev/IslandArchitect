@@ -20,28 +20,17 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
-use pocketmine\{
-	math\Vector3,
-	math\AxisAlignedBB as BB,
-	level\Level,
-	level\format\Chunk,
-	block\Block,
-	item\Item,
-	utils\Random
-};
-
+use pocketmine\{block\Block, item\Item, level\Level, math\Vector3, utils\Random};
 use function array_push;
-use function implode;
-use function explode;
-use function in_array;
-use function json_encode;
-use function json_decode;
 use function array_rand;
 use function array_search;
+use function explode;
+use function in_array;
+use function json_decode;
+use function json_encode;
 use function max;
 use function min;
-
-use const SORT_NUMERIC;
+use function var_export;
 
 class TemplateIsland {
 
@@ -155,6 +144,13 @@ class TemplateIsland {
 	}
 
 	/**
+	 * @return array<string, int>
+	 */
+	public function getRandomBlocks() : array {
+		return $this->random_blocks;
+	}
+
+	/**
 	 * @var array<int, int[]>
 	 */
 	protected $symbolic = [];
@@ -175,10 +171,7 @@ class TemplateIsland {
 
 	private $unused_symbolics = self::SYMBOLICS;
 
-	/**
-	 * @todo Allow user to customize symbolic in panel(inventory)
-	 */
-	public function getRandomSymbolic(int $regex) : Item {
+	public function getRandomSymbolicItem(int $regex) : Item {
 		if (!isset($this->symbolic[$regex])) {
 			if (empty($this->unused_symbolics)) $this->unused_symbolics = self::SYMBOLICS;
 			$chosenone = array_rand($this->unused_symbolics);
@@ -188,11 +181,45 @@ class TemplateIsland {
 		return Item::get($this->symbolic[$regex][0], $this->symbolic[$regex][1] ?? 0);
 	}
 
+	/**
+	 * @return array<int, int[]>
+	 */
+	public function getRandomSymbolics() : array {
+		return $this->symbolic;
+	}
+
 
 	public function setRandomSymbolic(int $regex, int $id, int $meta = 0) : void {
 		if (isset($this->symbolic[$regex])) $this->unused_symbolics[] = $this->symbolic[$regex];
 		$this->symbolic[$regex] = [$id, $meta];
 		$this->changed = true;
+	}
+
+	/**
+	 * @var array<int, string>
+	 */
+	private $random_labels = [];
+
+	public function getRandomLabel(int $regex, bool $nullable = false) : ?string {
+		return $this->random_labels[$regex] ?? ($nullable ? null : 'Regex #' . $regex);
+	}
+
+	public function setRandomLabel(int $regex, string $label) : void {
+		$this->random_labels[$regex] = $label;
+	}
+
+	public function resetRandomLabel(int $regex) : bool {
+	    if (!isset($this->random_labels[$regex])) return false;
+	    unset($this->random_labels[$regex]);
+        $this->changed = true;
+	    return false;
+    }
+
+	/**
+	 * @return array<int, string>
+	 */
+	public function getRandomLabels() : array {
+		return $this->random_labels;
 	}
 
 	/**
@@ -206,19 +233,19 @@ class TemplateIsland {
 			if (!isset($block)) continue;
 			$block = explode(':', $block);
 			if ((int)$block[0] === 0) $blocks[$x][$z][$y] = [(int)($block[1] ?? Item::AIR) & 0xff, (int)($block[2] ?? 0) & 0xff];
-			if ((int)$block[0] === 1) $blocks[$x][$z][$y] = $this->randomElementArray((int)$block[1]);
+			if ((int)$block[0] === 1) $blocks[$x][$z][$y] = $this->getRandomById((int)$block[1])->randomElementArray($random);
 		}
+		return $blocks ?? [];
 	}
 
-	public const VERSION = 1.0;
+	public const VERSION = 1.1;
 
 	public function save() : string {
 		$data['level'] = $this->getLevel();
-		if (($vec = $this->getStartCoord()) !== null) $data['startcoord'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
-		else $data['startcoord'] = null;
-		if (($vec = $this->getEndCoord()) !== null) $data['endcoord'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
-		else $data['endcoord'] = null;
+		$data['startcoord'] = $this->getStartCoord();
+		$data['endcoord'] = $this->getEndCoord();
 		$data['random_blocks'] = $this->random_blocks;
+		$data['random_labels'] = $this->random_labels;
 		foreach ($this->symbolic as $regexid => $symbolic) {
 			$symbolic = $symbolic[0] . (isset($symbolic[1]) ? ':' . $symbolic[1] : '');
 			$data['symbolic'][$regexid] = $symbolic;
@@ -282,9 +309,16 @@ class TemplateIsland {
 		return json_encode($data);
 	}
 
-	public static function load(string $data) : ?TemplateIsland {
+	public static function load(string $data, ?\Logger $logger = null) : ?TemplateIsland {
+	    $dataraw = $data;
 		$data = json_decode($data, true);
-		if ($data === false) return null;
+		if ($data === null) {
+		    if (!isset($logger)) return null;
+		    $log = $logger;
+            $log->critical('Failed to parse island data file (Enable debug log in pocketmine.yml to view the file data), creating a blank island instance instead...');
+            $log->debug(var_export($dataraw, true));
+            return null;
+        }
 		if (
 			(int)($version = $data['version'] ?? -1) === -1 or
 			((int)$version > self::VERSION) or
@@ -295,13 +329,14 @@ class TemplateIsland {
 		if (isset($data['level'])) $self->level = $data['level'];
 		if (isset($data['startcoord'])) {
 			$coord = $data['startcoord'];
-			$self->startcoord = new Vector3((int)$coord['x'], (int)$coord['y'], (int)$coord['z']);
+			$self->startcoord = new Vector3((int)($coord['x'] ?? $coord[0]), (int)($coord['y'] ?? $coord[1]), (int)($coord['z'] ?? $coord[2]));
 		}
 		if (isset($data['endcoord'])) {
 			$coord = $data['endcoord'];
-			$self->endcoord = new Vector3((int)$coord['x'], (int)$coord['y'], (int)$coord['z']);
+			$self->endcoord = new Vector3((int)($coord['x'] ?? $coord[0]), (int)($coord['y'] ?? $coord[1]), (int)($coord['z'] ?? $coord[2]));
 		}
-		if (isset($data['random_blocks'])) $self->random_blocks = $data['random_blocks'];
+		if (isset($data['random_blocks']) or isset($data['blocks'])) $self->random_blocks = $data['random_blocks'] ?? $data['blocks'];
+		if (isset($data['random_labels']) or isset($data['labels'])) $self->random_labels = $data['random_labels'] ?? $data['labels'];
 		if (isset($data['symbolic'])) {
 			$unused_symbolics = self::SYMBOLICS;
 			foreach ($data['symbolic'] as $regexid => $symbolic) {
@@ -315,6 +350,7 @@ class TemplateIsland {
 			$regex = new RandomGeneration;
 			foreach ($regexdata as $element => $chance) {
 				$element = explode(':', $element);
+				if ((int)$chance < 1) continue;
 				$regex->increaseElementChance((int)$element[0], (int)($element[1] ?? 0), (int)$chance);
 			}
 			$self->randoms[] = $regex;

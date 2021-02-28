@@ -24,10 +24,8 @@ use pocketmine\{
 	Server,
 	Player,
 	math\Vector3,
-	item\Item,
 	utils\TextFormat as TF,
 	event\block\BlockPlaceEvent,
-	level\format\Chunk,
 	level\Level,
 	scheduler\ClosureTask
 };
@@ -37,21 +35,25 @@ use pocketmine\nbt\tag\{
 	ListTag
 };
 
+use Clouria\IslandArchitect\events\RandomGenerationBlockPlaceEvent;
+
+use jojoe77777\FormAPI\SimpleForm;
+
 use Clouria\IslandArchitect\{
 	IslandArchitect,
 	runtime\TemplateIsland,
 	runtime\RandomGeneration,
-	conversion\IslandDataLoadTask,
 	conversion\IslandDataEmitTask
 };
 
 use function spl_object_id;
-use function time;
 use function microtime;
 use function round;
 use function get_class;
 use function max;
 use function min;
+use function class_exists;
+use function count;
 
 class PlayerSession {
 
@@ -82,11 +84,25 @@ class PlayerSession {
 		return $this->island;
 	}
 
+	public function listRandoms() : void {
+		if ($this->getIsland() === null) return;
+		if (class_exists(SimpleForm::class)) {
+			$f = new SimpleForm(function(Player $p, int $d = null) : void {
+				if ($d === null) return;
+				new InvMenuSession($this, $d);
+			});
+			foreach ($this->getIsland()->getRandoms() as $i => $r) $f->addButton(TF::BOLD . TF::DARK_BLUE . $this->getIsland()->getRandomLabel($i) . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(' . count($r->getAllElements()) . ' elements)');
+			$f->setTitle(TF::BOLD . TF::DARK_AQUA . 'Regex List');
+			$f->addButton(TF::BOLD . TF::DARK_GREEN . 'New regex');
+			$this->getPlayer()->sendForm($f);
+		} else new InvMenuSession($this);
+	}
+
 	public function onBlockBreak(Vector3 $vec) : void {
 		if ($this->getIsland() === null) return;
 		if (($r = $this->getIsland()->getRandomByVector3($vec)) === null) return;
 		$this->getPlayer()->sendPopup(TF::BOLD . TF::YELLOW . 'You have destroyed a random generation block, ' . TF::GOLD . 'the item has returned to your inventory!');
-		$i = $this->getIsland()->getRandomById($r)->getRandomGenerationItem($this->getIsland()->getRandomSymbolic($r));
+		$i = $this->getIsland()->getRandomById($r)->getRandomGenerationItem($this->getIsland()->getRandomSymbolicItem($r));
 		$i->setCount(64);
 		$this->getPlayer()->getInventory()->addItem($i);
 	}
@@ -97,13 +113,16 @@ class PlayerSession {
 		if (($nbt = $nbt->getTag('random-generation', CompoundTag::class)) === null) return;
 		if (($regex = $nbt->getTag('regex', ListTag::class)) === null) return;
 		$regex = RandomGeneration::fromNBT($regex);
+		$e = new RandomGenerationBlockPlaceEvent($this, $regex, $ev->getBlock()->asPosition(), $item);
+		$e->call();
+		if ($e->isCancelled()) return;
 		if (
 			($regexid = $nbt->getTag('regexid', IntTag::class)) === null or
 			($r = $this->getIsland()->getRandomById($regexid = $regexid->getValue())) === null or
 			!$r->equals($regex)
 		) $regexid = $this->getIsland()->addRandom($r = $regex);
 		$this->getIsland()->setBlockRandom($ev->getBlock()->asVector3(), $regexid);
-		$symbolic = $this->getIsland()->getRandomSymbolic($regexid);
+		$symbolic = $this->getIsland()->getRandomSymbolicItem($regexid);
 		$item = clone $item;
 		if (!$item->equals($symbolic, true, false)) {
 			$nbt = $item->getNamedTag();
@@ -114,22 +133,6 @@ class PlayerSession {
 		}
 		$item->setCount(64);
 		$this->getPlayer()->getInventory()->setItemInHand($item);
-	}
-
-	/**
-	 * @var bool
-	 */
-	protected $interact_lock = false;
-
-	public function onPlayerInteract(Vector3 $vec) : void {
-		if ($this->interact_lock) return;
-		if ($this->getIsland() === null) return;
-		if ($this->getPlayer()->isSneaking()) return;
-		if (($r = $this->getIsland()->getRandomByVector3($vec)) === null) return;
-		$this->interact_lock = true;
-		new InvMenuSession($this, $r, function() : void {
-			$this->interact_lock = false;
-		});
 	}
 
 	public function close() : void {
@@ -170,6 +173,7 @@ class PlayerSession {
 		$this->export_lock = true;
 		$this->export_island = $island;
 		$this->island = null;
+		$time = microtime(true);
 		$this->getPlayer()->sendMessage(TF::YELLOW . 'Queued export task for island "' . $island->getName() . '"...');
 
 		$sc = $island->getStartCoord();
@@ -194,9 +198,9 @@ class PlayerSession {
 			}
 		}
 		$this->getPlayer()->sendMessage(TF::GOLD . 'Start exporting...');
-		$task = new IslandDataEmitTask($island, $chunks, function() use ($island) : void {
+		$task = new IslandDataEmitTask($island, $chunks, function() use ($island, $time) : void {
 			$this->export_lock = false;
-			$this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Export completed!');
+			$this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Export completed!' . TF::ITALIC . TF::GRAY . ' (' . round(microtime(true) - $time, 2) . 's)');
 		});
 		$checker = null;
 		$checker = IslandArchitect::getInstance()->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) use (&$checker, $task, &$island) : void {

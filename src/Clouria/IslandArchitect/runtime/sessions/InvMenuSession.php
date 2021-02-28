@@ -22,9 +22,7 @@ namespace Clouria\IslandArchitect\runtime\sessions;
 
 use pocketmine\{
 	Player,
-	level\Level,
 	item\Item,
-	block\Block,
 	utils\TextFormat as TF,
 	utils\Random,
 	inventory\Inventory
@@ -32,8 +30,7 @@ use pocketmine\{
 use pocketmine\nbt\tag\{
 	CompoundTag,
 	ShortTag,
-	ByteTag,
-	ListTag
+	ByteTag
 };
 
 use muqsit\invmenu\{
@@ -45,7 +42,6 @@ use jojoe77777\FormAPI\CustomForm;
 use Clouria\IslandArchitect\{
 	IslandArchitect,
 	runtime\RandomGeneration,
-	runtime\IslandAttributeTile,
 	runtime\TemplateIslandGenerator
 };
 
@@ -160,13 +156,14 @@ class InvMenuSession {
 	public const ITEM_ROLL = 6;
 	public const ITEM_COLLAPSE = 7;
 	public const ITEM_SYMBOLIC = 8;
+	public const ITEM_LABEL = 9;
 
 	protected function panelInit() : void {
 		if (!isset($this->menu)) {
 			$this->menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
 			$this->menu->setInventoryCloseListener(function(Player $p, Inventory $inv) : void {
 				if ($this->giveitem_lock) return;
-				$i = $this->getSession()->getIsland()->getRandomSymbolic($this->getRegexId());
+				$i = $this->getSession()->getIsland()->getRandomSymbolicItem($this->getRegexId());
 				$i->setCount(64);
 				$i = $this->getRegex()->getRandomGenerationItem($i);
 				$i->getNamedTagEntry('IslandArchitect')->getCompoundTag('random-generation')->setInt('regexid', $this->getRegexId());
@@ -180,15 +177,23 @@ class InvMenuSession {
 		$i = Item::get(Item::INVISIBLEBEDROCK);
 		$i->setCustomName(' ');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
-		foreach ([32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 50] as $slot) $this->menu->getInventory()->setItem($slot, $i, false);
+		foreach ([32, 33, 34, 35, 36, 37, 38, 39, 40, 41] as $slot) $this->menu->getInventory()->setItem($slot, $i, false);
 
 		$this->random = new Random(self::getDefaultSeed() ?? random_int(INT32_MIN, INT32_MAX));
-		if (class_exists(CustomForm::class)) $this->panelSeed();
+		if (class_exists(CustomForm::class)) {
+		    $this->panelSeed();
+		    $this->panelLabel();
+        }
 		else {
 			$i = Item::get(Item::PUMPKIN_SEEDS);
-			$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . (int)$this->random->getSeed() . "\n\n" . TF::RESET . TF::BOLD . TF::RED . 'Cannot edit seed due to ' . "\n" . 'required virion "FormAPI" is not installed.');
+			$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . (int)$this->random->getSeed() . "\n\n" . TF::RESET . TF::BOLD . TF::RED . 'Cannot edit seed, ' . "\n" . 'required virion "FormAPI" is not installed.');
 			$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
 			$this->menu->getInventory()->setItem(42, $i, false);
+
+			$i = Item::get(Item::DARKOAK_SIGN);
+			$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . (int)$this->random->getSeed() . "\n\n" . TF::RESET . TF::BOLD . TF::RED . 'Cannot edit regex label, ' . "\n" . 'required virion "FormAPI" is not installed.');
+			$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
+			$this->menu->getInventory()->setItem(50, $i, false);
 		}
 
 		$this->panelElement();
@@ -280,7 +285,7 @@ class InvMenuSession {
 
 	protected function panelSeed() : void {
 		$i = Item::get(Item::SEEDS);
-		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . (int)$this->random->getSeed() . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to edit seed or reset random noises)');
+		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . $this->random->getSeed() . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to edit seed or reset random noises)');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_SEED)]));
 		$this->menu->getInventory()->setItem(42, $i, false);
 	}
@@ -362,11 +367,13 @@ class InvMenuSession {
 				break;
 
 			case self::ITEM_SEED:
+			case self::ITEM_LABEL:
 				$this->giveitem_lock = true;
 				$this->getSession()->getPlayer()->removeWindow($this->menu->getInventory());
 				$this->giveitem_lock = false;
-				$transaction->then(function() : void {
-					$this->editSeed();
+				$transaction->then(function() use ($nbt) : void {
+					if ($nbt->getValue() == self::ITEM_SEED) $this->editSeed();
+					else $this->editLabel();
 				});
 				break;
 
@@ -441,11 +448,18 @@ class InvMenuSession {
 	}
 
 	protected function panelSymbolic() : void {
-		$i = $this->getSession()->getIsland()->getRandomSymbolic($this->getRegexId());
+		$i = $this->getSession()->getIsland()->getRandomSymbolicItem($this->getRegexId());
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Change regex symbolic');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_SYMBOLIC)]));
 		$this->menu->getInventory()->setItem(45, $i, false);
 	}
+
+	protected function panelLabel() : void {
+        $i = Item::get(Item::BIRCH_SIGN);
+		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . $this->getSession()->getIsland()->getRandomLabel($this->getRegexId()) . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to rename regex label)');
+		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_LABEL)]));
+		$this->menu->getInventory()->setItem(50, $i, false);
+    }
 
 	public function editSeed() : void {
 		$f = new CustomForm(function(Player $p, array $d = null) : void {
@@ -457,9 +471,24 @@ class InvMenuSession {
 				}
 			$this->menu->send($this->getSession()->getPlayer());
 		});
-		$f->addInput(TF::BOLD . TF::GOLD . 'Seed: ', 'Empty box to discard change', isset($this->random) ? (string)$this->random->getSeed() : '');
+		$f->setTitle(TF::BOLD . TF::DARK_AQUA . 'Edit Seed');
+		$f->addInput(TF::BOLD . TF::ITALIC . TF::GRAY . '(Empty box to discard change)', (string)$this->random->getSeed(), isset($this->random) ? (string)$this->random->getSeed() : '');
 		$this->getSession()->getPlayer()->sendForm($f);
 	}
+
+	public function editLabel() : void {
+        $f = new CustomForm(function(Player $p, array $d = null) : void {
+			if ($d !== null) {
+                if (!empty($d[0] ?? null)) $this->getSession()->getIsland()->setRandomLabel($this->getRegexId(), (string)$d[0]);
+                else $this->getSession()->getIsland()->resetRandomLabel($this->getRegexId());
+                $this->panelLabel();
+            }
+			$this->menu->send($this->getSession()->getPlayer());
+		});
+        $f->setTitle(TF::BOLD . TF::DARK_AQUA . 'Edit Label');
+		$f->addInput(TF::BOLD . TF::ITALIC . TF::GRAY . '(Empty box to reset)', TF::BOLD . 'Regex #' . $this->getRegexId());
+		$this->getSession()->getPlayer()->sendForm($f);
+    }
 
 	protected function editSymbolic() : void {
 		for ($i=0; $i < $this->menu->getInventory()->getSize(); $i++) {

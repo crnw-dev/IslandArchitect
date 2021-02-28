@@ -23,7 +23,7 @@ declare(strict_types=1);
 use pocketmine\{
 	math\Vector3,
 	utils\Utils,
-	item\Item
+    block\Block
 };
 
 use room17\SkyBlock\island\generator\IslandGenerator;
@@ -56,7 +56,7 @@ class TemplateIslandGenerator extends IslandGenerator {
 	}
 
 	public function getName() : string {
-		return 'TemplateIslandGenerator';
+		return isset($this->island) ? $this->island->getName() : 'TemplateIslandGenerator';
 	}
 
 	public static function getWorldSpawn() : Vector3 {

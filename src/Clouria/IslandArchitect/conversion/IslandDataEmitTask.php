@@ -23,8 +23,7 @@ namespace Clouria\IslandArchitect\conversion;
 use pocketmine\{
 	Server,
 	scheduler\AsyncTask,
-	utils\Utils,
-	level\Level
+	utils\Utils
 };
 
 use Clouria\IslandArchitect\{

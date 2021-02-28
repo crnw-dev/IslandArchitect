@@ -63,7 +63,7 @@ class IslandDataLoadTask extends AsyncTask {
 			is_file($spath = Utils::cleanPath($this->islandname)) or // ppath = Primary path (Don't question lol)
 			is_file($spath = Utils::cleanPath($this->islandname) . '.json') or
 			is_file($spath = Utils::cleanPath($this->path) . ($this->path[-1] === '/' ? '' : '/') . $this->islandname . '.json')
-		) $r = [serialize(TemplateIsland::load(file_get_contents($spath)))];
+		) $r = [serialize(TemplateIsland::load(file_get_contents($spath), $this->worker->getLogger()))];
 		else $r = [serialize(null)];
 		$r[] = Utils::cleanPath($this->path) . ($this->path[-1] === '/' ? '' : '/') . $this->islandname . '.json';
 		$this->setResult($r);
