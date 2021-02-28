@@ -24,10 +24,8 @@ use pocketmine\{
 	Server,
 	Player,
 	math\Vector3,
-	item\Item,
 	utils\TextFormat as TF,
 	event\block\BlockPlaceEvent,
-	level\format\Chunk,
 	level\Level,
 	scheduler\ClosureTask
 };
@@ -45,12 +43,10 @@ use Clouria\IslandArchitect\{
 	IslandArchitect,
 	runtime\TemplateIsland,
 	runtime\RandomGeneration,
-	conversion\IslandDataLoadTask,
 	conversion\IslandDataEmitTask
 };
 
 use function spl_object_id;
-use function time;
 use function microtime;
 use function round;
 use function get_class;
@@ -58,7 +54,6 @@ use function max;
 use function min;
 use function class_exists;
 use function count;
-use function implode;
 
 class PlayerSession {
 
@@ -93,10 +88,11 @@ class PlayerSession {
 		if ($this->getIsland() === null) return;
 		if (class_exists(SimpleForm::class)) {
 			$f = new SimpleForm(function(Player $p, int $d = null) : void {
-				if ($d == null) return;
+				if ($d === null) return;
 				new InvMenuSession($this, $d);
 			});
 			foreach ($this->getIsland()->getRandoms() as $i => $r) $f->addButton(TF::BOLD . TF::DARK_BLUE . $this->getIsland()->getRandomLabel($i) . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(' . count($r->getAllElements()) . ' elements)');
+			$f->setTitle(TF::BOLD . TF::DARK_AQUA . 'Regex List');
 			$f->addButton(TF::BOLD . TF::DARK_GREEN . 'New regex');
 			$this->getPlayer()->sendForm($f);
 		} else new InvMenuSession($this);
@@ -117,7 +113,7 @@ class PlayerSession {
 		if (($nbt = $nbt->getTag('random-generation', CompoundTag::class)) === null) return;
 		if (($regex = $nbt->getTag('regex', ListTag::class)) === null) return;
 		$regex = RandomGeneration::fromNBT($regex);
-		$e = new RandomGenerationBlockPlaceEvent($this, $regex, $ev->getBlock()->asVector3(), $item);
+		$e = new RandomGenerationBlockPlaceEvent($this, $regex, $ev->getBlock()->asPosition(), $item);
 		$e->call();
 		if ($e->isCancelled()) return;
 		if (

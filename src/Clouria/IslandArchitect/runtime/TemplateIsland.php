@@ -20,28 +20,16 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
-use pocketmine\{
-	math\Vector3,
-	math\AxisAlignedBB as BB,
-	level\Level,
-	level\format\Chunk,
-	block\Block,
-	item\Item,
-	utils\Random
-};
-
+use pocketmine\{block\Block, item\Item, level\Level, math\Vector3, utils\Random};
 use function array_push;
-use function implode;
-use function explode;
-use function in_array;
-use function json_encode;
-use function json_decode;
 use function array_rand;
 use function array_search;
+use function explode;
+use function in_array;
+use function json_decode;
+use function json_encode;
 use function max;
 use function min;
-
-use const SORT_NUMERIC;
 
 class TemplateIsland {
 
@@ -219,6 +207,13 @@ class TemplateIsland {
 		$this->random_labels[$regex] = $label;
 	}
 
+	public function resetRandomLabel(int $regex) : bool {
+	    if (!isset($this->random_labels[$regex])) return false;
+	    unset($this->random_labels[$regex]);
+        $this->changed = true;
+	    return false;
+    }
+
 	/**
 	 * @return array<int, string>
 	 */
@@ -237,8 +232,9 @@ class TemplateIsland {
 			if (!isset($block)) continue;
 			$block = explode(':', $block);
 			if ((int)$block[0] === 0) $blocks[$x][$z][$y] = [(int)($block[1] ?? Item::AIR) & 0xff, (int)($block[2] ?? 0) & 0xff];
-			if ((int)$block[0] === 1) $blocks[$x][$z][$y] = $this->randomElementArray((int)$block[1]);
+			if ((int)$block[0] === 1) $blocks[$x][$z][$y] = $this->getRandomById((int)$block[1])->randomElementArray($random);
 		}
+		return $blocks ?? [];
 	}
 
 	public const VERSION = 1.0;
@@ -325,11 +321,11 @@ class TemplateIsland {
 		if (isset($data['level'])) $self->level = $data['level'];
 		if (isset($data['startcoord'])) {
 			$coord = $data['startcoord'];
-			$self->startcoord = new Vector3((int)$coord['x'], (int)$coord['y'], (int)$coord['z']);
+			$self->startcoord = new Vector3((int)($coord['x'] ?? $coord[0]), (int)($coord['y'] ?? $coord[1]), (int)($coord['z'] ?? $coord[2]));
 		}
 		if (isset($data['endcoord'])) {
 			$coord = $data['endcoord'];
-			$self->endcoord = new Vector3((int)$coord['x'], (int)$coord['y'], (int)$coord['z']);
+			$self->endcoord = new Vector3((int)($coord['x'] ?? $coord[0]), (int)($coord['y'] ?? $coord[1]), (int)($coord['z'] ?? $coord[2]));
 		}
 		if (isset($data['random_blocks'])) $self->random_blocks = $data['random_blocks'];
 		if (isset($data['random_labels'])) $self->random_labels = $data['random_labels'];
@@ -346,6 +342,7 @@ class TemplateIsland {
 			$regex = new RandomGeneration;
 			foreach ($regexdata as $element => $chance) {
 				$element = explode(':', $element);
+				if ((int)$chance < 1) continue;
 				$regex->increaseElementChance((int)$element[0], (int)($element[1] ?? 0), (int)$chance);
 			}
 			$self->randoms[] = $regex;

@@ -28,11 +28,10 @@ use pocketmine\{
 
 use Clouria\IslandArchitect\{
 	runtime\sessions\PlayerSession,
-	runtime\TemplateIsland,
 	runtime\RandomGeneration
 };
 
-class TemplateIslandCheckOutEvent extends IslandArchitectEvent implements Cancellable {
+class RandomGenerationBlockPlaceEvent extends IslandArchitectEvent implements Cancellable {
 
 	public function __construct(PlayerSession $session, RandomGeneration $regex, Position $pos, ItemBlock $item) {
 		$this->regex = $regex;
@@ -42,7 +41,7 @@ class TemplateIslandCheckOutEvent extends IslandArchitectEvent implements Cancel
 	}
 
 	/**
-	 * @var BlockItem
+	 * @var ItemBlock
 	 */
 	protected $item;
 
@@ -55,7 +54,7 @@ class TemplateIslandCheckOutEvent extends IslandArchitectEvent implements Cancel
 	 */
 	protected $regex;
 
-	public function getRandom() : int {
+	public function getRandom() : RandomGeneration {
 		return $this->regex;
 	}
 
