@@ -20,7 +20,8 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect;
 
-use pocketmine\{Player,
+use pocketmine\{
+    Player,
     plugin\PluginBase,
     command\Command,
     command\CommandSender,
@@ -28,8 +29,7 @@ use pocketmine\{Player,
     scheduler\ClosureTask,
     utils\TextFormat as TF,
     level\Position,
-    utils\Utils,
-    item\Item
+    utils\Utils
 };
 use pocketmine\event\{
 	Listener,
@@ -40,14 +40,17 @@ use pocketmine\event\{
 };
 
 use muqsit\invmenu\InvMenuHandler;
-
-use Clouria\IslandArchitect\{
-	runtime\TemplateIsland,
-	runtime\sessions\PlayerSession,
-	runtime\sessions\InvMenuSession,
-	conversion\IslandDataLoadTask,
-	events\TemplateIslandCheckOutEvent
+use czechpmdevs\buildertools\{
+    BuilderTools,
+    editors\Printer
 };
+
+use Clouria\IslandArchitect\{runtime\TemplateIsland,
+    runtime\sessions\PlayerSession,
+    runtime\sessions\InvMenuSession,
+    conversion\IslandDataLoadTask,
+    events\TemplateIslandCheckOutEvent,
+    worldedit\buildertools\CustomPrinter};
 
 use function strtolower;
 use function implode;
@@ -78,7 +81,7 @@ class IslandArchitect extends PluginBase implements Listener {
 			$this->getServer()->getPluginManager()->disablePlugin($this);
 			return;
 		}
-		if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
+		$this->initDependecy();
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 
 		$cmd = new PluginCommand('island-architect', $this);
@@ -106,12 +109,28 @@ class IslandArchitect extends PluginBase implements Listener {
 		$conf->set('island-data-folder', (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'));
 		$conf->set('panel-allow-unstable-item', (bool)($all['panel-allow-unstable-item'] ?? true));
 		$conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
+		$conf->set('experimental-buildertools-support', (bool)($all['experimental-buildertools-support'] ?? false));
+		$conf->set('experimental-blocksniper-support', (bool)($all['experimental-blocksniper-support'] ?? false));
 
 		$conf->save();
 		$conf->reload();
 
 		return (bool)$conf->get('enable-plugin', true);
 	}
+
+    private function initDependecy() : void {
+        if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
+        if (class_exists(BuilderTools::class) and (bool)$this->getConfig()->get('experimental-buildertools-support', false)) {
+            $reflect = new \ReflectionProperty(BuilderTools::class, 'editors');
+            $reflect->setAccessible(true);
+            $editors = $reflect->getValue(BuilderTools::class);
+            foreach ($editors as $i => $editor) if ($editors instanceof Printer) unset($editors[$i]);
+            $editors[] = new CustomPrinter;
+
+            $reflect->setValue(BuilderTools::class, $editors);
+        }
+    }
+
 
 	public function getSession(Player $player, bool $nonnull = false) : ?PlayerSession {
 		if (self::DEV_ISLAND) $nonnull = true;
@@ -265,5 +284,5 @@ class IslandArchitect extends PluginBase implements Listener {
 	public static function getInstance() : ?self {
 		return self::$instance;
 	}
-	
+
 }
