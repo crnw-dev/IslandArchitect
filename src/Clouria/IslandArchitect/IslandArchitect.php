@@ -20,7 +20,8 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect;
 
-use pocketmine\{Player,
+use pocketmine\{
+    Player,
     plugin\PluginBase,
     command\Command,
     command\CommandSender,
@@ -28,8 +29,7 @@ use pocketmine\{Player,
     scheduler\ClosureTask,
     utils\TextFormat as TF,
     level\Position,
-    utils\Utils,
-    item\Item
+    utils\Utils
 };
 use pocketmine\event\{
 	Listener,
@@ -124,7 +124,10 @@ class IslandArchitect extends PluginBase implements Listener {
 	}
 
 	public function onCommand(CommandSender $sender, Command $cmd, string $alias, array $args) : bool {
-		if (!$sender instanceof Player) $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
+		if (!$sender instanceof Player) {
+		    $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
+		    return true;
+        }
 		else switch (strtolower($args[0] ?? 'help')) {
 			case 'pos1':
 			case 'p1':
