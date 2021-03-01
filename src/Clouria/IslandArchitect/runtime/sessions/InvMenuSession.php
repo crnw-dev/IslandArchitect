@@ -25,7 +25,8 @@ use pocketmine\{
 	item\Item,
 	utils\TextFormat as TF,
 	utils\Random,
-	inventory\Inventory
+	inventory\Inventory,
+    level\generator\Generator
 };
 use pocketmine\nbt\tag\{
 	CompoundTag,
@@ -41,8 +42,7 @@ use jojoe77777\FormAPI\CustomForm;
 
 use Clouria\IslandArchitect\{
 	IslandArchitect,
-	runtime\RandomGeneration,
-	runtime\TemplateIslandGenerator
+	runtime\RandomGeneration
 };
 
 use function max;
@@ -464,7 +464,7 @@ class InvMenuSession {
 	public function editSeed() : void {
 		$f = new CustomForm(function(Player $p, array $d = null) : void {
 			if ($d !== null and !empty($d[0] ?? null)) {
-					$this->random = new Random(empty(preg_replace('/[0-9-]+/i', '', $d[0])) ? (int)$d[0] : TemplateIslandGenerator::convertSeed($d[0]));
+					$this->random = new Random(empty(preg_replace('/[0-9-]+/i', '', $d[0])) ? (int)$d[0] : Generator::convertSeed($d[0]));
 					$this->random_rolled_times = 0;
 					$this->panelSeed();
 					$this->panelRandom();

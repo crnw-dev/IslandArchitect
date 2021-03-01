@@ -28,7 +28,9 @@ use pocketmine\{Player,
     scheduler\ClosureTask,
     utils\TextFormat as TF,
     level\Position,
-    utils\Utils};
+    utils\Utils,
+    item\Item
+};
 use pocketmine\event\{
 	Listener,
 	player\PlayerQuitEvent,

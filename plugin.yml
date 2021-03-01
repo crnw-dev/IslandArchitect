@@ -11,7 +11,8 @@ permissions:
   island-architect:
     default: op
     children:
-      island-architect.cmd: []
+      island-architect.cmd:
+        description: Permission to use the "/island-architect" command
       island-architect.convert:
         description: Permission to convert a island into JSON island template file
       island-architect.reset-all:
