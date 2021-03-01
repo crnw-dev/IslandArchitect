@@ -28,7 +28,6 @@ use pocketmine\{
 	command\PluginCommand,
 	utils\TextFormat as TF,
 	level\Position,
-	scheduler\ClosureTask,
 	utils\Utils
 };
 use pocketmine\event\{
@@ -101,7 +100,11 @@ class IslandArchitect extends PluginBase implements Listener {
 		$conf->set('enable-commands', (bool)($all['enable-commands'] ?? $all['enable-plugin'] ?? true));
 		$conf->set('hide-plugin-in-query', (bool)($all['hide-plugin-in-query'] ?? false));
 		$conf->set('island-data-folder', (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'));
-		$conf->set('enable-template-island', (array)($all['enable-template-island'] ?? [$path]));
+		$conf->set('enabled-islands', (array)($all['enabled-islands'] ?? [
+		    'template-island-file.json',
+            '/absolute/path.json',
+            'directory/'
+        ]));
 		$conf->set('panel-allow-unstable-item', (bool)($all['panel-allow-unstable-item'] ?? true));
 		$conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
 
@@ -110,7 +113,8 @@ class IslandArchitect extends PluginBase implements Listener {
 	}
 
 	private function registerTemplateIslands() : void {
-		$paths = $this->getConfig()->get('enable-template-island', $idf = (string)$this->getConfig()->get('island-data-folder', $this->getDataFolder() . 'islands/'));
+		$paths = $this->getConfig()->get('enabled-islands', (string)$this->getConfig()->get('island-data-folder', $this->getDataFolder() . 'islands/'));
+		$idf = ($idf = Utils::cleanPath($paths)) . ($idf[-1] === '/' ? '' : '/');
 		if (is_string($paths)) $paths = [$paths];
 		foreach ($paths as $path) {
 			if (!file_exists($path) and !file_exists($path = $idf . $path)) $this->getLogger()->error('Cannot load template island "' . $path . '", no such file or directory!');
@@ -131,7 +135,7 @@ class IslandArchitect extends PluginBase implements Listener {
 			}
 			$this->islands[$island->getName()] = $island;
 			$this->getLogger()->info('Registered island generator "' . $island->getName() . '"("' . $path . '")');
-		}))
+		}));
 	}
 
 	/**
