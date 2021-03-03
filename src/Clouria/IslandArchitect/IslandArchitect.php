@@ -49,6 +49,8 @@ use Clouria\IslandArchitect\{
 	events\TemplateIslandCheckOutEvent
 };
 
+use function array_filter;
+use function is_dir;
 use function strtolower;
 use function implode;
 use function class_exists;
@@ -57,6 +59,7 @@ use function basename;
 use function round;
 use function preg_replace;
 use function stripos;
+use function substr;
 
 class IslandArchitect extends PluginBase implements Listener {
 
@@ -78,6 +81,7 @@ class IslandArchitect extends PluginBase implements Listener {
 			$this->getServer()->getPluginManager()->disablePlugin($this);
 			return;
 		}
+		$this->registerIslands();
 		if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 
@@ -112,6 +116,29 @@ class IslandArchitect extends PluginBase implements Listener {
 
 		return (bool)$conf->get('enable-plugin', true);
 	}
+
+	private function registerIslands() : void {
+        /**
+         * @todo Allow recursive directory scan
+         * @todo Allow custom enabled islands
+         */
+        $dir = ($dir = Utils::cleanPath((string)$this->getConfig()->get('island-data-folder', $this->getDataFolder() . 'islands/'))) . ($dir[-1] === '/' ? '' : '/');
+        if (!is_dir($dir)) {
+            $this->getLogger()->critical('Cannot register island generators due to island data folder path is invalid!');
+            return;
+        }
+	    foreach (array_filter(scandir($dir), function(string $path) : bool {
+	        return $path !== '.' and $path !== '..' and strtolower(substr($path, -4)) === '.php';
+        }) as $path) try {
+	        require($path);
+	        /**
+             * @todo Register the generator class to skyblock plugins generator manager
+             */
+        } catch (\Exception $err) {
+	        $this->getLogger()->logException($err);
+	        $this->getLogger()->critical('Failed to register island generator "' . $path . '"!');
+        }
+    }
 
 	public function getSession(Player $player, bool $nonnull = false) : ?PlayerSession {
 		if (self::DEV_ISLAND) $nonnull = true;

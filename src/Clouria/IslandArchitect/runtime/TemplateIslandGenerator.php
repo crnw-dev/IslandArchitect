@@ -32,7 +32,7 @@ use function unserialize;
 use function is_file;
 use function file_get_contents;
 
-class TemplateIslandGenerator extends IslandGenerator {
+abstract class TemplateIslandGenerator extends IslandGenerator {
 
 	/**
 	 * @var TemplateIsland|null
