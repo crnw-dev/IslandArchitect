@@ -10,4 +10,4 @@
 
 ## Reporting a bug
 
-Open an issue to reports bugs!
+Open an issue to report bugs!
