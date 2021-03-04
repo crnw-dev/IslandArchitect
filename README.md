@@ -1,14 +1,14 @@
-<img align="right" widht="auto" height="260" src="https://github.com/callumrawlinson/IslandArchitect/blob/stable/images/cn.png?raw=true" alt="Logo">
+<img align="right" widht="auto" height="260" src="images/cn.png?raw=true" alt="IslandArchitect.png">
 
 # IslandArchitect
 
-### The best plugin to create custom sky island generators.
+### A plugin to create custom skyblock island generators.
 
 ### Features:
 
- - Helpful for players
- - Supports Permissions
- - Adds new features
+ - Helpful to server builders
+ - Random generation regex for blocks
+ - Regex editor form and inventory UI
 
 ### How to setup?
 
@@ -20,6 +20,4 @@
 **Q: How do i set this up?**<br />
 A: Follow the steps above.<br /><br /> 
 
->## Notice: <br />
->**This plugin is built for 3.0.0 and above!**
->- any version below this wont work <br />
+*[Click here to see all the supported PocketMine-MP or spoons versions](SECURITY.md)*
