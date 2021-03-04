@@ -12,12 +12,8 @@
 
 ### How to setup?
 
- - Put the plugin in your plugins folder.
- - Restart and enjoy.
- 
- ### FAQs:
-
-**Q: How do i set this up?**<br />
-A: Follow the steps above.<br /><br /> 
+ 1. Download and put the [plugin phar file](https://github.com/crnw-dev/IslandArchitect/releases/latest) in the `plugins` folder of your server
+ 2. Make sure that you have already installed the [SkyBlock](https://poggit.pmmp.io/p/SkyBlock) and [InvCrashFix](https://poggit.pmmp.io/ci/muqsit/invcrashfix/invcrashfix/dev:3) plugin
+ 3. Restart and enjoy
 
 *[Click here to see all the supported PocketMine-MP or spoons versions](SECURITY.md)*
