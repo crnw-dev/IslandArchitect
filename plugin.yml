@@ -1,7 +1,6 @@
 name: IslandArchitect
 author: ClouriaNetworkDevelopers
-authors: [Endermanbugzjfc]
-authors: [callumrawlinson - helped with Github Templates and random ore]
+authors: [Endermanbugzjfc, "callumrawlinson - helped with Github Templates and random ore"]
 api: 3.0.0
 version: 1.0.2
 main: Clouria\IslandArchitect\IslandArchitect
