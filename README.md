@@ -1,4 +1,4 @@
-<img align="right" widht="auto" height="260" src="https://github.com/callumrawlinson/IslandArchitect/blob/stable/images/island.png.png?raw=true" alt="Logo">
+<img align="right" widht="auto" height="260" src="https://github.com/callumrawlinson/IslandArchitect/blob/stable/images/cn.png?raw=true" alt="Logo">
 
 # IslandArchitect
 
