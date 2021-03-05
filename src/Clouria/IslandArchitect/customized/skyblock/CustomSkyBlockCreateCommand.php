@@ -19,28 +19,40 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\customized\skyblock;
 
-use Clouria\IslandArchitect\IslandArchitect;
-use room17\SkyBlock\{command\presets\CreateCommand,
-    island\IslandFactory,
+use room17\SkyBlock\{
+    command\presets\CreateCommand,
     session\Session,
     SkyBlock,
-    utils\message\MessageContainer};
+    utils\message\MessageContainer
+};
+
+use Clouria\IslandArchitect\{
+    IslandArchitect,
+    customized\CustomizableClassTrait
+};
 
 use function strtolower;
 
 class CustomSkyBlockCreateCommand extends CreateCommand {
+    use CustomizableClassTrait;
 
+    /**
+     * @throws \ReflectionException
+     */
     public function onCommand(Session $session, array $args): void {
 
         if($this->getPrivateMethodClosure('checkIslandAvailability')($session) or $this->getPrivateMethodClosure('checkIslandCreationCooldown')($session)) return;
 
         $generator = strtolower($args[0] ?? "Shelly");
         if((SkyBlock::getInstance()->getGeneratorManager()->isGenerator($generator) or IslandArchitect::getInstance()->mapGeneratorType($generator) !== null) and $this->getPrivateMethodClosure('hasPermission')($session, $generator)) {
-            IslandFactory::createIslandFor($session, $generator);
+            CustomSkyBlockIslandFactory::getClass()::createIslandFor($session, $generator);
             $session->sendTranslatedMessage(new MessageContainer("SUCCESSFULLY_CREATED_A_ISLAND"));
         } else $session->sendTranslatedMessage(new MessageContainer("NOT_VALID_GENERATOR", ["name" => $generator]));
     }
 
+    /**
+     * @throws \ReflectionException
+     */
     protected function getPrivateMethodClosure(string $method) : \Closure {
         $reflect = new \ReflectionMethod(CreateCommand::class, $method);
         $reflect->setAccessible(true);

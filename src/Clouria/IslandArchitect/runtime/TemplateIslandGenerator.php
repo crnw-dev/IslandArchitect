@@ -28,18 +28,21 @@ use pocketmine\{
 
 use room17\SkyBlock\island\generator\IslandGenerator;
 
+use Clouria\IslandArchitect\customized\CustomizableClassTrait;
+
 use function unserialize;
 use function is_file;
 use function file_get_contents;
 
 class TemplateIslandGenerator extends IslandGenerator {
+    use CustomizableClassTrait;
 
-	/**
+    /**
 	 * @var TemplateIsland|null
 	 */
 	protected $island = null;
 
-	public function generateChunk(int $chunkX, int $chunkZ) : void {
+    public function generateChunk(int $chunkX, int $chunkZ) : void {
 		$chunk = $this->level->getChunk($chunkX, $chunkZ);
         $chunk->setGenerated();
         if (!isset($this->island)) {
