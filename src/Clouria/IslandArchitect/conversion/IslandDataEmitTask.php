@@ -20,16 +20,18 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\conversion;
 
-use pocketmine\{Server, scheduler\AsyncTask, utils\Utils, utils\UUID};
+use pocketmine\{
+	Server,
+	scheduler\AsyncTask,
+	utils\Utils
+};
 
 use Clouria\IslandArchitect\{
 	IslandArchitect,
 	runtime\TemplateIsland
 };
 
-use function base64_encode;
 use function serialize;
-use function strtoupper;
 use function unserialize;
 use function file_put_contents;
 use function mkdir;
@@ -71,9 +73,7 @@ class IslandDataEmitTask extends AsyncTask {
 		else $data = $island->export($chunks);
 		$path = Utils::cleanPath($this->path);
 		@mkdir($path);
-		$path = $path . ($path[-1] === '/' ? '' : '/') . $island->getName() . '.php';
-		$data = 'class ' . strtoupper(UUID::fromRandom()->toString()) . ' extends \\Clouria\\IslandArchitect\\runtime\\TemplateIslandGenerator {public const ISLAND_DATA = "' . base64_encode($data) . '";public const VERSION = ' . TemplateIsland::VERSION . ';}';
-		$data = '<?php eval(base64_decode("' . base64_encode($data) . '"));';
+		$path = $path . ($path[-1] === '/' ? '' : '/') . $island->getName() . '.json';
 		file_put_contents($path, $data);
 
 		$this->setResult(null);
