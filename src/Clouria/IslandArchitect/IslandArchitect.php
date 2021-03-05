@@ -110,6 +110,10 @@ class IslandArchitect extends PluginBase implements Listener {
 		$conf->set('island-data-folder', (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'));
 		$conf->set('panel-allow-unstable-item', (bool)($all['panel-allow-unstable-item'] ?? true));
 		$conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
+		$conf->set('island-creation-command-mapping', (array)($all['island-type-map'] ?? [
+		    'generation-name-which-will-be' => 'exported-islalnd-data-file.json',
+            'use-in-island-creation-cmd' => 'relative-path/start-from/island-data-folder.json'
+        ]));
 
 		$conf->save();
 		$conf->reload();
