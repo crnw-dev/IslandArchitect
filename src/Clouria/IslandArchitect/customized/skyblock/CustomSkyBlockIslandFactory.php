@@ -29,11 +29,10 @@ use room17\SkyBlock\{
     SkyBlock
 };
 
-use Clouria\IslandArchitect\{
-    customized\CustomizableClassTrait,
+use Clouria\IslandArchitect\{customized\CustomizableClassTrait,
+    events\IslandWorldPreCreateEvent,
     IslandArchitect,
-    runtime\TemplateIslandGenerator
-};
+    runtime\TemplateIslandGenerator};
 
 use function uniqid;
 use function microtime;
@@ -62,8 +61,10 @@ class CustomSkyBlockIslandFactory extends IslandFactory {
         $identifier = uniqid("sb-");
         $islandManager = SkyBlock::getInstance()->getIslandManager();
 
+        $ev = new IslandWorldPreCreateEvent($session, $identifier, $type);
+        $ev->call();
         $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, $type,
-            self::createIslandWorld($identifier, $type), 0);
+            self::createIslandWorld($ev->getIdentifier(), $ev->getType()), 0);
 
         $session->setIsland($island = $islandManager->getIsland($identifier));
         $session->setRank(RankIds::FOUNDER);
