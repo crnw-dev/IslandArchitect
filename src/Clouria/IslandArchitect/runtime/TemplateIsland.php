@@ -266,7 +266,7 @@ class TemplateIsland {
 		return $blocks ?? [];
 	}
 
-	public const VERSION = 1.1;
+	public const VERSION = 1.2;
 
 	public function save() : string {
 		$data['level'] = $this->getLevel();
@@ -373,11 +373,11 @@ class TemplateIsland {
 		if (isset($data['random_labels']) or isset($data['labels'])) $self->random_labels = $data['random_labels'] ?? $data['labels'];
 		if (isset($data['spawn'])) {
 			$coord = $data['spawn'];
-			$self->spawn = new Vector3((int)$coord['x'], (int)$coord['y'], (int)$coord['z']);
+			$self->spawn = new Vector3((int)($coord['x'] ?? $coord[0]), (int)($coord['y'] ?? $coord[1]), (int)($coord['z'] ?? $coord[2]));
 		}
 		if (isset($data['chest'])) {
 			$coord = $data['chest'];
-			$self->chest = new Vector3((int)$coord['x'], (int)$coord['y'], (int)$coord['z']);
+			$self->chest = new Vector3((int)($coord['x'] ?? $coord[0]), (int)($coord['y'] ?? $coord[1]), (int)($coord['z'] ?? $coord[2]));
 		}
 		if (isset($data['random_blocks'])) $self->random_blocks = $data['random_blocks'];
 		if (isset($data['symbolic'])) {
