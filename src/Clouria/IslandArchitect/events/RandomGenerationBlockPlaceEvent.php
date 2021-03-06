@@ -20,11 +20,7 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\events;
 
-use pocketmine\{
-	event\Cancellable,
-	level\Position,
-	item\ItemBlock
-};
+use pocketmine\{block\Block, event\Cancellable, level\Position};
 
 use Clouria\IslandArchitect\{
 	runtime\sessions\PlayerSession,
@@ -33,7 +29,7 @@ use Clouria\IslandArchitect\{
 
 class RandomGenerationBlockPlaceEvent extends IslandArchitectEvent implements Cancellable {
 
-	public function __construct(PlayerSession $session, RandomGeneration $regex, Position $pos, ItemBlock $item) {
+	public function __construct(PlayerSession $session, RandomGeneration $regex, Position $pos, Block $item) {
 		$this->regex = $regex;
 		$this->session = $session;
 		$this->pos = $pos;
@@ -41,11 +37,11 @@ class RandomGenerationBlockPlaceEvent extends IslandArchitectEvent implements Ca
 	}
 
 	/**
-	 * @var ItemBlock
+	 * @var Block
 	 */
 	protected $item;
 
-	public function getItem() : ItemBlock {
+	public function getItem() : Block {
 		return $this->item;
 	}
 

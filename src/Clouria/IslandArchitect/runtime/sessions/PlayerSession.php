@@ -98,8 +98,10 @@ class PlayerSession {
 		} else new InvMenuSession($this);
 	}
 
+    /**
+     * @internal
+     */
 	public function onBlockBreak(Vector3 $vec) : void {
-		if ($this->getIsland() === null) return;
 		if (($r = $this->getIsland()->getRandomByVector3($vec)) === null) return;
 		$this->getPlayer()->sendPopup(TF::BOLD . TF::YELLOW . 'You have destroyed a random generation block, ' . TF::GOLD . 'the item has returned to your inventory!');
 		$i = $this->getIsland()->getRandomById($r)->getRandomGenerationItem($this->getIsland()->getRandomSymbolicItem($r));
@@ -107,6 +109,9 @@ class PlayerSession {
 		$this->getPlayer()->getInventory()->addItem($i);
 	}
 
+    /**
+     * @internal
+     */
 	public function onBlockPlace(BlockPlaceEvent $ev) : void {
 		$item = $ev->getItem();
 		if (($nbt = $item->getNamedTagEntry('IslandArchitect')) === null) return;
@@ -134,6 +139,13 @@ class PlayerSession {
 		$item->setCount(64);
 		$this->getPlayer()->getInventory()->setItemInHand($item);
 	}
+
+    /**
+     * @internal
+     */
+	public function onEntityExplode(array $getBlockList) : void {
+
+    }
 
 	public function close() : void {
 		$this->saveIsland();

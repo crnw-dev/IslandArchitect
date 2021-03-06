@@ -31,13 +31,12 @@ use pocketmine\{
     level\Position,
     utils\Utils
 };
-use pocketmine\event\{
-	Listener,
-	player\PlayerQuitEvent,
-	block\BlockPlaceEvent,
-	block\BlockBreakEvent,
-	level\LevelSaveEvent
-};
+use pocketmine\event\{entity\EntityExplodeEvent,
+    Listener,
+    player\PlayerQuitEvent,
+    block\BlockPlaceEvent,
+    block\BlockBreakEvent,
+    level\LevelSaveEvent};
 
 use muqsit\invmenu\InvMenuHandler;
 
@@ -294,6 +293,10 @@ class IslandArchitect extends PluginBase implements Listener {
 	public function onLevelSave(LevelSaveEvent $ev) : void {
 		foreach ($this->sessions as $s) $s->saveIsland();
 	}
+
+	public function onEntityExplode(EntityExplodeEvent $ev) : void {
+	    foreach ($this->sessions as $s) if ($s->getIsland() !== null) $s->onEntityExplode($ev->getBlockList());
+    }
 
 	public static function getInstance() : ?self {
 		return self::$instance;
