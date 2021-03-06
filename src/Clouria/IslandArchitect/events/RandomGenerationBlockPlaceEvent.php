@@ -34,6 +34,7 @@ use Clouria\IslandArchitect\{
 class RandomGenerationBlockPlaceEvent extends IslandArchitectEvent implements Cancellable {
 
 	public function __construct(PlayerSession $session, RandomGeneration $regex, Position $pos, ItemBlock $item) {
+        parent::__construct();
 		$this->regex = $regex;
 		$this->session = $session;
 		$this->pos = $pos;

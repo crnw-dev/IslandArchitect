@@ -19,10 +19,9 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\events;
 
-use pocketmine\event\Event;
 use room17\SkyBlock\session\Session;
 
-class IslandWorldPreCreateEvent extends Event {
+class IslandWorldPreCreateEvent extends IslandArchitectEvent {
 
     /**
      * @var Session
@@ -40,6 +39,7 @@ class IslandWorldPreCreateEvent extends Event {
     private $type;
 
     public function __construct(Session $session, string $identifier, string $type) {
+        parent::__construct();
         $this->session = $session;
         $this->identifier = $identifier;
         $this->type = $type;
