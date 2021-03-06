@@ -31,23 +31,22 @@ use pocketmine\{
     level\Position,
     utils\Utils
 };
-use pocketmine\event\{
-	Listener,
-	player\PlayerQuitEvent,
-	block\BlockPlaceEvent,
-	block\BlockBreakEvent,
-	level\LevelSaveEvent
-};
+use pocketmine\event\{Listener,
+    player\PlayerQuitEvent,
+    block\BlockPlaceEvent,
+    block\BlockBreakEvent,
+    level\LevelSaveEvent,
+    plugin\PluginEnableEvent};
 
 use muqsit\invmenu\InvMenuHandler;
 
-use Clouria\IslandArchitect\{
-	runtime\TemplateIsland,
-	runtime\sessions\PlayerSession,
-	runtime\sessions\InvMenuSession,
-	conversion\IslandDataLoadTask,
-	events\TemplateIslandCheckOutEvent
-};
+use room17\SkyBlock\SkyBlock;
+use Clouria\IslandArchitect\{customized\skyblock\CustomSkyBlockCreateCommand,
+    runtime\TemplateIsland,
+    runtime\sessions\PlayerSession,
+    runtime\sessions\InvMenuSession,
+    conversion\IslandDataLoadTask,
+    events\TemplateIslandCheckOutEvent};
 
 use function strtolower;
 use function implode;
@@ -126,6 +125,12 @@ class IslandArchitect extends PluginBase implements Listener {
 		}
 		return $s ?? null;
 	}
+
+	public function mapGeneratorType(string $type) : ?string {
+	    $type = $this->getConfig()->get('island-creation-command-mapping')[$type] ?? null;
+	    if (isset($type) and !file_exists($type)) $type = null;
+	    return $type;
+    }
 
 	public function onCommand(CommandSender $sender, Command $cmd, string $alias, array $args) : bool {
 		if (!$sender instanceof Player) {
@@ -269,8 +274,21 @@ class IslandArchitect extends PluginBase implements Listener {
 		foreach ($this->sessions as $s) $s->saveIsland();
 	}
 
+	/**
+	 * @priority HIGH
+	 */
+	public function onPluginEnable(PluginEnableEvent $ev) : void {
+	    $pl = $ev->getPlugin();
+	    if (!$pl instanceof SkyBlock) return;
+	    $map = $pl->getCommandMap();
+	    $cmd = $map->getCommand('create');
+	    if ($cmd !== null) $pl->getCommandMap()->unregisterCommand($cmd->getName());
+	    $class = CustomSkyBlockCreateCommand::getClass();
+	    $map->registerCommand(new $class);
+    }
+
 	public static function getInstance() : ?self {
 		return self::$instance;
 	}
-	
+
 }
