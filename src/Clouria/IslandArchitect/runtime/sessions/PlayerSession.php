@@ -23,26 +23,16 @@ namespace Clouria\IslandArchitect\runtime\sessions;
 use pocketmine\{
 	Server,
 	Player,
-	math\Vector3,
 	utils\TextFormat as TF,
-	event\block\BlockPlaceEvent,
 	level\Level,
 	scheduler\ClosureTask
 };
-use pocketmine\nbt\tag\{
-	CompoundTag,
-	IntTag,
-	ListTag
-};
-
-use Clouria\IslandArchitect\events\RandomGenerationBlockPlaceEvent;
 
 use jojoe77777\FormAPI\SimpleForm;
 
 use Clouria\IslandArchitect\{
 	IslandArchitect,
 	runtime\TemplateIsland,
-	runtime\RandomGeneration,
 	conversion\IslandDataEmitTask
 };
 
@@ -98,56 +88,6 @@ class PlayerSession {
 		} else new InvMenuSession($this);
 	}
 
-    /**
-     * @internal
-     */
-	public function onBlockBreak(Vector3 $vec) : void {
-		if (($r = $this->getIsland()->getRandomByVector3($vec)) === null) return;
-		$this->getPlayer()->sendPopup(TF::BOLD . TF::YELLOW . 'You have destroyed a random generation block, ' . TF::GOLD . 'the item has returned to your inventory!');
-		$i = $this->getIsland()->getRandomById($r)->getRandomGenerationItem($this->getIsland()->getRandomSymbolicItem($r));
-		$i->setCount(64);
-		$this->getPlayer()->getInventory()->addItem($i);
-	}
-
-    /**
-     * @internal
-     */
-	public function onBlockPlace(BlockPlaceEvent $ev) : void {
-		$item = $ev->getItem();
-		if (($nbt = $item->getNamedTagEntry('IslandArchitect')) === null) return;
-		if (($nbt = $nbt->getTag('random-generation', CompoundTag::class)) === null) return;
-		if (($regex = $nbt->getTag('regex', ListTag::class)) === null) return;
-		$regex = RandomGeneration::fromNBT($regex);
-		$e = new RandomGenerationBlockPlaceEvent($this, $regex, $ev->getBlock()->asPosition(), $item);
-		$e->call();
-		if ($e->isCancelled()) return;
-		if (
-			($regexid = $nbt->getTag('regexid', IntTag::class)) === null or
-			($r = $this->getIsland()->getRandomById($regexid = $regexid->getValue())) === null or
-			!$r->equals($regex)
-		) $regexid = $this->getIsland()->addRandom($r = $regex);
-		$this->getIsland()->setBlockRandom($ev->getBlock()->asVector3(), $regexid, $e);
-		$symbolic = $this->getIsland()->getRandomSymbolicItem($regexid);
-		$item = clone $item;
-		if (!$item->equals($symbolic, true, false)) {
-			$nbt = $item->getNamedTag();
-			$item = $symbolic;
-			foreach ($nbt as $tag) $item->setNamedTagEntry($tag);
-			$ev->setCancelled();
-			$ev->getBlock()->getLevel()->setBlock($ev->getBlock()->asVector3(), $item->getBlock());
-		}
-		$item->setCount(64);
-		$this->getPlayer()->getInventory()->setItemInHand($item);
-	}
-
-    /**
-     * @internal
-     */
-	public function onEntityExplode(array $blocks) : void {
-	    $randomblocks = $this->getIsland()->getRandomBlocks();
-	    foreach ($blocks as $block) if (($randomblocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()] ?? null) !== null) $this->getIsland()->setBlockRandom($block->asVector3(), null);
-    }
-
     // TODO: Move all the event handler functions into a event listener class
     // TODO: Handler all the events in the event listener class instead of the player session class
 
@@ -187,7 +127,7 @@ class PlayerSession {
 			return;
 		}
 		$this->export_lock = true;
-		$this->export_island = $island;
+		$this->export_island = $island; // TODO: Rekt this line
 		$this->island = null;
 		$time = microtime(true);
 		$this->getPlayer()->sendMessage(TF::YELLOW . 'Queued export task for island "' . $island->getName() . '"...');
@@ -213,6 +153,7 @@ class PlayerSession {
 				$chunks[1][$hash] = get_class($chunk);
 			}
 		}
+		// TODO: Critical failed to collect required chunks
 		$this->getPlayer()->sendMessage(TF::GOLD . 'Start exporting...');
 		$task = new IslandDataEmitTask($island, $chunks, function() use ($island, $time) : void {
 			$this->export_lock = false;
@@ -235,6 +176,7 @@ class PlayerSession {
 
 		Server::getInstance()->getAsyncPool()->submitTask($task);
 	}
+
 	/**
 	 * @param PlayerSession|null $island
 	 * @return bool true = error triggered

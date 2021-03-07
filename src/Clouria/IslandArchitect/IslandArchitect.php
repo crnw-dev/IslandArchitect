@@ -31,12 +31,6 @@ use pocketmine\{
     level\Position,
     utils\Utils
 };
-use pocketmine\event\{entity\EntityExplodeEvent,
-    Listener,
-    player\PlayerQuitEvent,
-    block\BlockPlaceEvent,
-    block\BlockBreakEvent,
-    level\LevelSaveEvent};
 
 use muqsit\invmenu\InvMenuHandler;
 
@@ -48,6 +42,7 @@ use Clouria\IslandArchitect\{
 	events\TemplateIslandCheckOutEvent
 };
 
+use function array_search;
 use function strtolower;
 use function implode;
 use function class_exists;
@@ -57,7 +52,7 @@ use function round;
 use function preg_replace;
 use function stripos;
 
-class IslandArchitect extends PluginBase implements Listener {
+class IslandArchitect extends PluginBase {
 
 	public const DEV_ISLAND = false;
 
@@ -75,7 +70,7 @@ class IslandArchitect extends PluginBase implements Listener {
 	public function onEnable() : void {
 		$this->initConfig();
 		if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
-		$this->getServer()->getPluginManager()->registerEvents($this, $this);
+		$this->getServer()->getPluginManager()->registerEvents(new EventListener, $this);
 
 		$cmd = new PluginCommand('island-architect', $this);
 		$cmd->setDescription('Command of the IslandArchitect plugin');
@@ -116,6 +111,23 @@ class IslandArchitect extends PluginBase implements Listener {
 		}
 		return $s ?? null;
 	}
+
+    /**
+     * @return PlayerSession[]
+     */
+	public function getSessions() : array {
+	    return $this->sessions;
+    }
+
+    /**
+     * @param PlayerSession $session
+     * @return bool Return false if the session has already been disposed or not even in the sessions list
+     */
+    public function disposeSession(PlayerSession $session) : bool {
+        if (($r = array_search($session, $this->sessions, true)) === null) return false;
+        unset($this->sessions[$r]);
+        return true;
+    }
 
 	public function onCommand(CommandSender $sender, Command $cmd, string $alias, array $args) : bool {
 		if (!$sender instanceof Player) {
@@ -258,48 +270,6 @@ class IslandArchitect extends PluginBase implements Listener {
 		}
 		return true;
 	}
-
-	/**
-	 * @priority MONITOR
-	 */
-	public function onPlayerQuit(PlayerQuitEvent $ev) : void {
-		if (($s = $this->getSession($ev->getPlayer())) === null) return;
-		$s->close();
-		unset($this->sessions[$ev->getPlayer()->getName()]);
-	}
-
-	/**
-	 * @priority HIGH
-	 * @ignoreCancelled
-	 */
-	public function onBlockBreak(BlockBreakEvent $ev) : void {
-		$s = $this->getSession($ev->getPlayer());
-		if (isset($s)) $s->onBlockBreak($ev->getBlock()->asVector3());
-	}
-
-	/**
-	 * @priority HIGH
-	 * @ignoreCancelled
-	 */
-	public function onBlockPlace(BlockPlaceEvent $ev) : void {
-		if (($s = $this->getSession($ev->getPlayer())) === null) return;
-        if (PlayerSession::errorCheckOutRequired($ev->getPlayer(), $this->getSession($ev->getPlayer()))) $ev->setCancelled();
-		else $s->onBlockPlace($ev);
-	}
-
-	/**
-	 * @priority MONITOR
-	 */
-	public function onLevelSave(LevelSaveEvent $ev) : void {
-		foreach ($this->sessions as $s) $s->saveIsland();
-	}
-
-    /**
-     * @priority MONITOR
-     */
-	public function onEntityExplode(EntityExplodeEvent $ev) : void {
-	    foreach ($this->sessions as $s) if ($s->getIsland() !== null) $s->onEntityExplode($ev->getBlockList());
-    }
 
 	public static function getInstance() : ?self {
 		return self::$instance;

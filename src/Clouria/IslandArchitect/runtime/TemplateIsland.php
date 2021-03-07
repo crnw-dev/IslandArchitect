@@ -159,7 +159,7 @@ class TemplateIsland {
 	/**
 	 * @see TemplateIsland::getRandomByVector3()
 	 */
-	public function setBlockRandom(Vector3 $block, ?int $id, ?RandomGenerationBlockPlaceEvent $event) : bool {
+	public function setBlockRandom(Vector3 $block, ?int $id, ?RandomGenerationBlockPlaceEvent $event = null) : bool {
 	    $coord = $block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ();
 		if (!isset($this->random_blocks[$coord])) return false;
 		$ev = new RandomGenerationBlockUpdateEvent($block, $id, $event);
