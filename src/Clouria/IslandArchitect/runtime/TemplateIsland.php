@@ -21,6 +21,8 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
 use pocketmine\{block\Block, item\Item, level\Level, math\Vector3, utils\Random};
+use Clouria\IslandArchitect\events\RandomGenerationBlockPlaceEvent;
+use Clouria\IslandArchitect\events\RandomGenerationBlockUpdateEvent;
 use function array_push;
 use function array_rand;
 use function array_search;
@@ -157,10 +159,13 @@ class TemplateIsland {
 	/**
 	 * @see TemplateIsland::getRandomByVector3()
 	 */
-	public function setBlockRandom(Vector3 $block, ?int $id) : bool {
+	public function setBlockRandom(Vector3 $block, ?int $id, ?RandomGenerationBlockPlaceEvent $event) : bool {
 	    $coord = $block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ();
 		if (!isset($this->random_blocks[$coord])) return false;
-		if (isset($id)) $this->random_blocks[$coord] = $id;
+		$ev = new RandomGenerationBlockUpdateEvent($block, $id, $event);
+		$ev->call();
+        $coord = $block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ();
+		if ($ev->getRegexId() !== null) $this->random_blocks[$coord] = $ev->getRegexId();
 		else unset($this->random_blocks[$coord]);
 		$this->changed = true;
 		return true;
