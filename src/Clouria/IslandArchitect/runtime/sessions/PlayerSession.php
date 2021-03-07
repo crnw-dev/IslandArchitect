@@ -88,9 +88,6 @@ class PlayerSession {
 		} else new InvMenuSession($this);
 	}
 
-    // TODO: Move all the event handler functions into a event listener class
-    // TODO: Handler all the events in the event listener class instead of the player session class
-
 	public function close() : void {
 		$this->saveIsland();
 	}
@@ -127,7 +124,6 @@ class PlayerSession {
 			return;
 		}
 		$this->export_lock = true;
-		$this->export_island = $island; // TODO: Rekt this line
 		$this->island = null;
 		$time = microtime(true);
 		$this->getPlayer()->sendMessage(TF::YELLOW . 'Queued export task for island "' . $island->getName() . '"...');
@@ -153,7 +149,10 @@ class PlayerSession {
 				$chunks[1][$hash] = get_class($chunk);
 			}
 		}
-		// TODO: Critical failed to collect required chunks
+		if (!isset($chunks)) {
+		    $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Critical: Failed to load required chunks');
+		    return;
+        }
 		$this->getPlayer()->sendMessage(TF::GOLD . 'Start exporting...');
 		$task = new IslandDataEmitTask($island, $chunks, function() use ($island, $time) : void {
 			$this->export_lock = false;
@@ -177,11 +176,12 @@ class PlayerSession {
 		Server::getInstance()->getAsyncPool()->submitTask($task);
 	}
 
-	/**
-	 * @param PlayerSession|null $island
-	 * @return bool true = error triggered
-	 */
-	public static function errorCheckOutRequired(Player $player, $session) : bool {
+    /**
+     * @param Player $player
+     * @param PlayerSession|null $session
+     * @return bool true = No island checked out
+     */
+	public static function errorCheckOutRequired(Player $player, ?PlayerSession $session) : bool {
 		if ($session !== null and $session->getIsland() !== null) return false;
 		$player->sendMessage(TF::BOLD . TF::RED . 'Please check out an island first!' . TF::GRAY . TF::ITALIC . ' ("/ia island <Island data file name: string>")');
 		return true;

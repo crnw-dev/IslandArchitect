@@ -36,6 +36,7 @@ use Clouria\IslandArchitect\{
 };
 
 class IslandArchitectCommand extends Command {
+    // TODO: Customizable class trait
 
     public function __construct() {
         parent::__construct('island-architect', 'Command of the IslandArchitect plugin', '/island-architect help', ['ia', 'isarch']);
