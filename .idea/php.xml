@@ -3,9 +3,8 @@
   <component name="PhpIncludePathManager">
     <include_path>
       <path value="$PROJECT_DIR$/../../PocketMine-MP" />
-      <path value="$PROJECT_DIR$/../../../../../../TemporaryDirectory/BuilderTools/BuilderTools" />
-      <path value="$PROJECT_DIR$/../../../../../../TemporaryDirectory/BlockSniper" />
-      <path value="$PROJECT_DIR$/../../virions/InvMenu.phar" />
+      <path value="$PROJECT_DIR$/../../virions" />
+      <path value="$PROJECT_DIR$/../SkyBlock" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="7.3" />

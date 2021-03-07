@@ -23,41 +23,21 @@ namespace Clouria\IslandArchitect;
 use pocketmine\{
     Player,
     plugin\PluginBase,
-    command\Command,
-    command\CommandSender,
-    command\PluginCommand,
     scheduler\ClosureTask,
-    utils\TextFormat as TF,
-    level\Position,
-    utils\Utils
+    utils\TextFormat as TF
 };
-use pocketmine\event\{Listener,
-    player\PlayerQuitEvent,
-    block\BlockPlaceEvent,
-    block\BlockBreakEvent,
-    level\LevelSaveEvent,
-    plugin\PluginEnableEvent};
 
 use muqsit\invmenu\InvMenuHandler;
 
-use room17\SkyBlock\SkyBlock;
-use Clouria\IslandArchitect\{customized\skyblock\CustomSkyBlockCreateCommand,
-    runtime\TemplateIsland,
-    runtime\sessions\PlayerSession,
-    runtime\sessions\InvMenuSession,
-    conversion\IslandDataLoadTask,
-    events\TemplateIslandCheckOutEvent};
+use Clouria\IslandArchitect\{
+	runtime\TemplateIsland,
+	runtime\sessions\PlayerSession
+};
 
-use function strtolower;
-use function implode;
+use function array_search;
 use function class_exists;
-use function microtime;
-use function basename;
-use function round;
-use function preg_replace;
-use function stripos;
 
-class IslandArchitect extends PluginBase implements Listener {
+class IslandArchitect extends PluginBase {
 
 	public const DEV_ISLAND = false;
 
@@ -75,14 +55,9 @@ class IslandArchitect extends PluginBase implements Listener {
 	public function onEnable() : void {
 		$this->initConfig();
 		if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
-		$this->getServer()->getPluginManager()->registerEvents($this, $this);
+		$this->getServer()->getPluginManager()->registerEvents(new EventListener, $this);
 
-		$cmd = new PluginCommand('island-architect', $this);
-		$cmd->setDescription('Command of the IslandArchitect plugin');
-		$cmd->setUsage('/island-architect help');
-		$cmd->setAliases(['ia', 'isarch']);
-		$cmd->setPermission('island-architect.cmd');
-		$this->getServer()->getCommandMap()->register($this->getName(), $cmd);
+		$this->getServer()->getCommandMap()->register($this->getName(), new IslandArchitectCommand);
 
 		$this->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) : void {
 		    foreach ($this->sessions as $s) if ($s->getIsland() !== null) {
@@ -127,182 +102,22 @@ class IslandArchitect extends PluginBase implements Listener {
 	    return $type;
     }
 
-	public function onCommand(CommandSender $sender, Command $cmd, string $alias, array $args) : bool {
-		if (!$sender instanceof Player) {
-		    $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
-		    return true;
-        }
-		if (
-			strtolower($args[1] ?? 'help') !== 'help' and
-			!$sender->hasPermission('island-architect.convert')
-        ) {
-			$sender->sendMessage($this->getServer()->getLanguage()->translateString(TF::RED . "%commands.generic.permission"));
-			return true;
-		}
-		else switch (strtolower($args[0] ?? 'help')) {
-			case 'pos1':
-			case 'p1':
-			case '1':
-				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
-				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
-				$vec = $vec ?? $sender->asPosition();
-				if (($w = $s->getIsland()->getLevel()) !== null) {
-					if ($w !== $vec->getLevel()->getFolderName()) {
-					$sender->sendMessage(TF::BOLD . TF::RED . 'You can only run this command in the same world as the island: ' . $w);
-						break;
-					}
-				} else $s->getIsland()->setLevel($vec->getLevel());
-				$sender->sendMessage(TF::YELLOW . 'Start coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
-				$s->getIsland()->setStartCoord($vec);
-				break;
+    /**
+     * @return PlayerSession[]
+     */
+	public function getSessions() : array {
+	    return $this->sessions;
+    }
 
-			case 'pos2':
-			case 'p2':
-			case '2':
-				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
-				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
-				$vec = $vec ?? $sender->asPosition();
-				if (($w = $s->getIsland()->getLevel()) !== null) if ($w !== $vec->getLevel()->getFolderName()) {
-					$sender->sendMessage(TF::BOLD . TF::RED . 'You can only run this command in the same world as the island: ' . $w);
-					break;
-				} else $s->getIsland()->setLevel($vec->getLevel());
-				$sender->sendMessage(TF::YELLOW . 'End coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
-				$s->getIsland()->setEndCoord($vec);
-				break;
-
-			case 'island':
-			case 'checkout':
-			case 'check-out':
-			case 'i':
-				if (!isset($args[1])) {
-					$sender->sendMessage(TF::BOLD . TF::RED . 'Please enter the island data file name!');
-					break;
-				}
-				$time = microtime(true);
-				$sender->sendMessage(TF::YELLOW . 'Loading island ' . TF::GOLD . '"' . $args[1] . '"...');
-				$callback = function(?TemplateIsland $is, string $filepath) use ($sender, $time) : void {
-					if (!$sender->isOnline()) return;
-					if (!isset($is)) $is = new TemplateIsland(basename($filepath, '.json'));
-					$s = $this->getSession($sender, true);
-					$ev = new TemplateIslandCheckOutEvent($s, $is);
-					$ev->call();
-					if ($ev->isCancelled()) return;
-					$s->checkOutIsland($is);
-					$sender->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . 's)');
-				};
-				foreach($this->sessions as $s) if (
-					($i = $s->getIsland()) !== null and
-					$i->getName() === $args[1]
-				) {
-					$path = Utils::cleanPath($this->getConfig()->get('island-data-folder', $this->getDataFolder() . 'islands/'));
-					$callback($i, $path . ($path[-1] === '/' ? '' : '/') . $i->getName());
-					break;
-				}
-				$task = new IslandDataLoadTask($args[1], $callback);
-				$this->getServer()->getAsyncPool()->submitTask($task);
-				break;
-
-			case 'random':
-			case 'regex':
-			case 'r':
-				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
-				if (isset($args[1])) {
-					if (empty(preg_replace('/[0-9]+/i', '', $args[1]))) $regexid = (int)$args[1];
-					else foreach ($s->getIsland()->getRandomLabels() as $rid => $label) if (stripos($label, $args[1]) !== false) {
-                        $regexid = $rid;
-                        break;
-                    }
-                    var_dump($regexid ?? null);
-					new InvMenuSession($s, $regexid ?? null);
-				} else $s->listRandoms();
-				break;
-
-			case 'export':
-			case 'convert':
-			case 'e':
-				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
-				$s->exportIsland();
-				break;
-		
-			case 'setspawn':
-			case 'spawn':
-			case 's':
-				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
-				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
-				$vec = $vec ?? $sender->asPosition();
-				if (($w = $s->getIsland()->getLevel()) !== null) if ($w !== $vec->getLevel()->getFolderName()) {
-					$sender->sendMessage(TF::BOLD . TF::RED . 'You can only run this command in the same world as the island: ' . $w);
-					break;
-				} else $s->getIsland()->setLevel($vec->getLevel());
-				$sender->sendMessage(TF::YELLOW . 'Island world spawn set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
-				$s->getIsland()->setSpawn($vec);
-				break;
-
-			case 'setchest':
-			case 'chest':
-			case 'c':
-				if (PlayerSession::errorCheckOutRequired($sender, $s = $this->getSession($sender))) break;
-				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
-				$vec = $vec ?? $sender->asPosition();
-				if (($w = $s->getIsland()->getLevel()) !== null) if ($w !== $vec->getLevel()->getFolderName()) {
-					$sender->sendMessage(TF::BOLD . TF::RED . 'You can only run this command in the same world as the island: ' . $w);
-					break;
-				} else $s->getIsland()->setLevel($vec->getLevel());
-				$sender->sendMessage(TF::YELLOW . 'Island chest position set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
-				$s->getIsland()->setChest($vec);
-				break;
-
-			default:
-				$cmds[] = 'help ' . TF::ITALIC . TF::GRAY . '(Display available subcommands)';
-				if ($sender->hasPermission('island-architect.convert')) {
-					$cmds[] = 'island <Island data file name: string> ' . TF::ITALIC . TF::GRAY . '(Check out or create an island)';
-					$cmds[] = 'pos1 [xyz: int] ' . TF::ITALIC . TF::GRAY . '(Set the start coordinate of the island)';
-					$cmds[] = 'pos2 [xyz: int] ' . TF::ITALIC . TF::GRAY . '(Set the end coordinate of the island)';
-					$cmds[] = 'export ' . TF::ITALIC . TF::GRAY . '(Export the checked out island into template island data file)';
-					$cmds[] = 'random [Random regex ID: int] ' . TF::ITALIC . TF::GRAY . '(Setup random blocks generation)';
-					$cmds[] = 'setspawn ' . TF::ITALIC . TF::GRAY . '(Set the island world spawn)';
-					$cmds[] = 'setchest ' . TF::ITALIC . TF::GRAY . '(Set the island chest position)';
-				}
-				$sender->sendMessage(TF::BOLD . TF::GOLD . 'Available subcommands: ' . ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $cmds ?? ['help']));
-				break;
-		}
-		return true;
-	}
-
-	/**
-	 * @priority MONITOR
-	 */
-	public function onPlayerQuit(PlayerQuitEvent $ev) : void {
-		if (($s = $this->getSession($ev->getPlayer())) === null) return;
-		$s->close();
-		unset($this->sessions[$ev->getPlayer()->getName()]);
-	}
-
-	/**
-	 * @priority HIGH
-	 * @ignoreCancelled
-	 */
-	public function onBlockBreak(BlockBreakEvent $ev) : void {
-		$s = $this->getSession($ev->getPlayer());
-		if (isset($s)) $s->onBlockBreak($ev->getBlock()->asVector3());
-	}
-
-	/**
-	 * @priority HIGH
-	 * @ignoreCancelled
-	 */
-	public function onBlockPlace(BlockPlaceEvent $ev) : void {
-		if (($s = $this->getSession($ev->getPlayer())) === null) return;
-        if (PlayerSession::errorCheckOutRequired($ev->getPlayer(), $this->getSession($ev->getPlayer()))) $ev->setCancelled();
-		else $s->onBlockPlace($ev);
-	}
-
-	/**
-	 * @priority MONITOR
-	 */
-	public function onLevelSave(LevelSaveEvent $ev) : void {
-		foreach ($this->sessions as $s) $s->saveIsland();
-	}
+    /**
+     * @param PlayerSession $session
+     * @return bool Return false if the session has already been disposed or not even in the sessions list
+     */
+    public function disposeSession(PlayerSession $session) : bool {
+        if (($r = array_search($session, $this->sessions, true)) === null) return false;
+        unset($this->sessions[$r]);
+        return true;
+    }
 
 	/**
 	 * @priority HIGH
