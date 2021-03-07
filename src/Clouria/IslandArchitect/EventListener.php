@@ -31,16 +31,21 @@ use pocketmine\event\{
     entity\EntityExplodeEvent,
     level\LevelSaveEvent,
     Listener,
-    player\PlayerQuitEvent
+    player\PlayerQuitEvent,
+    plugin\PluginEnableEvent
 };
 
+use room17\SkyBlock\SkyBlock;
+
 use Clouria\IslandArchitect\{
+    customized\CustomizableClassTrait,
+    customized\skyblock\CustomSkyBlockCreateCommand,
     runtime\RandomGeneration,
     events\RandomGenerationBlockPlaceEvent
 };
 
 class EventListener implements Listener {
-    // TODO: Customizable class trait
+    use CustomizableClassTrait;
 
     /**
 	 * @priority MONITOR
@@ -116,5 +121,18 @@ class EventListener implements Listener {
 	        $randomblocks = $s->getIsland()->getRandomBlocks();
             foreach ($ev->getBlockList() as $block) if (($randomblocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()] ?? null) !== null) $s->getIsland()->setBlockRandom($block->asVector3(), null);
         }
+    }
+
+    /**
+	 * @priority HIGH
+	 */
+	public function onPluginEnable(PluginEnableEvent $ev) : void {
+	    $pl = $ev->getPlugin();
+	    if (!$pl instanceof SkyBlock) return;
+	    $map = $pl->getCommandMap();
+	    $cmd = $map->getCommand('create');
+	    if ($cmd !== null) $pl->getCommandMap()->unregisterCommand($cmd->getName());
+	    $class = CustomSkyBlockCreateCommand::getClass();
+	    $map->registerCommand(new $class);
     }
 }

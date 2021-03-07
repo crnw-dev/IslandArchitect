@@ -46,6 +46,7 @@ class RandomGenerationBlockUpdateEvent extends IslandArchitectEvent implements C
      * @param RandomGenerationBlockPlaceEvent|null $event
      */
     public function __construct(Vector3 $pos, ?int $regexid, ?RandomGenerationBlockPlaceEvent $event) {
+        parent::__construct();
         $this->pos = $pos;
         $this->regexid = $regexid;
         $this->event = $event;

@@ -27,16 +27,15 @@ use pocketmine\{
     utils\TextFormat as TF,
     utils\Utils
 };
-use Clouria\IslandArchitect\{
-    conversion\IslandDataLoadTask,
+use Clouria\IslandArchitect\{conversion\IslandDataLoadTask,
+    customized\CustomizableClassTrait,
     events\TemplateIslandCheckOutEvent,
     runtime\sessions\InvMenuSession,
     runtime\sessions\PlayerSession,
-    runtime\TemplateIsland
-};
+    runtime\TemplateIsland};
 
 class IslandArchitectCommand extends Command {
-    // TODO: Customizable class trait
+    use CustomizableClassTrait;
 
     public function __construct() {
         parent::__construct('island-architect', 'Command of the IslandArchitect plugin', '/island-architect help', ['ia', 'isarch']);

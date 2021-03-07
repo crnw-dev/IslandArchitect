@@ -55,9 +55,11 @@ class IslandArchitect extends PluginBase {
 	public function onEnable() : void {
 		$this->initConfig();
 		if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
-		$this->getServer()->getPluginManager()->registerEvents(new EventListener, $this);
+		$class = EventListener::getClass();
+		$this->getServer()->getPluginManager()->registerEvents(new $class, $this);
 
-		$this->getServer()->getCommandMap()->register($this->getName(), new IslandArchitectCommand);
+		$class = IslandArchitectCommand::getClass();
+		$this->getServer()->getCommandMap()->register($this->getName(), new $class);
 
 		$this->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) : void {
 		    foreach ($this->sessions as $s) if ($s->getIsland() !== null) {
@@ -117,19 +119,6 @@ class IslandArchitect extends PluginBase {
         if (($r = array_search($session, $this->sessions, true)) === null) return false;
         unset($this->sessions[$r]);
         return true;
-    }
-
-	/**
-	 * @priority HIGH
-	 */
-	public function onPluginEnable(PluginEnableEvent $ev) : void {
-	    $pl = $ev->getPlugin();
-	    if (!$pl instanceof SkyBlock) return;
-	    $map = $pl->getCommandMap();
-	    $cmd = $map->getCommand('create');
-	    if ($cmd !== null) $pl->getCommandMap()->unregisterCommand($cmd->getName());
-	    $class = CustomSkyBlockCreateCommand::getClass();
-	    $map->registerCommand(new $class);
     }
 
 	public static function getInstance() : ?self {
