@@ -294,6 +294,9 @@ class IslandArchitect extends PluginBase implements Listener {
 		foreach ($this->sessions as $s) $s->saveIsland();
 	}
 
+    /**
+     * @priority MONITOR
+     */
 	public function onEntityExplode(EntityExplodeEvent $ev) : void {
 	    foreach ($this->sessions as $s) if ($s->getIsland() !== null) $s->onEntityExplode($ev->getBlockList());
     }

@@ -157,9 +157,11 @@ class TemplateIsland {
 	/**
 	 * @see TemplateIsland::getRandomByVector3()
 	 */
-	public function setBlockRandom(Vector3 $block, int $id) : bool {
-		if (!isset($this->getRandoms()[$id])) return false;
-		$this->random_blocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()] = $id;
+	public function setBlockRandom(Vector3 $block, ?int $id) : bool {
+	    $coord = $block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ();
+		if (!isset($this->random_blocks[$coord])) return false;
+		if (isset($id)) $this->random_blocks[$coord] = $id;
+		else unset($this->random_blocks[$coord]);
 		$this->changed = true;
 		return true;
 	}

@@ -143,9 +143,13 @@ class PlayerSession {
     /**
      * @internal
      */
-	public function onEntityExplode(array $getBlockList) : void {
-
+	public function onEntityExplode(array $blocks) : void {
+	    $randomblocks = $this->getIsland()->getRandomBlocks();
+	    foreach ($blocks as $block) if (($randomblocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()] ?? null) !== null) $this->getIsland()->setBlockRandom($block->asVector3(), null);
     }
+
+    // TODO: Move all the event handler functions into a event listener class
+    // TODO: Handler all the events in the event listener class instead of the player session class
 
 	public function close() : void {
 		$this->saveIsland();
