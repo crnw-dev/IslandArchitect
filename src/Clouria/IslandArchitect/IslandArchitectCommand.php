@@ -18,22 +18,18 @@
 
 namespace Clouria\IslandArchitect;
 
-use pocketmine\{
-    command\Command,
+use Clouria\IslandArchitect\{conversion\IslandDataLoadTask,
+    events\TemplateIslandCheckOutEvent,
+    runtime\sessions\InvMenuSession,
+    runtime\sessions\PlayerSession,
+    runtime\TemplateIsland};
+use pocketmine\{command\Command,
     command\CommandSender,
     level\Position,
     Player,
     Server,
     utils\TextFormat as TF,
-    utils\Utils
-};
-use Clouria\IslandArchitect\{
-    conversion\IslandDataLoadTask,
-    events\TemplateIslandCheckOutEvent,
-    runtime\sessions\InvMenuSession,
-    runtime\sessions\PlayerSession,
-    runtime\TemplateIsland
-};
+    utils\Utils};
 
 class IslandArchitectCommand extends Command {
     // TODO: Customizable class trait
@@ -125,7 +121,6 @@ class IslandArchitectCommand extends Command {
                         $regexid = $rid;
                         break;
                     }
-                    var_dump($regexid ?? null);
 					new InvMenuSession($s, $regexid ?? null);
 				} else $s->listRandoms();
 				break;

@@ -20,10 +20,9 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\events;
 
 
-use pocketmine\event\Cancellable;
 use pocketmine\math\Vector3;
 
-class RandomGenerationBlockUpdateEvent extends IslandArchitectEvent implements Cancellable {
+class RandomGenerationBlockUpdateEvent extends IslandArchitectEvent {
     /**
      * @var Vector3
      */

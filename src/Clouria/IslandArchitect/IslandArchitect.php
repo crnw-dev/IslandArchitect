@@ -20,20 +20,9 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect;
 
-use pocketmine\{
-    Player,
-    plugin\PluginBase,
-    scheduler\ClosureTask,
-    utils\TextFormat as TF
-};
-
+use Clouria\IslandArchitect\{runtime\sessions\PlayerSession, runtime\TemplateIsland};
 use muqsit\invmenu\InvMenuHandler;
-
-use Clouria\IslandArchitect\{
-	runtime\TemplateIsland,
-	runtime\sessions\PlayerSession
-};
-
+use pocketmine\{Player, plugin\PluginBase, scheduler\ClosureTask, utils\TextFormat as TF};
 use function array_search;
 use function class_exists;
 
@@ -56,11 +45,10 @@ class IslandArchitect extends PluginBase {
 		$this->initConfig();
 		if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
 		$this->getServer()->getPluginManager()->registerEvents(new EventListener, $this);
-
 		$this->getServer()->getCommandMap()->register($this->getName(), new IslandArchitectCommand);
 
 		$this->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) : void {
-		    foreach ($this->sessions as $s) if ($s->getIsland() !== null) {
+		    foreach ($this->getSessions() as $s) if ($s->getIsland() !== null) {
 		        $r = $s->getIsland()->getRandomByVector3($s->getPlayer()->getTargetBlock(12));
 		        if ($r === null) continue;
 		        $s->getPlayer()->sendPopup(TF::YELLOW . 'Random generation block: ' . TF::BOLD . TF::GOLD . $s->getIsland()->getRandomLabel($r));
