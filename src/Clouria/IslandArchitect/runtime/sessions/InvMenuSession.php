@@ -92,6 +92,10 @@ class InvMenuSession {
 		$this->regexid = $regexid;
 		$this->regex = $regex;
 		$this->callback = $callback;
+		if (!class_exists(InvMenu::class)) {
+			$session->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Cannot open random generation regex modify panel, ' . "\n" . 'required virion "InvMenu(v4)" is not installed. ' . TF::AQUA . 'A blank regex has been added into your island data, you may edit the regex manually with an text editor!');
+			return;
+		}
 
 		$this->panelInit();
 		$this->menu->send($session->getPlayer());

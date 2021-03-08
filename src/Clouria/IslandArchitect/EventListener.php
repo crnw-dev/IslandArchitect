@@ -55,7 +55,7 @@ class EventListener implements Listener {
 	 * @ignoreCancelled
 	 */
 	public function onBlockBreak(BlockBreakEvent $ev) : void {
-		$s = IslandArchitect::getInstance()->getSession($ev->getPlayer());
+		if (($s = IslandArchitect::getInstance()->getSession($ev->getPlayer())) === null or $s->getIsland() === null) return;
 
 		$vec = $ev->getBlock()->asVector3();
 		if (($r = $s->getIsland()->getRandomByVector3($vec)) === null) return;
@@ -70,7 +70,7 @@ class EventListener implements Listener {
 	 * @ignoreCancelled
 	 */
 	public function onBlockPlace(BlockPlaceEvent $ev) : void {
-		if (($s = IslandArchitect::getInstance()->getSession($ev->getPlayer())) === null) return;
+		if (($s = IslandArchitect::getInstance()->getSession($ev->getPlayer())) === null or $s->getIsland() === null) return;
 
 		$item = $ev->getItem();
 		if (($nbt = $item->getNamedTagEntry('IslandArchitect')) === null) return;
