@@ -270,7 +270,7 @@ class TemplateIsland {
 		return $blocks ?? [];
 	}
 
-	public const VERSION = 1.2;
+	public const VERSION = '1.2';
 
 	public function save() : string {
 		$data['level'] = $this->getLevel();
@@ -359,7 +359,7 @@ class TemplateIsland {
         }
 		if (
 			(int)($version = $data['version'] ?? -1) === -1 or
-			((int)$version > self::VERSION) or
+			((int)$version > (int)self::VERSION) or
 			!isset($data['name'])
 		) return null;
 
