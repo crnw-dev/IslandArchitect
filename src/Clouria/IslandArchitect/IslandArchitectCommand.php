@@ -40,7 +40,10 @@ class IslandArchitectCommand extends Command {
     }
 
     public function execute(CommandSender $sender, string $commandLabel, array $args) : void {
-    	// TODO: Display fake unknown command message if the player does not have the permission to run the command
+        if (!$sender->hasPermission('island-architect.cmd')) {
+            Server::getInstance()->sendMessage($this->getLanguage()->translateString(TF::RED . "%commands.generic.notFound"));
+            return;
+        }
         if (!$sender instanceof Player) {
 		    $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
 		    return;
