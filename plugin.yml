@@ -15,3 +15,6 @@ permissions:
         description: Permission to use the "/island-architect" command
       island-architect.convert:
         description: Permission to convert a island into JSON island template file
+        children:
+          island.architect.convert.*:
+            description: Allow a user to checkout and modify specified islands

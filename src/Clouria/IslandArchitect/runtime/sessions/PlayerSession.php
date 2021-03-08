@@ -153,7 +153,7 @@ class PlayerSession {
 				$this->getPlayer()->sendMessage(TF::BOLD . TF::GOLD . 'Attempting to recover original island settings...');
 				$this->checkOutIsland($island);
 				$restore = new IslandDataEmitTask($island, [], function() : void {
-					$this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Restore successed!');
+					$this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Restore succeed!');
 				});
 				Server::getInstance()->getAsyncPool()->submitTask($restore);
 			}
