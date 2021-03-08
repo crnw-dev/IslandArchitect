@@ -18,6 +18,7 @@
 
 namespace Clouria\IslandArchitect;
 
+use jojoe77777\FormAPI\ModalForm;
 use Clouria\IslandArchitect\{conversion\IslandDataLoadTask,
     events\TemplateIslandCheckOutEvent,
     runtime\sessions\InvMenuSession,
@@ -31,6 +32,7 @@ use pocketmine\{command\Command,
     utils\TextFormat as TF,
     utils\Utils};
 use function strtolower;
+use function class_exists;
 
 class IslandArchitectCommand extends Command {
     // TODO: Customizable class trait
@@ -90,28 +92,43 @@ class IslandArchitectCommand extends Command {
 				    $sender->sendMessage(TF::BOLD . TF::RED . 'You don\' have permission to access this island!');
 				    break;
                 }
-				$time = microtime(true);
-				$sender->sendMessage(TF::YELLOW . 'Loading island ' . TF::GOLD . '"' . $args[1] . '"...');
-				$callback = function(?TemplateIsland $is, string $filepath) use ($sender, $time) : void {
-					if (!$sender->isOnline()) return;
-					if (!isset($is)) $is = new TemplateIsland(basename($filepath, '.json'));
-					$s = IslandArchitect::getInstance()->getSession($sender, true);
-					$ev = new TemplateIslandCheckOutEvent($s, $is);
-					$ev->call();
-					if ($ev->isCancelled()) return;
-					$s->checkOutIsland($is);
-					$sender->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . 's)');
-				};
-				foreach(IslandArchitect::getInstance()->getSessions() as $s) if (
-					($i = $s->getIsland()) !== null and
-					$i->getName() === $args[1]
-				) {
-					$path = Utils::cleanPath(IslandArchitect::getInstance()->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/'));
-					$callback($i, $path . ($path[-1] === '/' ? '' : '/') . $i->getName());
-					break;
-				}
-				$task = new IslandDataLoadTask($args[1], $callback);
-				Server::getInstance()->getAsyncPool()->submitTask($task);
+				$checkout = function() use ($sender, $args) {
+                    $time = microtime(true);
+                    $sender->sendMessage(TF::YELLOW . 'Loading island ' . TF::GOLD . '"' . $args[1] . '"...');
+                    $callback = function (?TemplateIsland $is, string $filepath) use ($sender, $time) : void {
+                        if (!$sender->isOnline()) return;
+                        if (!isset($is)) $is = new TemplateIsland(basename($filepath, '.json'));
+                        $s = IslandArchitect::getInstance()->getSession($sender, true);
+                        $ev = new TemplateIslandCheckOutEvent($s, $is);
+                        $ev->call();
+                        if ($ev->isCancelled()) return;
+                        $s->checkOutIsland($is);
+                        $sender->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . 's)');
+                    };
+                    foreach (IslandArchitect::getInstance()->getSessions() as $s) if (
+                        ($i = $s->getIsland()) !== null and
+                        $i->getName() === $args[1]
+                    ) {
+                        $path = Utils::cleanPath(IslandArchitect::getInstance()->getConfig()
+                                                                ->get('island-data-folder', IslandArchitect::getInstance()
+                                                                                                           ->getDataFolder() . 'islands/'));
+                        $callback($i, $path . ($path[-1] === '/' ? '' : '/') . $i->getName());
+                        break;
+                    }
+                    $task = new IslandDataLoadTask($args[1], $callback);
+                    Server::getInstance()->getAsyncPool()->submitTask($task);
+                };
+				if (($s = IslandArchitect::getInstance()->getSession($sender)) !== null and $s->getIsland() !== null and class_exists(ModalForm::class)) {
+				    $f = new ModalForm(function(Player $p, bool $d) use ($checkout, $s) : void {
+                        if (!$d) return;
+                        $s->saveIsland();
+                        $checkout();
+                    });
+				    $f->setTitle(TF::BOLD . TF::DARK_AQUA . 'Switch Island');
+				    $f->setContent(TF::YELLOW . 'You have already checked out an island. ' . TF::GOLD . 'If you choose to proceed, all the changes you do to this island will be ' . TF::BOLD . TF::GREEN . 'save' . TF::RESET . TF::GOLD . ' before switching to the new one!');
+				    $f->setButton1('gui.yes');
+                    $f->setButton2('gui.no');
+                } else $checkout();
 				break;
 
 			case 'random':
