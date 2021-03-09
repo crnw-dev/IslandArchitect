@@ -169,8 +169,7 @@ class InvMenuSession {
 				if ($this->giveitem_lock) return;
 				$i = $this->getSession()->getIsland()->getRandomSymbolicItem($this->getRegexId());
 				$i->setCount(64);
-				$i = $this->getRegex()->getRandomGenerationItem($i);
-				$i->getNamedTagEntry('IslandArchitect')->getCompoundTag('random-generation')->setInt('regexid', $this->getRegexId());
+				$i = $this->getRegex()->getRandomGenerationItem($i, $this->getRegexId());
 				$p->getInventory()->addItem($i);
 				if (isset($this->callback)) ($this->callback)();
 			});

@@ -47,9 +47,9 @@ class IslandArchitectCommand extends Command {
             $sender->sendMessage(Server::getInstance()->getLanguage()->translateString(TF::RED . "%commands.generic.notFound"));
             return;
         }
-        $args[1] = strtolower($args[1]) ?? 'help';
+        $args[0] = strtolower($args[0] ?? 'help');
         if (!$sender instanceof Player) $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
-		else switch ($args[1]) {
+		else switch ($args[0]) {
 			case 'pos1':
 			case 'p1':
 			case '1':
@@ -109,9 +109,7 @@ class IslandArchitectCommand extends Command {
                         ($i = $s->getIsland()) !== null and
                         $i->getName() === $args[1]
                     ) {
-                        $path = Utils::cleanPath(IslandArchitect::getInstance()->getConfig()
-                                                                ->get('island-data-folder', IslandArchitect::getInstance()
-                                                                                                           ->getDataFolder() . 'islands/'));
+                        $path = Utils::cleanPath(IslandArchitect::getInstance()->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/'));
                         $callback($i, $path . ($path[-1] === '/' ? '' : '/') . $i->getName());
                         break;
                     }
@@ -128,6 +126,7 @@ class IslandArchitectCommand extends Command {
 				    $f->setContent(TF::YELLOW . 'You have already checked out an island. ' . TF::GOLD . 'If you choose to proceed, all the changes you do to this island will be ' . TF::BOLD . TF::GREEN . 'save' . TF::RESET . TF::GOLD . ' before switching to the new one!');
 				    $f->setButton1('gui.yes');
                     $f->setButton2('gui.no');
+                    $sender->sendForm($f);
                 } else $checkout();
 				break;
 

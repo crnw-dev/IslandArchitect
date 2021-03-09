@@ -151,6 +151,11 @@ class TemplateIsland {
 		return array_push($this->randoms, $random) - 1;
 	}
 
+	public function getRegexId(RandomGeneration $random) : ?int {
+	    foreach ($this->randoms as $i => $sr) if ($sr === $random) return $i;
+	    return null;
+    }
+
 	/**
 	 * @var array<string, int>
 	 */
