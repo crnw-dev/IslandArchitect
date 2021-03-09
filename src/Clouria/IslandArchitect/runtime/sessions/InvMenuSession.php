@@ -92,6 +92,10 @@ class InvMenuSession {
 		$this->regexid = $regexid;
 		$this->regex = $regex;
 		$this->callback = $callback;
+		if (!class_exists(InvMenu::class)) {
+			$session->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Cannot open random generation regex modify panel, ' . "\n" . 'required virion "InvMenu(v4)" is not installed. ' . TF::AQUA . 'A blank regex has been added into your island data, you may edit the regex manually with an text editor!');
+			return;
+		}
 
 		$this->panelInit();
 		$this->menu->send($session->getPlayer());
@@ -165,8 +169,7 @@ class InvMenuSession {
 				if ($this->giveitem_lock) return;
 				$i = $this->getSession()->getIsland()->getRandomSymbolicItem($this->getRegexId());
 				$i->setCount(64);
-				$i = $this->getRegex()->getRandomGenerationItem($i);
-				$i->getNamedTagEntry('IslandArchitect')->getCompoundTag('random-generation')->setInt('regexid', $this->getRegexId());
+				$i = $this->getRegex()->getRandomGenerationItem($i, $this->getRegexId());
 				$p->getInventory()->addItem($i);
 				if (isset($this->callback)) ($this->callback)();
 			});
@@ -238,10 +241,10 @@ class InvMenuSession {
 	protected function panelSelect() : void {
 		$s = $this->selected !== null;
 		$prefix = TF::RESET . TF::BOLD . TF::GRAY;
-		$surfix = "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Please select a element first)';
+		$suffix = "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Please select a element first)';
 
 		$i = Item::get(Item::CONCRETE, $s ? 14 : 7);
-		$i->setCustomName($s ? TF::RESET . TF::BOLD . TF::RED . 'Remove' : $prefix . 'Remove' . $surfix);
+		$i->setCustomName($s ? TF::RESET . TF::BOLD . TF::RED . 'Remove' : $prefix . 'Remove' . $suffix);
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', $s ? self::ITEM_REMOVE : -1)]));
 		$this->menu->getInventory()->setItem(46, $i, false);
 
@@ -249,7 +252,7 @@ class InvMenuSession {
 		$e = ($s and ($this->getRegex()->getElementChance($this->selected[0], $this->selected[1]) < 32767));
 		$i = Item::get($e ? Item::EMERALD_ORE : Item::STONE);
 		$i->setCustomName($e ? TF::RESET . TF::BOLD . TF::GREEN . 'Increase chance' : (
-			!$s ? $prefix . 'Increase chance' . $surfix : $prefix . 'Increase chance' . $limit
+			!$s ? $prefix . 'Increase chance' . $suffix : $prefix . 'Increase chance' . $limit
 		));
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', $e ? self::ITEM_LUCK : -1)]));
 		$this->menu->getInventory()->setItem(49, $i, false);
@@ -257,7 +260,7 @@ class InvMenuSession {
 		$e = ($s and ($this->getRegex()->getElementChance($this->selected[0], $this->selected[1]) > 1));
 		$i = Item::get($e ? Item::REDSTONE_ORE : Item::STONE);
 		$i->setCustomName($e ? TF::RESET . TF::BOLD . TF::RED . 'Decrease chance' : (
-			!$s ? $prefix . 'Decrease chance' . $surfix : $prefix . 'Decrease chance' . $limit
+			!$s ? $prefix . 'Decrease chance' . $suffix : $prefix . 'Decrease chance' . $limit
 		));
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', $e ? self::ITEM_UNLUCK : -1)]));
 		$this->menu->getInventory()->setItem(48, $i, false);

@@ -2,7 +2,7 @@ name: IslandArchitect
 author: ClouriaNetworkDevelopers
 authors: [Endermanbugzjfc]
 api: 3.0.0
-version: 1.0.2
+version: 1.0.3
 main: Clouria\IslandArchitect\IslandArchitect
 website: https://github.com/crnw-dev/IslandArchitect
 depend: [SkyBlock, InvCrashFix]
@@ -15,5 +15,6 @@ permissions:
         description: Permission to use the "/island-architect" command
       island-architect.convert:
         description: Permission to convert a island into JSON island template file
-      island-architect.reset-all:
-        description: Permission to destruct anyone's convert session for saving for saving up server resource
+        children:
+          island.architect.convert.*:
+            description: Allow a user to checkout and modify specified islands

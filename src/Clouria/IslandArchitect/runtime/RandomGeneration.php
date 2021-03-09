@@ -125,7 +125,7 @@ class RandomGeneration {
 		return true;
 	}
 
-	public function getRandomGenerationItem(Item $item) : Item {
+	public function getRandomGenerationItem(Item $item, ?int $regexid = null) : Item {
 		$totalchance = $this->getTotalChance();
 		foreach ($this->getAllElements() as $block => $chance) {
 			$block = explode(':', $block);
@@ -139,9 +139,11 @@ class RandomGeneration {
 		}
 		$i = $item;
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . 'Random generation' . (!empty($blockslore ?? []) ? ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $blockslore ?? []) : ''));
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new CompoundTag('random-generation', [
+		$tag = new CompoundTag('IslandArchitect', [new CompoundTag('random-generation', [
 			new ListTag('regex', $regex ?? [])
-		])]));
+		])]);
+		if (isset($regexid)) $tag->setInt('regexid', $regexid);
+		$i->setNamedTagEntry($tag);
 		return $i;
 	}
 
