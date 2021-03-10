@@ -97,13 +97,15 @@ class IslandArchitectCommand extends Command {
                     $sender->sendMessage(TF::YELLOW . 'Loading island ' . TF::GOLD . '"' . $args[1] . '"...');
                     $callback = function (?TemplateIsland $is, string $filepath) use ($sender, $time) : void {
                         if (!$sender->isOnline()) return;
-                        if (!isset($is)) $is = new TemplateIsland(basename($filepath, '.json')); // TODO: Send a different than island load message for island creation
+                        if (!isset($is)) {
+                            $is = new TemplateIsland(basename($filepath, '.json'));
+                            $sender->sendMessage(TF::BOLD . TF::GOLD . 'Created' . TF::GREEN . ' new island "' . $is->getName() . '"!');
+                        } else $sender->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . 's)');
                         $s = IslandArchitect::getInstance()->getSession($sender, true);
                         $ev = new TemplateIslandCheckOutEvent($s, $is);
                         $ev->call();
                         if ($ev->isCancelled()) return;
                         $s->checkOutIsland($is);
-                        $sender->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . 's)');
                     };
                     foreach (IslandArchitect::getInstance()->getSessions() as $s) if (
                         ($i = $s->getIsland()) !== null and
@@ -111,7 +113,7 @@ class IslandArchitectCommand extends Command {
                     ) {
                         $path = Utils::cleanPath(IslandArchitect::getInstance()->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/'));
                         $callback($i, $path . ($path[-1] === '/' ? '' : '/') . $i->getName());
-                        break; // TODO: Change to return
+                        return;
                     }
                     $task = new IslandDataLoadTask($args[1], $callback);
                     Server::getInstance()->getAsyncPool()->submitTask($task);
