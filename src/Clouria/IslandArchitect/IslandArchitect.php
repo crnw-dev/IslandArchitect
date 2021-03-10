@@ -91,7 +91,7 @@ class IslandArchitect extends PluginBase {
      * @return bool Return false if the session has already been disposed or not even in the sessions list
      */
     public function disposeSession(PlayerSession $session) : bool {
-        if (($r = array_search($session, $this->sessions, true)) === null) return false;
+        if (($r = array_search($session, $this->sessions, true)) === false) return false;
         if ($this->sessions[$r]->getIsland()) $this->sessions[$r]->saveIsland();
         unset($this->sessions[$r]);
         return true;
