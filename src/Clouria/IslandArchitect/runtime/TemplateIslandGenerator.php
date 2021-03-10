@@ -26,7 +26,6 @@ use pocketmine\{
     block\Block,
     level\generator\Generator as GeneratorInterface};
 
-use Clouria\IslandArchitect\IslandArchitect;
 use Clouria\IslandArchitect\customized\CustomizableClassTrait;
 
 use function unserialize;
@@ -48,29 +47,19 @@ class TemplateIslandGenerator extends GeneratorInterface {
      */
     protected $settings;
 
-    /**
-     * @var string
-     */
-    protected $pathprefix;
-
     public function __construct(array $settings = []) {
-        $this->pathprefix = (string)$conf->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/');
 	    $this->settings = $settings;
+
+	    $rpath = unserialize($settings['preset'])[0];
+        if (!is_file($path = Utils::cleanPath($rpath))) throw new \RuntimeException('Island data file (' . $path . ') is missing'); // TODO: Warn the user to not change the location of template island file after map it
+        $island = TemplateIsland::load(file_get_contents($path));
+        if ($island === null) throw new \RuntimeException('Island "' . basename($path, '.json') . '"("' . $path . '") failed to load');
+        $this->island = $island;
 	}
 
     public function generateChunk(int $chunkX, int $chunkZ) : void {
 		$chunk = $this->level->getChunk($chunkX, $chunkZ);
         $chunk->setGenerated();
-        if (!isset($this->island)) {
-	        $rpath = unserialize($this->getSettings()['preset'])[0];
-			if (
-			    (!is_file($path = Utils::cleanPath($rpath))) and
-                (!is_file($path = ($prefix = Utils::cleanPath($prefix)) . ($prefix[-1] === '/' ? '' : '/') . $rpath))
-            ) throw new \RuntimeException('Island data file (' . $path . ') is missing');
-			$island = TemplateIsland::load(file_get_contents($path));
-			if ($island === null) throw new \RuntimeException('Island "' . basename($path, '.json') . '"("' . $path . '") failed to load');
-			$this->island = $island;
-		}
 		foreach ($this->island->getChunkBlocks($chunk->getX(), $chunk->getZ(), $this->random) as $x => $xd) foreach ($xd as $z => $zd) foreach ($zd as $y => $yd) {
 			if ((int)$yd[0] === Block::AIR) continue;
 			$chunk->setBlock((int)$x, (int)$y, (int)$z, (int)$yd[0], (int)$yd[1]);
