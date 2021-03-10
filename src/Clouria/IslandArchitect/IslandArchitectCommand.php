@@ -18,13 +18,8 @@
 
 namespace Clouria\IslandArchitect;
 
-use jojoe77777\FormAPI\ModalForm;
-use Clouria\IslandArchitect\{conversion\IslandDataLoadTask,
-    events\TemplateIslandCheckOutEvent,
-    runtime\sessions\InvMenuSession,
-    runtime\sessions\PlayerSession,
-    runtime\TemplateIsland};
-use pocketmine\{command\Command,
+use pocketmine\{
+    command\Command,
     command\CommandSender,
     level\Position,
     Player,
@@ -32,13 +27,17 @@ use pocketmine\{command\Command,
     utils\TextFormat as TF,
     utils\Utils
 };
-use Clouria\IslandArchitect\{conversion\IslandDataLoadTask,
+
+use jojoe77777\FormAPI\ModalForm;
+
+use Clouria\IslandArchitect\{
+    conversion\IslandDataLoadTask,
     customized\CustomizableClassTrait,
     events\TemplateIslandCheckOutEvent,
     runtime\sessions\InvMenuSession,
     runtime\sessions\PlayerSession,
-    runtime\TemplateIsland};
-    utils\Utils};
+    runtime\TemplateIsland
+};
 
 use function strtolower;
 use function class_exists;
