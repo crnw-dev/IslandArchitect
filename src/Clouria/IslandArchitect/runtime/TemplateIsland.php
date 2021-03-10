@@ -20,9 +20,9 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
-use pocketmine\{block\Block, item\Item, level\Level, math\Vector3, utils\Random};
 use Clouria\IslandArchitect\events\RandomGenerationBlockPlaceEvent;
 use Clouria\IslandArchitect\events\RandomGenerationBlockUpdateEvent;
+use pocketmine\{block\Block, item\Item, level\Level, math\Vector3, utils\Random};
 use function array_push;
 use function array_rand;
 use function array_search;
@@ -151,6 +151,11 @@ class TemplateIsland {
 		return array_push($this->randoms, $random) - 1;
 	}
 
+	public function getRegexId(RandomGeneration $random) : ?int {
+	    foreach ($this->randoms as $i => $sr) if ($sr === $random) return $i;
+	    return null;
+    }
+
 	/**
 	 * @var array<string, int>
 	 */
@@ -159,16 +164,13 @@ class TemplateIsland {
 	/**
 	 * @see TemplateIsland::getRandomByVector3()
 	 */
-	public function setBlockRandom(Vector3 $block, ?int $id, ?RandomGenerationBlockPlaceEvent $event = null) : bool {
-	    $coord = $block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ();
-		if (!isset($this->random_blocks[$coord])) return false;
+	public function setBlockRandom(Vector3 $block, ?int $id, ?RandomGenerationBlockPlaceEvent $event = null) : void {
 		$ev = new RandomGenerationBlockUpdateEvent($block, $id, $event);
 		$ev->call();
         $coord = $block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ();
 		if ($ev->getRegexId() !== null) $this->random_blocks[$coord] = $ev->getRegexId();
 		else unset($this->random_blocks[$coord]);
 		$this->changed = true;
-		return true;
 	}
 
 	/**
@@ -273,7 +275,7 @@ class TemplateIsland {
 		return $blocks ?? [];
 	}
 
-	public const VERSION = 1.2;
+	public const VERSION = '1.2';
 
 	public function save() : string {
 		$data['level'] = $this->getLevel();
@@ -362,7 +364,7 @@ class TemplateIsland {
         }
 		if (
 			(int)($version = $data['version'] ?? -1) === -1 or
-			((int)$version > self::VERSION) or
+			((int)$version > (int)self::VERSION) or
 			!isset($data['name'])
 		) return null;
 

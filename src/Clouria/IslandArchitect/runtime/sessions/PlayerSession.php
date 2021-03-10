@@ -20,30 +20,17 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime\sessions;
 
-use pocketmine\{
-	Server,
-	Player,
-	utils\TextFormat as TF,
-	level\Level,
-	scheduler\ClosureTask
-};
-
+use Clouria\IslandArchitect\{conversion\IslandDataEmitTask, IslandArchitect, runtime\TemplateIsland};
 use jojoe77777\FormAPI\SimpleForm;
-
-use Clouria\IslandArchitect\{
-	IslandArchitect,
-	runtime\TemplateIsland,
-	conversion\IslandDataEmitTask
-};
-
-use function spl_object_id;
-use function microtime;
-use function round;
-use function get_class;
-use function max;
-use function min;
+use pocketmine\{level\Level, Player, scheduler\ClosureTask, Server, utils\TextFormat as TF};
 use function class_exists;
 use function count;
+use function get_class;
+use function max;
+use function microtime;
+use function min;
+use function round;
+use function spl_object_id;
 
 class PlayerSession {
 
@@ -66,7 +53,7 @@ class PlayerSession {
 	protected $island = null;
 
 	public function checkOutIsland(TemplateIsland $island) : void {
-		if ($this->export_lock) $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'An island is exporting in background, please wait untol the island export is finished!');
+		if ($this->export_lock) $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'An island is exporting in background, please wait until the island export is finished!');
 		else $this->island = $island;
 	}
 
@@ -166,7 +153,7 @@ class PlayerSession {
 				$this->getPlayer()->sendMessage(TF::BOLD . TF::GOLD . 'Attempting to recover original island settings...');
 				$this->checkOutIsland($island);
 				$restore = new IslandDataEmitTask($island, [], function() : void {
-					$this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Restore successed!');
+					$this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Restore succeed!');
 				});
 				Server::getInstance()->getAsyncPool()->submitTask($restore);
 			}

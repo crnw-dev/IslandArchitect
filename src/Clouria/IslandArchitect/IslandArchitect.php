@@ -20,20 +20,9 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect;
 
-use pocketmine\{
-    Player,
-    plugin\PluginBase,
-    scheduler\ClosureTask,
-    utils\TextFormat as TF
-};
-
+use Clouria\IslandArchitect\{runtime\sessions\PlayerSession, runtime\TemplateIsland};
 use muqsit\invmenu\InvMenuHandler;
-
-use Clouria\IslandArchitect\{
-	runtime\TemplateIsland,
-	runtime\sessions\PlayerSession
-};
-
+use pocketmine\{Player, plugin\PluginBase, scheduler\ClosureTask, utils\TextFormat as TF};
 use function array_search;
 use function class_exists;
 
@@ -62,7 +51,7 @@ class IslandArchitect extends PluginBase {
 		$this->getServer()->getCommandMap()->register($this->getName(), new $class);
 
 		$this->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) : void {
-		    foreach ($this->sessions as $s) if ($s->getIsland() !== null) {
+		    foreach ($this->getSessions() as $s) if ($s->getIsland() !== null) {
 		        $r = $s->getIsland()->getRandomByVector3($s->getPlayer()->getTargetBlock(12));
 		        if ($r === null) continue;
 		        $s->getPlayer()->sendPopup(TF::YELLOW . 'Random generation block: ' . TF::BOLD . TF::GOLD . $s->getIsland()->getRandomLabel($r));
@@ -75,7 +64,6 @@ class IslandArchitect extends PluginBase {
 		$conf = $this->getConfig();
 		foreach ($all = $conf->getAll() as $k => $v) $conf->remove($k);
 
-		$conf->set('enable-commands', (bool)($all['enable-commands'] ?? $all['enable-plugin'] ?? true));
 		$conf->set('island-data-folder', (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'));
 		$conf->set('panel-allow-unstable-item', (bool)($all['panel-allow-unstable-item'] ?? true));
 		$conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
@@ -116,7 +104,8 @@ class IslandArchitect extends PluginBase {
      * @return bool Return false if the session has already been disposed or not even in the sessions list
      */
     public function disposeSession(PlayerSession $session) : bool {
-        if (($r = array_search($session, $this->sessions, true)) === null) return false;
+        if (($r = array_search($session, $this->sessions, true)) === false) return false;
+        if ($this->sessions[$r]->getIsland()) $this->sessions[$r]->saveIsland();
         unset($this->sessions[$r]);
         return true;
     }

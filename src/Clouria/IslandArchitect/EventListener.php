@@ -60,12 +60,12 @@ class EventListener implements Listener {
 	 * @ignoreCancelled
 	 */
 	public function onBlockBreak(BlockBreakEvent $ev) : void {
-		$s = IslandArchitect::getInstance()->getSession($ev->getPlayer());
+		if (($s = IslandArchitect::getInstance()->getSession($ev->getPlayer())) === null or $s->getIsland() === null) return;
 
 		$vec = $ev->getBlock()->asVector3();
 		if (($r = $s->getIsland()->getRandomByVector3($vec)) === null) return;
 		$s->getPlayer()->sendPopup(TF::BOLD . TF::YELLOW . 'You have destroyed a random generation block, ' . TF::GOLD . 'the item has returned to your inventory!');
-		$i = $s->getIsland()->getRandomById($r)->getRandomGenerationItem($s->getIsland()->getRandomSymbolicItem($r));
+		$i = $s->getIsland()->getRandomById($r)->getRandomGenerationItem($s->getIsland()->getRandomSymbolicItem($r), $r);
 		$i->setCount(64);
 		$s->getPlayer()->getInventory()->addItem($i);
 	}
@@ -75,7 +75,7 @@ class EventListener implements Listener {
 	 * @ignoreCancelled
 	 */
 	public function onBlockPlace(BlockPlaceEvent $ev) : void {
-		if (($s = IslandArchitect::getInstance()->getSession($ev->getPlayer())) === null) return;
+		if (($s = IslandArchitect::getInstance()->getSession($ev->getPlayer())) === null or $s->getIsland() === null) return;
 
 		$item = $ev->getItem();
 		if (($nbt = $item->getNamedTagEntry('IslandArchitect')) === null) return;
@@ -86,10 +86,14 @@ class EventListener implements Listener {
 		$e = new RandomGenerationBlockPlaceEvent($s, $regex, $ev->getBlock()->asPosition(), $item);
 		$e->call();
 		if ($e->isCancelled()) return;
+		if (($regexid = $nbt->getTag('regexid', IntTag::class)) === null) {
+		    foreach ($s->getIsland()->getRandoms() as $i => $sr) if ($sr->equals($regex)) $regexid = $i;
+		    if ($regexid === null) $regexid = $s->getIsland()->addRandom($regex);
+        }
 		if (
-			($regexid = $nbt->getTag('regexid', IntTag::class)) === null or
-			($r = $s->getIsland()->getRandomById($regexid = $regexid->getValue())) === null or
-			!$r->equals($regex)
+		    $regexid instanceof IntTag and
+			(($r = $s->getIsland()->getRandomById($regexid = $regexid->getValue())) === null or
+			!$r->equals($regex))
 		) $regexid = $s->getIsland()->addRandom($r = $regex);
 		$s->getIsland()->setBlockRandom($ev->getBlock()->asVector3(), $regexid, $e);
 		$symbolic = $s->getIsland()->getRandomSymbolicItem($regexid);
@@ -117,9 +121,15 @@ class EventListener implements Listener {
      */
 	public function onEntityExplode(EntityExplodeEvent $ev) : void {
 	    foreach (IslandArchitect::getInstance()->getSessions() as $s) {
-	        if ($s->getIsland() === null) continue;
-	        $randomblocks = $s->getIsland()->getRandomBlocks();
-            foreach ($ev->getBlockList() as $block) if (($randomblocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()] ?? null) !== null) $s->getIsland()->setBlockRandom($block->asVector3(), null);
+	        $island = $s->getIsland();
+	        if ($island === null) continue;
+	        $affected = 0;
+            foreach ($ev->getBlockList() as $block) if (($r = $island->getRandomByVector3($block->asVector3())) !== null) {
+                $affected++;
+                $s->getIsland()->setBlockRandom($block->asVector3(), null);
+            }
+            $pos = $ev->getPosition();
+            if ($affected > 0) $s->getPlayer()->sendMessage(TF::YELLOW . 'An explosion has destroyed ' . TF::BOLD . TF::GOLD . $affected . TF::RESET . TF::YELLOW . ' random generation blocks at ' . TF::BOLD . TF::GREEN . $pos->getFloorX() . ', ' . $pos->getFloorY() . ', ' . $pos->getFloorZ());
         }
     }
 

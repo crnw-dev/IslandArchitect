@@ -18,8 +18,13 @@
 
 namespace Clouria\IslandArchitect;
 
-use pocketmine\{
-    command\Command,
+use jojoe77777\FormAPI\ModalForm;
+use Clouria\IslandArchitect\{conversion\IslandDataLoadTask,
+    events\TemplateIslandCheckOutEvent,
+    runtime\sessions\InvMenuSession,
+    runtime\sessions\PlayerSession,
+    runtime\TemplateIsland};
+use pocketmine\{command\Command,
     command\CommandSender,
     level\Position,
     Player,
@@ -33,6 +38,10 @@ use Clouria\IslandArchitect\{conversion\IslandDataLoadTask,
     runtime\sessions\InvMenuSession,
     runtime\sessions\PlayerSession,
     runtime\TemplateIsland};
+    utils\Utils};
+
+use function strtolower;
+use function class_exists;
 
 class IslandArchitectCommand extends Command {
     use CustomizableClassTrait;
@@ -43,15 +52,13 @@ class IslandArchitectCommand extends Command {
     }
 
     public function execute(CommandSender $sender, string $commandLabel, array $args) : void {
-        if (!$sender instanceof Player) {
-		    $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
-		    return;
+        if (!$sender->hasPermission('island-architect.cmd')) {
+            $sender->sendMessage(Server::getInstance()->getLanguage()->translateString(TF::RED . "%commands.generic.notFound"));
+            return;
         }
-		if (
-			strtolower($args[1] ?? 'help') !== 'help' and
-			!$sender->hasPermission('island-architect.convert')
-        ) $sender->sendMessage(Server::getInstance()->getLanguage()->translateString(TF::RED . "%commands.generic.permission"));
-		else switch (strtolower($args[0] ?? 'help')) {
+        $args[0] = strtolower($args[0] ?? 'help');
+        if (!$sender instanceof Player) $sender->sendMessage(TF::BOLD . TF::RED . 'Please use the command in-game!');
+		else switch ($args[0]) {
 			case 'pos1':
 			case 'p1':
 			case '1':
@@ -86,32 +93,52 @@ class IslandArchitectCommand extends Command {
 			case 'checkout':
 			case 'check-out':
 			case 'i':
-				if (!isset($args[1])) {
-					$sender->sendMessage(TF::BOLD . TF::RED . 'Please enter the island data file name!');
+				if (!isset($args[1]) or !empty(preg_replace('/[0-9a-zA-Z-_]+/i', '', $args[1]))) {
+					$sender->sendMessage(TF::BOLD . TF::RED . 'Invalid island name or island name argument missing!');
 					break;
 				}
-				$time = microtime(true);
-				$sender->sendMessage(TF::YELLOW . 'Loading island ' . TF::GOLD . '"' . $args[1] . '"...');
-				$callback = function(?TemplateIsland $is, string $filepath) use ($sender, $time) : void {
-					if (!$sender->isOnline()) return;
-					if (!isset($is)) $is = new TemplateIsland(basename($filepath, '.json'));
-					$s = IslandArchitect::getInstance()->getSession($sender, true);
-					$ev = new TemplateIslandCheckOutEvent($s, $is);
-					$ev->call();
-					if ($ev->isCancelled()) return;
-					$s->checkOutIsland($is);
-					$sender->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . 's)');
-				};
-				foreach(IslandArchitect::getInstance()->getSessions() as $s) if (
-					($i = $s->getIsland()) !== null and
-					$i->getName() === $args[1]
-				) {
-					$path = Utils::cleanPath(IslandArchitect::getInstance()->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/'));
-					$callback($i, $path . ($path[-1] === '/' ? '' : '/') . $i->getName());
-					break;
-				}
-				$task = new IslandDataLoadTask($args[1], $callback);
-				Server::getInstance()->getAsyncPool()->submitTask($task);
+				if (!$sender->hasPermission('island-architect.convert') and !$sender->hasPermission('island-architect.convert.' . $args[1])) {
+				    $sender->sendMessage(TF::BOLD . TF::RED . 'You don\' have permission to access this island!');
+				    break;
+                }
+				$checkout = function() use ($sender, $args) {
+                    $time = microtime(true);
+                    $sender->sendMessage(TF::YELLOW . 'Loading island ' . TF::GOLD . '"' . $args[1] . '"...');
+                    $callback = function (?TemplateIsland $is, string $filepath) use ($sender, $time) : void {
+                        if (!$sender->isOnline()) return;
+                        if (!isset($is)) {
+                            $is = new TemplateIsland(basename($filepath, '.json'));
+                            $sender->sendMessage(TF::BOLD . TF::GOLD . 'Created' . TF::GREEN . ' new island "' . $is->getName() . '"!');
+                        } else $sender->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . 's)');
+                        $s = IslandArchitect::getInstance()->getSession($sender, true);
+                        $ev = new TemplateIslandCheckOutEvent($s, $is);
+                        $ev->call();
+                        if ($ev->isCancelled()) return;
+                        $s->checkOutIsland($is);
+                    };
+                    foreach (IslandArchitect::getInstance()->getSessions() as $s) if (
+                        ($i = $s->getIsland()) !== null and
+                        $i->getName() === $args[1]
+                    ) {
+                        $path = Utils::cleanPath(IslandArchitect::getInstance()->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/'));
+                        $callback($i, $path . ($path[-1] === '/' ? '' : '/') . $i->getName());
+                        return;
+                    }
+                    $task = new IslandDataLoadTask($args[1], $callback);
+                    Server::getInstance()->getAsyncPool()->submitTask($task);
+                };
+				if (($s = IslandArchitect::getInstance()->getSession($sender)) !== null and $s->getIsland() !== null and class_exists(ModalForm::class)) {
+				    $f = new ModalForm(function(Player $p, bool $d) use ($checkout, $s) : void {
+                        if (!$d) return;
+                        $s->saveIsland();
+                        $checkout();
+                    });
+				    $f->setTitle(TF::BOLD . TF::DARK_AQUA . 'Switch Island');
+				    $f->setContent(TF::YELLOW . 'You have already checked out an island. ' . TF::GOLD . 'If you choose to proceed, all the changes you do to this island will be ' . TF::BOLD . TF::GREEN . 'save' . TF::RESET . TF::GOLD . ' before switching to the new one!');
+				    $f->setButton1('gui.yes');
+                    $f->setButton2('gui.no');
+                    $sender->sendForm($f);
+                } else $checkout();
 				break;
 
 			case 'random':
@@ -124,7 +151,6 @@ class IslandArchitectCommand extends Command {
                         $regexid = $rid;
                         break;
                     }
-                    var_dump($regexid ?? null);
 					new InvMenuSession($s, $regexid ?? null);
 				} else $s->listRandoms();
 				break;
@@ -166,15 +192,13 @@ class IslandArchitectCommand extends Command {
 
 			default:
 				$cmds[] = 'help ' . TF::ITALIC . TF::GRAY . '(Display available subcommands)';
-				if ($sender->hasPermission('island-architect.convert')) {
-					$cmds[] = 'island <Island data file name: string> ' . TF::ITALIC . TF::GRAY . '(Check out or create an island)';
-					$cmds[] = 'pos1 [xyz: int] ' . TF::ITALIC . TF::GRAY . '(Set the start coordinate of the island)';
-					$cmds[] = 'pos2 [xyz: int] ' . TF::ITALIC . TF::GRAY . '(Set the end coordinate of the island)';
-					$cmds[] = 'export ' . TF::ITALIC . TF::GRAY . '(Export the checked out island into template island data file)';
-					$cmds[] = 'random [Random regex ID: int] ' . TF::ITALIC . TF::GRAY . '(Setup random blocks generation)';
-					$cmds[] = 'setspawn ' . TF::ITALIC . TF::GRAY . '(Set the island world spawn)';
-					$cmds[] = 'setchest ' . TF::ITALIC . TF::GRAY . '(Set the island chest position)';
-				}
+                $cmds[] = 'island <Island data file name: string> ' . TF::ITALIC . TF::GRAY . '(Check out or create an island)';
+                $cmds[] = 'pos1 [xyz: int] ' . TF::ITALIC . TF::GRAY . '(Set the start coordinate of the island)';
+                $cmds[] = 'pos2 [xyz: int] ' . TF::ITALIC . TF::GRAY . '(Set the end coordinate of the island)';
+                $cmds[] = 'export ' . TF::ITALIC . TF::GRAY . '(Export the checked out island into template island data file)';
+                $cmds[] = 'random [Random regex ID: int] ' . TF::ITALIC . TF::GRAY . '(Setup random blocks generation)';
+                $cmds[] = 'setspawn ' . TF::ITALIC . TF::GRAY . '(Set the island world spawn)';
+                $cmds[] = 'setchest ' . TF::ITALIC . TF::GRAY . '(Set the island chest position)';
 				$sender->sendMessage(TF::BOLD . TF::GOLD . 'Available subcommands: ' . ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $cmds ?? ['help']));
 				break;
 		}
