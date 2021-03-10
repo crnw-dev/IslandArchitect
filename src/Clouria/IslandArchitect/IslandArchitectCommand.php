@@ -97,7 +97,7 @@ class IslandArchitectCommand extends Command {
                     $sender->sendMessage(TF::YELLOW . 'Loading island ' . TF::GOLD . '"' . $args[1] . '"...');
                     $callback = function (?TemplateIsland $is, string $filepath) use ($sender, $time) : void {
                         if (!$sender->isOnline()) return;
-                        if (!isset($is)) $is = new TemplateIsland(basename($filepath, '.json'));
+                        if (!isset($is)) $is = new TemplateIsland(basename($filepath, '.json')); // TODO: Send a different than island load message for island creation
                         $s = IslandArchitect::getInstance()->getSession($sender, true);
                         $ev = new TemplateIslandCheckOutEvent($s, $is);
                         $ev->call();
@@ -111,7 +111,7 @@ class IslandArchitectCommand extends Command {
                     ) {
                         $path = Utils::cleanPath(IslandArchitect::getInstance()->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/'));
                         $callback($i, $path . ($path[-1] === '/' ? '' : '/') . $i->getName());
-                        break;
+                        break; // TODO: Change to return
                     }
                     $task = new IslandDataLoadTask($args[1], $callback);
                     Server::getInstance()->getAsyncPool()->submitTask($task);

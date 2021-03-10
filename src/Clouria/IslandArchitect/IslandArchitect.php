@@ -92,6 +92,7 @@ class IslandArchitect extends PluginBase {
      */
     public function disposeSession(PlayerSession $session) : bool {
         if (($r = array_search($session, $this->sessions, true)) === null) return false;
+        if ($this->sessions[$r]->getIsland()) $this->sessions[$r]->saveIsland();
         unset($this->sessions[$r]);
         return true;
     }

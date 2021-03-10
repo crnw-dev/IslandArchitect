@@ -116,9 +116,15 @@ class EventListener implements Listener {
      */
 	public function onEntityExplode(EntityExplodeEvent $ev) : void {
 	    foreach (IslandArchitect::getInstance()->getSessions() as $s) {
-	        if ($s->getIsland() === null) continue;
-	        $randomblocks = $s->getIsland()->getRandomBlocks();
-            foreach ($ev->getBlockList() as $block) if (($randomblocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()] ?? null) !== null) $s->getIsland()->setBlockRandom($block->asVector3(), null);
+	        $island = $s->getIsland();
+	        if ($island === null) continue;
+	        $affected = 0;
+            foreach ($ev->getBlockList() as $block) if (($r = $island->getRandomByVector3($block->asVector3())) !== null) {
+                $affected++;
+                $s->getIsland()->setBlockRandom($block->asVector3(), null);
+            }
+            $pos = $ev->getPosition();
+            if ($affected > 0) $s->getPlayer()->sendMessage(TF::YELLOW . 'An explosion has destroyed ' . TF::BOLD . TF::GOLD . $affected . TF::RESET . TF::YELLOW . ' random generation blocks at ' . TF::BOLD . TF::GREEN . $pos->getFloorX() . ', ' . $pos->getFloorY() . ', ' . $pos->getFloorZ());
         }
     }
 }
