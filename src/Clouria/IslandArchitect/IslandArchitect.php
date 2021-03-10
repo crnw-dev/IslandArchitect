@@ -20,9 +20,20 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect;
 
-use Clouria\IslandArchitect\{runtime\sessions\PlayerSession, runtime\TemplateIsland};
+use room17\SkyBlock\SkyBlock;
+use Clouria\IslandArchitect\{
+    customized\skyblock\CustomSkyBlockCreateCommand,
+    runtime\sessions\PlayerSession,
+    runtime\TemplateIsland};
 use muqsit\invmenu\InvMenuHandler;
-use pocketmine\{Player, plugin\PluginBase, scheduler\ClosureTask, utils\TextFormat as TF};
+use pocketmine\{
+    Player,
+    plugin\PluginBase,
+    scheduler\ClosureTask,
+    utils\TextFormat as TF,
+    utils\Utils};
+use function strtolower;
+use function file_exists;
 use function array_search;
 use function class_exists;
 
@@ -50,6 +61,8 @@ class IslandArchitect extends PluginBase {
 		$class = IslandArchitectCommand::getClass();
 		$this->getServer()->getCommandMap()->register($this->getName(), new $class);
 
+		if (SkyBlock::getInstance() !== null and SkyBlock::getInstance()->isEnabled()) $this->initDependency();
+
 		$this->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) : void {
 		    foreach ($this->getSessions() as $s) if ($s->getIsland() !== null) {
 		        $r = $s->getIsland()->getRandomByVector3($s->getPlayer()->getTargetBlock(12));
@@ -59,6 +72,18 @@ class IslandArchitect extends PluginBase {
         }), 10);
 	}
 
+    /**
+     * @internal
+     */
+	public function initDependency() : void {
+	    $pl = SkyBlock::getInstance();
+	    $map = $pl->getCommandMap();
+	    $cmd = $map->getCommand('create');
+	    if ($cmd !== null) $pl->getCommandMap()->unregisterCommand($cmd->getName());
+	    $class = CustomSkyBlockCreateCommand::getClass();
+	    $map->registerCommand(new $class($map));
+    }
+
 	private function initConfig() : void {
 		$this->saveDefaultConfig();
 		$conf = $this->getConfig();
@@ -67,7 +92,7 @@ class IslandArchitect extends PluginBase {
 		$conf->set('island-data-folder', (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'));
 		$conf->set('panel-allow-unstable-item', (bool)($all['panel-allow-unstable-item'] ?? true));
 		$conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
-		$conf->set('island-creation-command-mapping', (array)($all['island-type-map'] ?? [
+		$conf->set('island-creation-command-mapping', (array)($all['island-creation-command-mapping'] ?? [
 		    'generation-name-which-will-be' => 'exported-island-data-file.json',
             'use-in-island-creation-cmd' => 'relative-path/start-from/island-data-folder.json'
         ]));
@@ -87,8 +112,13 @@ class IslandArchitect extends PluginBase {
 	}
 
 	public function mapGeneratorType(string $type) : ?string {
-	    $type = $this->getConfig()->get('island-creation-command-mapping')[$type] ?? null;
-	    if (isset($type) and !file_exists($type)) $type = null;
+	    foreach ($this->getConfig()->get('island-creation-command-mapping', []) as $st => $file) if (strtolower($st) === strtolower($type)) {
+	        $sf = $file;
+	        break;
+        }
+	    if (!isset($sf)) return null;
+	    $type = $sf;
+	    if (isset($type) and !(file_exists(Utils::cleanPath($type))) and !file_exists(Utils::cleanPath((string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/') . $type))) $type = null;
 	    return $type;
     }
 

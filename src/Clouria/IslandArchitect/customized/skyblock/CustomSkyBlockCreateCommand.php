@@ -31,6 +31,7 @@ use Clouria\IslandArchitect\{
     customized\CustomizableClassTrait
 };
 
+use function is_a;
 use function strtolower;
 
 class CustomSkyBlockCreateCommand extends CreateCommand {
@@ -40,12 +41,12 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
      * @throws \ReflectionException
      */
     public function onCommand(Session $session, array $args): void {
-
         if($this->getPrivateMethodClosure('checkIslandAvailability')($session) or $this->getPrivateMethodClosure('checkIslandCreationCooldown')($session)) return;
 
         $generator = strtolower($args[0] ?? "Shelly");
         if((SkyBlock::getInstance()->getGeneratorManager()->isGenerator($generator) or IslandArchitect::getInstance()->mapGeneratorType($generator) !== null) and $this->getPrivateMethodClosure('hasPermission')($session, $generator)) {
-            CustomSkyBlockIslandFactory::getClass()::createIslandFor($session, $generator);
+            $class = CustomSkyBlockIslandFactory::getClass();
+            if (is_a($class, CustomSkyBlockIslandFactory::class, true)) $class::createIslandFor($session, $generator);
             $session->sendTranslatedMessage(new MessageContainer("SUCCESSFULLY_CREATED_A_ISLAND"));
         } else $session->sendTranslatedMessage(new MessageContainer("NOT_VALID_GENERATOR", ["name" => $generator]));
     }

@@ -33,7 +33,7 @@ trait CustomizableClassTrait {
     }
 
     final public static function getClass() : string {
-        return self::$class;
+        return self::$class ?? self::class;
     }
 
 }

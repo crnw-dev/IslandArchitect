@@ -39,7 +39,6 @@ use room17\SkyBlock\SkyBlock;
 
 use Clouria\IslandArchitect\{
     customized\CustomizableClassTrait,
-    customized\skyblock\CustomSkyBlockCreateCommand,
     runtime\RandomGeneration,
     events\RandomGenerationBlockPlaceEvent
 };
@@ -139,10 +138,6 @@ class EventListener implements Listener {
 	public function onPluginEnable(PluginEnableEvent $ev) : void {
 	    $pl = $ev->getPlugin();
 	    if (!$pl instanceof SkyBlock) return;
-	    $map = $pl->getCommandMap();
-	    $cmd = $map->getCommand('create');
-	    if ($cmd !== null) $pl->getCommandMap()->unregisterCommand($cmd->getName());
-	    $class = CustomSkyBlockCreateCommand::getClass();
-	    $map->registerCommand(new $class);
+	    IslandArchitect::getInstance()->initDependency();
     }
 }
