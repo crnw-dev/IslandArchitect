@@ -24,9 +24,11 @@ use room17\SkyBlock\SkyBlock;
 use Clouria\IslandArchitect\{
     customized\skyblock\CustomSkyBlockCreateCommand,
     runtime\sessions\PlayerSession,
-    runtime\TemplateIsland};
+    runtime\TemplateIsland,
+    runtime\TemplateIslandGenerator};
 use muqsit\invmenu\InvMenuHandler;
 use pocketmine\{
+    level\generator\GeneratorManager,
     Player,
     plugin\PluginBase,
     scheduler\ClosureTask,
@@ -57,6 +59,11 @@ class IslandArchitect extends PluginBase {
 		if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
 		$class = EventListener::getClass();
 		$this->getServer()->getPluginManager()->registerEvents(new $class, $this);
+
+		$class = TemplateIslandGenerator::getClass();
+		if (is_a($class, TemplateIslandGenerator::class, true)) $genname = $class::GENERATOR_NAME;
+		else throw new \RuntimeException();
+		GeneratorManager::addGenerator($class, $genname, true);
 
 		$class = IslandArchitectCommand::getClass();
 		$this->getServer()->getCommandMap()->register($this->getName(), new $class);

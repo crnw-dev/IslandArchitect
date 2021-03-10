@@ -36,6 +36,7 @@ use Clouria\IslandArchitect\{customized\CustomizableClassTrait,
 
 use function uniqid;
 use function microtime;
+use function serialize;
 
 class CustomSkyBlockIslandFactory extends IslandFactory {
     use CustomizableClassTrait;
@@ -45,11 +46,11 @@ class CustomSkyBlockIslandFactory extends IslandFactory {
 
         $generatorManager = $skyblock->getGeneratorManager();
         if ($generatorManager->isGenerator($type)) $generator = $generatorManager->getGenerator($type);
-        elseif (($type = IslandArchitect::getInstance()->mapGeneratorType($type)) !== null) $settings = [$type];
+        elseif (($type = IslandArchitect::getInstance()->mapGeneratorType($type)) !== null) $settings = ['preset' => serialize([$type])];
         else $generator = $generatorManager->getGenerator("Basic");
-
         $server = $skyblock->getServer();
-        $server->generateLevel($identifier, null, $generator ?? TemplateIslandGenerator::getClass(), $settings ?? []);
+        $server->generateLevel($identifier, 
+null, $generator ?? TemplateIslandGenerator::getClass(), $settings ?? []);
         $server->loadLevel($identifier);
         $level = $server->getLevelByName($identifier);
         if (isset($generator)) $level->setSpawnLocation($generator::getWorldSpawn());

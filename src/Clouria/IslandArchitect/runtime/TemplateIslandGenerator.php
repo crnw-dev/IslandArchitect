@@ -21,33 +21,52 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
 use pocketmine\{
-	math\Vector3,
-	utils\Utils,
-    block\Block
-};
+    math\Vector3,
+    utils\Utils,
+    block\Block,
+    level\generator\Generator as GeneratorInterface};
 
-use room17\SkyBlock\island\generator\IslandGenerator;
-
+use Clouria\IslandArchitect\IslandArchitect;
 use Clouria\IslandArchitect\customized\CustomizableClassTrait;
 
 use function unserialize;
 use function is_file;
 use function file_get_contents;
 
-class TemplateIslandGenerator extends IslandGenerator {
+class TemplateIslandGenerator extends GeneratorInterface {
     use CustomizableClassTrait;
+
+    public const GENERATOR_NAME = 'templateislandgenerator';
 
     /**
 	 * @var TemplateIsland|null
 	 */
 	protected $island = null;
 
+    /**
+     * @var array
+     */
+    protected $settings;
+
+    /**
+     * @var string
+     */
+    protected $pathprefix;
+
+    public function __construct(array $settings = []) {
+        $this->pathprefix = (string)$conf->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/');
+	    $this->settings = $settings;
+	}
+
     public function generateChunk(int $chunkX, int $chunkZ) : void {
 		$chunk = $this->level->getChunk($chunkX, $chunkZ);
         $chunk->setGenerated();
         if (!isset($this->island)) {
-	        $path = Utils::cleanPath(unserialize($this->getSettings()['preset'][0]));
-			if (!is_file($path)) throw new \RuntimeException('Island data file (' . $path . ') is missing');
+	        $rpath = unserialize($this->getSettings()['preset'])[0];
+			if (
+			    (!is_file($path = Utils::cleanPath($rpath))) and
+                (!is_file($path = ($prefix = Utils::cleanPath($prefix)) . ($prefix[-1] === '/' ? '' : '/') . $rpath))
+            ) throw new \RuntimeException('Island data file (' . $path . ') is missing');
 			$island = TemplateIsland::load(file_get_contents($path));
 			if ($island === null) throw new \RuntimeException('Island "' . basename($path, '.json') . '"("' . $path . '") failed to load');
 			$this->island = $island;
@@ -62,12 +81,13 @@ class TemplateIslandGenerator extends IslandGenerator {
 		return isset($this->island) ? $this->island->getName() : 'TemplateIslandGenerator';
 	}
 
-	public static function getWorldSpawn() : Vector3 {
-    	return new Vector3(0, 0, 0);
-	}
+    public function populateChunk(int $chunkX, int $chunkZ) : void {}
 
-    public static function getChestPosition() : Vector3 {
-    	return new Vector3(0, 0, 0);
+    public function getSettings() : array {
+        return $this->settings;
     }
 
+    public function getSpawn() : Vector3 {
+        return new Vector3(0, 0, 0);
+    }
 }
