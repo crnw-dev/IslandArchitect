@@ -46,6 +46,7 @@ class TemplateIslandGenerator extends GeneratorInterface {
      * @var array
      */
     protected $settings;
+    protected $spawnset = false;
 
     public function __construct(array $settings = []) {
 	    $this->settings = $settings;
@@ -60,7 +61,9 @@ class TemplateIslandGenerator extends GeneratorInterface {
     public function generateChunk(int $chunkX, int $chunkZ) : void {
 		$chunk = $this->level->getChunk($chunkX, $chunkZ);
         $chunk->setGenerated();
-		foreach ($this->island->getChunkBlocks($chunk->getX(), $chunk->getZ(), $this->random) as $x => $xd) foreach ($xd as $z => $zd) foreach ($zd as $y => $yd) {
+        $blocks = $this->island->getChunkBlocks($chunk->getX(), $chunk->getZ(), $this->random);
+        var_dump($blocks);
+		foreach ($blocks as $x => $xd) foreach ($xd as $z => $zd) foreach ($zd as $y => $yd) {
 			if ((int)$yd[0] === Block::AIR) continue;
 			$chunk->setBlock((int)$x, (int)$y, (int)$z, (int)$yd[0], (int)$yd[1]);
 		}

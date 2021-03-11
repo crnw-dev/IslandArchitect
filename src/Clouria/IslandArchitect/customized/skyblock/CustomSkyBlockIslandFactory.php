@@ -21,6 +21,7 @@ namespace Clouria\IslandArchitect\customized\skyblock;
 
 use pocketmine\level\Level;
 
+use pocketmine\math\Vector3;
 use room17\SkyBlock\{
     event\island\IslandCreateEvent,
     island\IslandFactory,
@@ -34,7 +35,9 @@ use Clouria\IslandArchitect\{customized\CustomizableClassTrait,
     IslandArchitect,
     runtime\TemplateIslandGenerator};
 
+use function is_a;
 use function uniqid;
+use function assert;
 use function microtime;
 use function serialize;
 
@@ -65,12 +68,14 @@ null, $generator ?? TemplateIslandGenerator::getClass(), $settings ?? []);
         $ev = new IslandWorldPreCreateEvent($session, $identifier, $type);
         $ev->call();
         $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, $type,
-            self::createIslandWorld($ev->getIdentifier(), $ev->getType()), 0);
+            $w = self::createIslandWorld($ev->getIdentifier(), $ev->getType()), 0);
 
         $session->setIsland($island = $islandManager->getIsland($identifier));
         $session->setRank(RankIds::FOUNDER);
         $session->setLastIslandCreationTime(microtime(true));
-        $session->getPlayer()->teleport($island->getSpawnLocation());
+        $class = TemplateIslandGenerator::getClass();
+        assert(is_a($class, TemplateIslandGenerator::class, true));
+        $session->getPlayer()->teleport($w->getProvider()->getGenerator() === $class::GENERATOR_NAME ? new Vector3(0, 0, 0) : $island->getSpawnLocation()); // TODO: Fix god damn coord
 
         $session->save();
         $island->save();
