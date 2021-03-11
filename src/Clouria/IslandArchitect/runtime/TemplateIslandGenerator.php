@@ -62,7 +62,6 @@ class TemplateIslandGenerator extends GeneratorInterface {
 		$chunk = $this->level->getChunk($chunkX, $chunkZ);
         $chunk->setGenerated();
         $blocks = $this->island->getChunkBlocks($chunk->getX(), $chunk->getZ(), $this->random);
-        var_dump($blocks);
 		foreach ($blocks as $x => $xd) foreach ($xd as $z => $zd) foreach ($zd as $y => $yd) {
 			if ((int)$yd[0] === Block::AIR) continue;
 			$chunk->setBlock((int)$x, (int)$y, (int)$z, (int)$yd[0], (int)$yd[1]);
