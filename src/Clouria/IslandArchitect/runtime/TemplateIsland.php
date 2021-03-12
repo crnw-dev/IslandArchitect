@@ -27,6 +27,7 @@ use Clouria\IslandArchitect\{
     events\RandomGenerationBlockUpdateEvent
 };
 
+use function is_array;
 use function array_push;
 use function array_rand;
 use function array_search;
@@ -285,6 +286,10 @@ class TemplateIsland {
 		$data['level'] = $this->getLevel();
 		$data['startcoord'] = $this->getStartCoord();
 		$data['endcoord'] = $this->getEndCoord();
+		if (($vec = $this->getSpawn()) !== null) $data['spawn'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
+		else $data['spawn'] = null;
+		if (($vec = $this->getChest()) !== null) $data['chest'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
+		else $data['chest'] = null;
 		$data['random_blocks'] = $this->random_blocks;
 		$data['random_labels'] = $this->random_labels;
 		foreach ($this->symbolic as $regexid => $symbolic) {
@@ -305,8 +310,8 @@ class TemplateIsland {
 	 * @return string JSON encoded template island data
 	 */
 	public function export(array $chunks) : string {
-		$sc = $this->getStartCoord();
-		$ec = $this->getEndCoord();
+		$sc = $this->getStartCoord()->floor();
+		$ec = $this->getEndCoord()->floor();
 
 		$usedrandoms = [];
 		foreach ($chunks[0] as $hash => $chunk) {
@@ -346,18 +351,24 @@ class TemplateIsland {
 
 		if (!empty($usedrandoms ?? [])) foreach ($this->randoms as $id => $random) if (in_array($id, $usedrandoms)) $data['randoms'][] = $random->getAllElements();
 
+		if (($vec = $this->getSpawn()) !== null) {
+            $vec = $vec->subtract($sc);
+            $coord = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
+		    $data['spawn'] = $coord;
+        }
+
+		if (($vec = $this->getChest()) !== null) {
+            $vec = $vec->subtract($sc);
+            $coord = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
+		    $data['chest'] = $coord;
+        }
+
 		return $this->encode($data ?? []);
 	}
 
 	protected function encode(array $data) : string {
 		$data['version'] = self::VERSION;
 		$data['name'] = $this->getName();
-
-		if (($vec = $this->getSpawn()) !== null) $data['spawn'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
-		else $data['spawn'] = null;
-
-		if (($vec = $this->getChest()) !== null) $data['chest'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
-		else $data['chest'] = null;
 
 		return json_encode($data);
 	}
@@ -391,11 +402,13 @@ class TemplateIsland {
 		if (isset($data['random_blocks']) or isset($data['blocks'])) $self->random_blocks = $data['random_blocks'] ?? $data['blocks'];
 		if (isset($data['random_labels']) or isset($data['labels'])) $self->random_labels = $data['random_labels'] ?? $data['labels'];
 		if (isset($data['spawn'])) {
-			$coord = $data['spawn'];
+		    if (!is_array($data['spawn'])) $coord = explode(':', $data['spawn']);
+			else $coord = $data['spawn'];
 			$self->spawn = new Vector3((int)($coord['x'] ?? $coord[0]), (int)($coord['y'] ?? $coord[1]), (int)($coord['z'] ?? $coord[2]));
 		}
 		if (isset($data['chest'])) {
-			$coord = $data['chest'];
+		    if (!is_array($data['chest'])) $coord = explode(':', $data['chest']);
+			else $coord = $data['chest'];
 			$self->chest = new Vector3((int)($coord['x'] ?? $coord[0]), (int)($coord['y'] ?? $coord[1]), (int)($coord['z'] ?? $coord[2]));
 		}
 		if (isset($data['random_blocks'])) $self->random_blocks = $data['random_blocks'];
