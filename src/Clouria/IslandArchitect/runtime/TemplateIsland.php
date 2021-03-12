@@ -20,9 +20,13 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
-use Clouria\IslandArchitect\events\RandomGenerationBlockPlaceEvent;
-use Clouria\IslandArchitect\events\RandomGenerationBlockUpdateEvent;
 use pocketmine\{block\Block, item\Item, level\Level, math\Vector3, utils\Random};
+
+use Clouria\IslandArchitect\{
+    events\RandomGenerationBlockPlaceEvent,
+    events\RandomGenerationBlockUpdateEvent
+};
+
 use function array_push;
 use function array_rand;
 use function array_search;
@@ -109,7 +113,7 @@ class TemplateIsland {
 	 * @var string|null
 	 */
 	protected $level = null;
-	
+
 	public function getLevel() : ?string {
 		return $this->level;
 	}
@@ -297,7 +301,7 @@ class TemplateIsland {
 	}
 
 	/**
-	 * @param mixed[] $chunks 
+	 * @param mixed[] $chunks
 	 * @return string JSON encoded template island data
 	 */
 	public function export(array $chunks) : string {
@@ -307,31 +311,37 @@ class TemplateIsland {
 		$usedrandoms = [];
 		foreach ($chunks[0] as $hash => $chunk) {
 			$chunk = $chunks[1][$hash]::fastDeserialize($chunk);
-			$chunksmap[$hash] = $chunk;
-		}
-		for ($x = min($sc->getFloorX(), $ec->getFloorX()); $x <= max($sc->getFloorX(), $ec->getFloorX()); $x++) for ($z = min($sc->getFloorZ(), $ec->getFloorZ()); $z <= max($sc->getFloorZ(), $ec->getFloorZ()); $z++) {
-			$chunk = $chunksmap[Level::chunkHash($x >> 4, $z >> 4)] ?? null;
-			if ($chunk === null) continue;
-			$bx = $x - min($sc->getFloorX(), $ec->getFloorX());
-			$bz = $z - min($sc->getFloorZ(), $ec->getFloorZ());
-			for ($y = min($sc->getFloorY(), $ec->getFloorY()); $y <= max($sc->getFloorY(), $ec->getFloorY()); $y++) {
-				if (($id = $chunk->getBlockId($x & 0x0f, $y & 0x0f, $z & 0x0f)) === Block::AIR) continue;
-				$by = $y - min($sc->getFloorY(), $ec->getFloorY());
-				$coord = $x . ':' . $y . ':' . $z;
-				$bcoord = $bx . ':' . $by . ':' . $bz;
-				if (isset($this->random_blocks[$coord])) {
-					$id = $this->random_blocks[$coord];
-					if (($r = $this->getRandomById($this->random_blocks[$coord])) === null) continue;
-					if (!$r->isValid()) continue;
-					if (($i = array_search($id, $usedrandoms, true)) === false) $id = array_push($usedrandoms, $id) - 1;
-					else $id = $usedrandoms[$i];
-					$data['structure'][$bcoord] = '1:' . $id;
-				} else {
-					$data['structure'][$bcoord] = '0:' . $id;
-					$meta = $chunk->getBlockData($x & 0x0f, $y, $z & 0x0f);
-					if ($meta !== Item::AIR) $data['structure'][$bcoord] .= $meta;
-				}
-			}
+			for ($x=0; $x <= 16; $x++) for ($z=0; $z < 16; $z++) {
+			    $wx = ($chunk->getX() << 4) + $x;
+			    $wz = ($chunk->getZ() << 4) + $z;
+			    if (
+			        $wx < min($sc->getFloorX(), $ec->getFloorX()) or
+                    $wx > max($sc->getFloorX(), $ec->getFloorX()) or
+			        $wz < min($sc->getFloorZ(), $ec->getFloorZ()) or
+                    $wz > max($sc->getFloorZ(), $ec->getFloorZ())
+                ) continue;
+                $bx = $wx - min($sc->getFloorX(), $ec->getFloorX());
+                $bz = $wz - min($sc->getFloorZ(), $ec->getFloorZ());
+                for ($y = min($sc->getFloorY(), $ec->getFloorY()); $y <= max($sc->getFloorY(), $ec->getFloorY()); $y++) {
+                    if (($id = $chunk->getBlockId($x, $y, $z)) === Block::AIR) continue;
+                    $by = $y - min($sc->getFloorY(), $ec->getFloorY());
+                    $coord = $x . ':' . $y . ':' . $z;
+                    $bcoord = $bx . ':' . $by . ':' . $bz;
+                    if (isset($this->random_blocks[$coord])) {
+                        $id = $this->random_blocks[$coord];
+                        if (($r = $this->getRandomById($this->random_blocks[$coord])) === null) continue;
+                        if (!$r->isValid()) continue;
+                        if (($i = array_search($id, $usedrandoms, true)) === false) $id = array_push($usedrandoms, $id) - 1;
+                        else $id = $usedrandoms[$i];
+                        $data['structure'][$bcoord] = '1:' . $id;
+                    } else {
+                        $data['structure'][$bcoord] = '0:' . $id;
+                        $meta = $chunk->getBlockData($x & 0x0f, $y, $z & 0x0f);
+                        if ($meta !== Item::AIR) $data['structure'][$bcoord] .= $meta;
+                    }
+                }
+            }
+            unset($chunks[$hash]);
 		}
 
 		if (!empty($usedrandoms ?? [])) foreach ($this->randoms as $id => $random) if (in_array($id, $usedrandoms)) $data['randoms'][] = $random->getAllElements();
