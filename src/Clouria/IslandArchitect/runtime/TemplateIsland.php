@@ -284,8 +284,8 @@ class TemplateIsland {
 
 	public function save() : string {
 		$data['level'] = $this->getLevel();
-		$data['startcoord'] = $this->getStartCoord();
-		$data['endcoord'] = $this->getEndCoord();
+		$data['startcoord'] = $this->getStartCoord() === null ? null : $this->getStartCoord()->floor();
+		$data['endcoord'] = $this->getEndCoord() === null ? null : $this->getEndCoord()->floor();
 		if (($vec = $this->getSpawn()) !== null) $data['spawn'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
 		else $data['spawn'] = null;
 		if (($vec = $this->getChest()) !== null) $data['chest'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
