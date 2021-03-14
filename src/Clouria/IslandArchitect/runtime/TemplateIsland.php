@@ -339,7 +339,7 @@ class TemplateIsland {
                 ) continue;
                 $bx = $wx - $lx;
                 $bz = $wz - $lz;
-                for ($y = $ly; $uy <= $ly; $y++) {
+                for ($y = $ly; $y <= $uy; $y++) {
                     if (($id = $chunk->getBlockId($x, $y, $z)) === Block::AIR) continue;
                     $by = $y - $ly;
                     $coord = $wx . ':' . $y . ':' . $wz;
@@ -364,13 +364,13 @@ class TemplateIsland {
 		if (!empty($usedrandoms ?? [])) foreach ($this->randoms as $id => $random) if (in_array($id, $usedrandoms)) $data['randoms'][] = $random->getAllElements();
 
 		if (($vec = $this->getSpawn()) !== null) {
-            $vec = $vec->subtract($sc);
+            $vec = $vec->subtract($lx, $ly, $lz);
             $coord = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
 		    $data['spawn'] = $coord;
         }
 
 		if (($vec = $this->getChest()) !== null) {
-            $vec = $vec->subtract($sc);
+            $vec = $vec->subtract($lx, $ly, $lz);
             $coord = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
 		    $data['chest'] = $coord;
         }
