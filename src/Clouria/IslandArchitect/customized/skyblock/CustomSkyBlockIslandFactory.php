@@ -21,6 +21,7 @@ namespace Clouria\IslandArchitect\customized\skyblock;
 
 use pocketmine\level\Level;
 
+use pocketmine\level\Position;
 use room17\SkyBlock\{
     event\island\IslandCreateEvent,
     island\IslandFactory,
@@ -29,8 +30,7 @@ use room17\SkyBlock\{
     SkyBlock
 };
 
-use Clouria\IslandArchitect\{
-    customized\CustomizableClassTrait,
+use Clouria\IslandArchitect\{customized\CustomizableClassTrait,
     events\IslandWorldPreCreateEvent,
     IslandArchitect,
     runtime\TemplateIslandGenerator};
@@ -63,7 +63,6 @@ null, $generator ?? TemplateIslandGenerator::getClass(), $settings ?? []);
 
     public static function createIslandFor(Session $session, string $type): void {
         $identifier = uniqid("sb-");
-        IslandArchitect::getInstance()->queueSpawn($identifier, $session);
         $islandManager = SkyBlock::getInstance()->getIslandManager();
 
         $ev = new IslandWorldPreCreateEvent($session, $identifier, $type);
@@ -76,7 +75,7 @@ null, $generator ?? TemplateIslandGenerator::getClass(), $settings ?? []);
         $session->setLastIslandCreationTime(microtime(true));
         $class = TemplateIslandGenerator::getClass();
         assert(is_a($class, TemplateIslandGenerator::class, true));
-        if (!$w->getProvider()->getGenerator() === $class::GENERATOR_NAME) $session->getPlayer()->teleport($island->getSpawnLocation());
+        $session->getPlayer()->teleport($w->getProvider()->getGenerator() === $class::GENERATOR_NAME ? new Position(0, 0, 0, $w) : $island->getSpawnLocation()); // TODO: Fix god damn coord
 
         $session->save();
         $island->save();
