@@ -340,7 +340,7 @@ class TemplateIsland {
 		$usedrandoms = [];
 		foreach ($chunks[0] as $hash => $chunk) {
 			$chunk = $chunks[1][$hash]::fastDeserialize($chunk);
-			for ($x=0; $x <= 16; $x++) for ($z=0; $z < 16; $z++) {
+			for ($x=0; $x < 16; $x++) for ($z=0; $z < 16; $z++) {
 			    $wx = ($chunk->getX() << 4) + $x;
 			    $wz = ($chunk->getZ() << 4) + $z;
 			    if (
