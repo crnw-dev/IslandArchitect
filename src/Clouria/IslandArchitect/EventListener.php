@@ -30,10 +30,10 @@ use pocketmine\event\{
     block\BlockPlaceEvent,
     entity\EntityExplodeEvent,
     level\LevelSaveEvent,
+    level\SpawnChangeEvent,
     Listener,
     player\PlayerQuitEvent,
-    plugin\PluginEnableEvent
-};
+    plugin\PluginEnableEvent};
 
 use room17\SkyBlock\SkyBlock;
 
@@ -139,5 +139,14 @@ class EventListener implements Listener {
 	    $pl = $ev->getPlugin();
 	    if (!$pl instanceof SkyBlock) return;
 	    IslandArchitect::getInstance()->initDependency();
+    }
+
+    /**
+	 * @priority HIGH
+	 */
+    public function onSpawnChange(SpawnChangeEvent $ev) : void {
+        $s = IslandArchitect::getInstance()->unqueueSpawn($ev->getLevel()->getFolderName());
+        if ($s === null) return;
+        $s->getPlayer()->teleport($ev->getLevel()->getSpawnLocation());
     }
 }

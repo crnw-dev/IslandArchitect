@@ -21,6 +21,7 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect;
 
 use room17\SkyBlock\SkyBlock;
+use room17\SkyBlock\session\Session;
 use Clouria\IslandArchitect\{
     customized\skyblock\CustomSkyBlockCreateCommand,
     runtime\sessions\PlayerSession,
@@ -50,7 +51,7 @@ class IslandArchitect extends PluginBase {
 	 */
 	private $sessions = [];
 
-	public function onLoad() : void {
+    public function onLoad() : void {
 		self::$instance = $this;
 	}
 
@@ -145,6 +146,24 @@ class IslandArchitect extends PluginBase {
         if ($this->sessions[$r]->getIsland()) $this->sessions[$r]->saveIsland();
         unset($this->sessions[$r]);
         return true;
+    }
+
+    /**
+     * @var array<string, Session>
+     */
+    private $spawnqueue;
+
+    public function queueSpawn(string $identifier, Session $session) : bool {
+        if (isset($this->spawnqueue[$identifier])) return false;
+        $this->spawnqueue[$identifier] = $session;
+        return true;
+    }
+
+    public function unqueueSpawn(string $identifier) : ?Session {
+        if (!isset($this->spawnqueue[$identifier])) return null;
+        $s = $this->spawnqueue[$identifier];
+        unset($this->spawnqueue[$identifier]);
+        return $s;
     }
 
 	public static function getInstance() : ?self {

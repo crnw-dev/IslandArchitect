@@ -25,7 +25,7 @@ use pocketmine\{
     level\Level,
     math\Vector3,
     utils\Utils,
-    level\generator\Generator as GeneratorInterface};
+    level\generator\Generator as BaseGenerator};
 
 use Clouria\IslandArchitect\customized\CustomizableClassTrait;
 
@@ -33,7 +33,7 @@ use function unserialize;
 use function is_file;
 use function file_get_contents;
 
-class TemplateIslandGenerator extends GeneratorInterface {
+class TemplateIslandGenerator extends BaseGenerator {
     use CustomizableClassTrait;
 
     public const GENERATOR_NAME = 'templateislandgenerator';
