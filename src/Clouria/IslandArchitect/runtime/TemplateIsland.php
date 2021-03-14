@@ -318,6 +318,12 @@ class TemplateIsland {
 	public function export(array $chunks) : string {
 		$sc = $this->getStartCoord()->floor();
 		$ec = $this->getEndCoord()->floor();
+        $ux = max($sc->getFloorX(), $ec->getFloorX());
+		$lx = min($sc->getFloorX(), $ec->getFloorX());
+		$uz = max($sc->getFloorZ(), $ec->getFloorZ());
+		$lz = min($sc->getFloorZ(), $ec->getFloorZ());
+		$uy = max($sc->getFloorY(), $ec->getFloorY());
+		$ly = min($sc->getFloorY(), $ec->getFloorY());
 
 		$usedrandoms = [];
 		foreach ($chunks[0] as $hash => $chunk) {
@@ -326,16 +332,16 @@ class TemplateIsland {
 			    $wx = ($chunk->getX() << 4) + $x;
 			    $wz = ($chunk->getZ() << 4) + $z;
 			    if (
-			        $wx < min($sc->getFloorX(), $ec->getFloorX()) or
-                    $wx > max($sc->getFloorX(), $ec->getFloorX()) or
-			        $wz < min($sc->getFloorZ(), $ec->getFloorZ()) or
-                    $wz > max($sc->getFloorZ(), $ec->getFloorZ())
+			        $wx < $lx or
+                    $wx > $ux or
+			        $wz < $lz or
+                    $wz > $uz
                 ) continue;
-                $bx = $wx - min($sc->getFloorX(), $ec->getFloorX());
-                $bz = $wz - min($sc->getFloorZ(), $ec->getFloorZ());
-                for ($y = min($sc->getFloorY(), $ec->getFloorY()); $y <= max($sc->getFloorY(), $ec->getFloorY()); $y++) {
+                $bx = $wx - $lx;
+                $bz = $wz - $lz;
+                for ($y = $ly; $uy <= $ly; $y++) {
                     if (($id = $chunk->getBlockId($x, $y, $z)) === Block::AIR) continue;
-                    $by = $y - min($sc->getFloorY(), $ec->getFloorY());
+                    $by = $y - $ly;
                     $coord = $wx . ':' . $y . ':' . $wz;
                     $bcoord = $bx . ':' . $by . ':' . $bz;
                     if (isset($this->random_blocks[$coord])) {
