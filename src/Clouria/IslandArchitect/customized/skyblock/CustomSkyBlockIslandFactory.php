@@ -75,7 +75,7 @@ null, $generator ?? TemplateIslandGenerator::getClass(), $settings ?? []);
         $session->setLastIslandCreationTime(microtime(true));
         $class = TemplateIslandGenerator::getClass();
         assert(is_a($class, TemplateIslandGenerator::class, true));
-        $session->getPlayer()->teleport($w->getProvider()->getGenerator() === $class::GENERATOR_NAME ? new Position(0, 0, 0) : $island->getSpawnLocation()); // TODO: Fix god damn coord
+        $session->getPlayer()->teleport($w->getProvider()->getGenerator() === $class::GENERATOR_NAME ? new Position(0, 0, 0, $w) : $island->getSpawnLocation()); // TODO: Fix god damn coord
 
         $session->save();
         $island->save();

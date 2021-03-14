@@ -21,9 +21,10 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
 use pocketmine\{
+    item\Item,
+    level\Level,
     math\Vector3,
     utils\Utils,
-    block\Block,
     level\generator\Generator as GeneratorInterface};
 
 use Clouria\IslandArchitect\customized\CustomizableClassTrait;
@@ -61,11 +62,12 @@ class TemplateIslandGenerator extends GeneratorInterface {
     public function generateChunk(int $chunkX, int $chunkZ) : void {
 		$chunk = $this->level->getChunk($chunkX, $chunkZ);
         $chunk->setGenerated();
-        $blocks = $this->island->getChunkBlocks($chunk->getX(), $chunk->getZ(), $this->random);
-		foreach ($blocks as $x => $xd) foreach ($xd as $z => $zd) foreach ($zd as $y => $yd) {
-			if ((int)$yd[0] === Block::AIR) continue;
-			$chunk->setBlock((int)$x, (int)$y, (int)$z, (int)$yd[0], (int)$yd[1]);
-		}
+        for ($x=0; $x < 16; $x++) for ($z=0; $z < 16; $z++) for ($y=0; $y <= Level::Y_MAX; $y++) {
+            $block = $this->island->getProcessedBlock(($chunk->getX() << 4) + $x, $y, ($chunk->getZ() << 4) + $z, $this->random);
+            if ($block === null or $block === Item::AIR) continue;
+            $chunk->setBlock($x, $y, $z, (int)$block[0], (int)$block[1]);
+            // TODO: Add option at config to force the block ID to be 0-255 or allow custom blocks
+        }
 	}
 
 	public function getName() : string {
@@ -81,4 +83,5 @@ class TemplateIslandGenerator extends GeneratorInterface {
     public function getSpawn() : Vector3 {
         return new Vector3(0, 0, 0);
     }
+
 }

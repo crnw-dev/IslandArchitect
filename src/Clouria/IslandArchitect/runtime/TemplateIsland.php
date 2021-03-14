@@ -275,16 +275,28 @@ class TemplateIsland {
 	 */
 	protected $structure;
 
-	public function getChunkBlocks(int $cx, int $cz, Random $random) : array {
-		for ($z=$cz << 4; $z < ($cz + 1) << 4; $z++) for ($x=$cx << 4; $x < ($cx + 1) << 4; $x++) for ($y=0; $y <= Level::Y_MAX; $y++) {
-			$block = $this->structure[$x . ':' . $y . ':' . $z] ?? null;
-			if (!isset($block)) continue;
-			$block = explode(':', $block);
-			if ((int)$block[0] === 0) $blocks[$x][$z][$y] = [(int)($block[1] ?? Item::AIR) & 0xff, (int)($block[2] ?? 0) & 0xff];
-			if ((int)$block[0] === 1) $blocks[$x][$z][$y] = $this->getRandomById((int)$block[1])->randomElementArray($random);
-		}
-		return $blocks ?? [];
-	}
+    /**
+     * @param int $x
+     * @param int $y
+     * @param int $z
+     * @param Random $random
+     * @return array|null null = Block is air (The returned block ID is not limited in valid block range 0-255, valid block meta 0-15, also not casted to int)
+     */
+	public function getProcessedBlock(int $x, int $y, int $z, Random $random) : ?array {
+        $block = $this->structure[$x . ':' . $y . ':' . $z] ?? null;
+        if (!isset($block)) return null;
+        $block = explode(':', $block);
+        if (!isset($block[1])) return null;
+        switch ((int)$block[0]) {
+            case 1:
+                $block = $this->getRandomById((int)$block[1])->randomElementArray($random);
+                if ($block[0] === Item::AIR) return null;
+                else return $block;
+
+            default:
+                return [$block[1], $block[2] ?? 0];
+        }
+    }
 
 	public const VERSION = '1.2';
 
