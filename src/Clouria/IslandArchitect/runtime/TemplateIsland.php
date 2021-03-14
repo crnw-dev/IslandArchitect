@@ -284,7 +284,16 @@ class TemplateIsland {
      */
 	public function getProcessedBlock(int $x, int $y, int $z, Random $random) : ?array {
         $block = $this->structure[$x . ':' . $y . ':' . $z] ?? null;
-        if (!isset($block)) return null;
+        $chestcoord = $this->getChest();
+        if (!isset($block)) {
+            if (
+                $chestcoord !== null and
+                $chestcoord->getFloorX() === $x and
+                $chestcoord->getFloorZ() === $z and
+                $chestcoord->getFloorY() === $y
+            ) return [Item::CHEST, 0];
+            else return null;
+        }
         $block = explode(':', $block);
         if (!isset($block[1])) return null;
         switch ((int)$block[0]) {
@@ -294,6 +303,12 @@ class TemplateIsland {
                 else return $block;
 
             default:
+                if (
+                    $chestcoord !== null and
+                    $chestcoord->getFloorX() === $x and
+                    $chestcoord->getFloorZ() === $z and
+                    $chestcoord->getFloorY() === $y
+                ) return [Item::CHEST, 0];
                 return [$block[1], $block[2] ?? 0];
         }
     }

@@ -66,7 +66,6 @@ class TemplateIslandGenerator extends GeneratorInterface {
             $block = $this->island->getProcessedBlock(($chunk->getX() << 4) + $x, $y, ($chunk->getZ() << 4) + $z, $this->random);
             if ($block === null or $block === Item::AIR) continue;
             $chunk->setBlock($x, $y, $z, (int)$block[0], (int)$block[1]);
-            // TODO: Add option at config to force the block ID to be 0-255 or allow custom blocks
         }
 	}
 
