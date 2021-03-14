@@ -20,7 +20,13 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
-use pocketmine\{block\Block, item\Item, level\Level, math\Vector3, utils\Random};
+use pocketmine\{
+    block\Block,
+    item\Item,
+    level\Level,
+    math\Vector3,
+    utils\Random
+};
 
 use Clouria\IslandArchitect\{
     events\RandomGenerationBlockPlaceEvent,
@@ -330,7 +336,7 @@ class TemplateIsland {
                 for ($y = min($sc->getFloorY(), $ec->getFloorY()); $y <= max($sc->getFloorY(), $ec->getFloorY()); $y++) {
                     if (($id = $chunk->getBlockId($x, $y, $z)) === Block::AIR) continue;
                     $by = $y - min($sc->getFloorY(), $ec->getFloorY());
-                    $coord = $x . ':' . $y . ':' . $z;
+                    $coord = $wx . ':' . $y . ':' . $wz;
                     $bcoord = $bx . ':' . $by . ':' . $bz;
                     if (isset($this->random_blocks[$coord])) {
                         $id = $this->random_blocks[$coord];
