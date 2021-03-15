@@ -388,7 +388,10 @@ class TemplateIsland {
             unset($chunks[$hash]);
 		}
 
-		if (!empty($usedrandoms ?? [])) foreach ($this->randoms as $id => $random) if (in_array($id, $usedrandoms)) $data['randoms'][] = $random->getAllElements();
+		if (!empty($usedrandoms ?? [])) foreach ($this->randoms as $id => $random) if (in_array($id, $usedrandoms)) {
+		    $random->simplifyRegex();
+		    $data['randoms'][] = $random->getAllElements();
+		}
 
 		if (($vec = $this->getSpawn()) !== null) {
             $vec = $vec->subtract($lx, $ly, $lz);

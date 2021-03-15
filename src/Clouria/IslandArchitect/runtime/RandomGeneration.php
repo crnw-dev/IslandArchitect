@@ -33,6 +33,10 @@ use pocketmine\nbt\tag\{
 };
 
 use function explode;
+use function arsort;
+use function array_values;
+
+use const SORT_NUMERIC;
 
 class RandomGeneration {
 
@@ -163,4 +167,30 @@ class RandomGeneration {
 	public function hasChanges() : bool {
 		return $this->changed;
 	}
+
+    /**
+     * @return bool true = Element chance changed
+     */
+	public function simplifyRegex() : bool {
+	    // Forgive my bad math (SOFe is gonna extend his tutorial class...)
+        // Source: https://blog.csdn.net/qq_33160365/article/details/78932232
+	    $totalchance = $this->getTotalChance();
+	    foreach ($this->getAllElements() as $chance) {
+	        $smaller = $chance > $totalchance ? $totalchance : $chance;
+	        for ($i=1; $i <= $smaller; $i++) if (($chance % $i) === 0 and ($totalchance % $i) === 0) $hcf = $i;
+	        $chances[] = $hcf ?? 1;
+        }
+	    if (!isset($chances)) return false;
+	    arsort($chances, SORT_NUMERIC);
+	    $chances = array_values($chances);
+        $totalchance = $chances[0];
+	    foreach ($this->getAllElements() as $block => $chance) {
+	        $smaller = $chance > $totalchance ? $totalchance : $chance;
+	        $elements[$block] = $chance / $chances[0];
+	        if ($elements[$block] !== $chance) $changed = true;
+        }
+	    $this->blocks[$block] = $elements;
+	    if ($changed) $this->changed = true;
+	    return $changed;
+    }
 }
