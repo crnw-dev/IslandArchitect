@@ -5,7 +5,9 @@ api: 3.0.0
 version: 1.0.4
 main: Clouria\IslandArchitect\IslandArchitect
 website: https://github.com/crnw-dev/IslandArchitect
-depend: [SkyBlock, InvCrashFix] # TODO: Make InvCrashFix an soft dependency after merging this branch into master
+depend: SkyBlock
+softdepend: [InvCrashFix]
+load: POSTWORLD
 
 permissions:
   island-architect:
