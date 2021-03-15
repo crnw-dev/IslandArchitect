@@ -45,6 +45,7 @@ use pocketmine\{
     utils\TextFormat as TF,
     utils\Utils};
 
+use function substr;
 use function strtolower;
 use function file_exists;
 use function array_search;
@@ -151,7 +152,13 @@ class IslandArchitect extends PluginBase {
         }
 	    if (!isset($sf)) return null;
 	    $type = $sf;
-	    if (isset($type) and !(file_exists($type = Utils::cleanPath($type))) and !file_exists($type = Utils::cleanPath((string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/') . $type))) $type = null;
+	    if (
+	        isset($type) and
+            !(file_exists($type = Utils::cleanPath($type))) and
+            !file_exists($type = Utils::cleanPath(
+                (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/') .
+                $type . (strtolower(substr($type, -5)) === '.json' ? '' : '.json')
+            ))) $type = null;
 	    return $type;
     }
 
