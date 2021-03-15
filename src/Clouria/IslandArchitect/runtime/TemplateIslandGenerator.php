@@ -18,7 +18,7 @@
 														*/
 
 declare(strict_types=1);
-// namespace Clouria\IslandArchitect\runtime;
+namespace Clouria\IslandArchitect\runtime;
 
 use pocketmine\{
     item\Item,
