@@ -24,16 +24,13 @@ use pocketmine\{
     item\Item,
     level\Level,
     math\Vector3,
-    utils\Utils,
-    level\generator\Generator as BaseGenerator};
+    level\generator\Generator as GeneratorInterface};
 
 use Clouria\IslandArchitect\customized\CustomizableClassTrait;
 
 use function unserialize;
-use function is_file;
-use function file_get_contents;
 
-class TemplateIslandGenerator extends BaseGenerator {
+class TemplateIslandGenerator extends GeneratorInterface {
     use CustomizableClassTrait;
 
     public const GENERATOR_NAME = 'templateislandgenerator';
@@ -52,10 +49,8 @@ class TemplateIslandGenerator extends BaseGenerator {
     public function __construct(array $settings = []) {
 	    $this->settings = $settings;
 
-	    $rpath = unserialize($settings['preset'])[0];
-        if (!is_file($path = Utils::cleanPath($rpath))) throw new \RuntimeException('Island data file (' . $path . ') is missing'); // TODO: Warn the user to not change the location of template island file after map it
-        $island = TemplateIsland::load(file_get_contents($path));
-        if ($island === null) throw new \RuntimeException('Island "' . basename($path, '.json') . '"("' . $path . '") failed to load');
+	    $island = unserialize($settings['preset'])[0];
+        if ($island === null) throw new \RuntimeException('Cannot pass template island instance into the generator thread');
         $this->island = $island;
 	}
 
@@ -80,7 +75,7 @@ class TemplateIslandGenerator extends BaseGenerator {
     }
 
     public function getSpawn() : Vector3 {
-        return new Vector3(0, 0, 0);
+        return new $this->island->getSpawn();
     }
 
 }
