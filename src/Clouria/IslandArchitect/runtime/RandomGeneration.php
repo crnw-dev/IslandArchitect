@@ -33,7 +33,7 @@ use pocketmine\nbt\tag\{
 };
 
 use function explode;
-use function arsort;
+use function asort;
 use function array_values;
 
 use const SORT_NUMERIC;
@@ -184,7 +184,7 @@ class RandomGeneration {
 	        $chances[] = $hcf ?? 1;
         }
 	    if (!isset($chances)) return false;
-	    arsort($chances, SORT_NUMERIC);
+	    asort($chances, SORT_NUMERIC);
 	    $chances = array_values($chances);
 	    foreach ($this->getAllElements() as $block => $chance) {
 	        $elements[$block] = $chance / $chances[0];
