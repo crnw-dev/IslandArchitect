@@ -29,11 +29,11 @@ use pocketmine\event\{
     block\BlockBreakEvent,
     block\BlockPlaceEvent,
     entity\EntityExplodeEvent,
+    level\ChunkLoadEvent,
     level\LevelSaveEvent,
     Listener,
     player\PlayerQuitEvent,
-    plugin\PluginEnableEvent
-};
+    plugin\PluginEnableEvent};
 
 use room17\SkyBlock\SkyBlock;
 
@@ -139,5 +139,12 @@ class EventListener implements Listener {
 	    $pl = $ev->getPlugin();
 	    if (!$pl instanceof SkyBlock) return;
 	    IslandArchitect::getInstance()->initDependency();
+    }
+
+    /**
+     * @priority MONITOR
+     */
+    public function onChunkLoad(ChunkLoadEvent $ev) : void {
+	    if ($ev->isNewChunk()) IslandArchitect::getInstance()->createIslandChest($ev->getLevel(), $ev->getChunk());
     }
 }

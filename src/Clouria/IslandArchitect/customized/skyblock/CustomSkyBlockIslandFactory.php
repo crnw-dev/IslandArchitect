@@ -27,8 +27,7 @@ use room17\SkyBlock\{
     event\island\IslandCreateEvent,
     island\RankIds,
     session\Session,
-    SkyBlock
-};
+    SkyBlock};
 
 use Clouria\IslandArchitect\{
     conversion\IslandDataLoadTask,
@@ -83,7 +82,7 @@ class CustomSkyBlockIslandFactory extends IslandFactory {
      */
     public static function createTemplateIslandWorldAsync(string $identifier, string $type, \Closure $callback) : void {
         $task = new IslandDataLoadTask($type, function(TemplateIsland $is, string $file) use
-        ($identifier, $callback) : void {
+        ($identifier, $callback, $type) : void {
             $settings = ['preset' => serialize([$is])];
             Server::getInstance()->generateLevel($identifier,
 null, TemplateIslandGenerator::getClass(), $settings ?? []);
@@ -91,7 +90,7 @@ null, TemplateIslandGenerator::getClass(), $settings ?? []);
             $level = Server::getInstance()->getLevelByName($identifier);
 
             $level->setSpawnLocation($is->getSpawn());
-            // TODO: Create island chest here
+            IslandArchitect::getInstance()->queueIslandChestCreation($level, $is);
             $callback($level);
         });
         Server::getInstance()->getAsyncPool()->submitTask($task);

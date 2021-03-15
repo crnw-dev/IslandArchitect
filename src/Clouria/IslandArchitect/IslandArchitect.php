@@ -28,12 +28,17 @@ use Clouria\IslandArchitect\{
     runtime\TemplateIslandGenerator};
 use muqsit\invmenu\InvMenuHandler;
 use pocketmine\{
+    level\format\Chunk,
     level\generator\GeneratorManager,
+    level\Level,
     Player,
     plugin\PluginBase,
     scheduler\ClosureTask,
+    tile\Chest,
+    tile\Tile,
     utils\TextFormat as TF,
     utils\Utils};
+
 use function strtolower;
 use function file_exists;
 use function array_search;
@@ -50,7 +55,7 @@ class IslandArchitect extends PluginBase {
 	 */
 	private $sessions = [];
 
-	public function onLoad() : void {
+    public function onLoad() : void {
 		self::$instance = $this;
 	}
 
@@ -144,6 +149,33 @@ class IslandArchitect extends PluginBase {
         if (($r = array_search($session, $this->sessions, true)) === false) return false;
         if ($this->sessions[$r]->getIsland()) $this->sessions[$r]->saveIsland();
         unset($this->sessions[$r]);
+        return true;
+    }
+
+    /**
+     * @var array<int, TemplateIsland>
+     */
+    private $chestqueue;
+
+    public function queueIslandChestCreation(Level $level, TemplateIsland $island) : bool {
+        if (isset($this->chestqueue[$level->getId()])) return false;
+        $this->chestqueue[$level->getId()] = $island;
+        return true;
+    }
+
+    public function createIslandChest(Level $level, Chunk $chunk) : bool {
+        $is = $this->chestqueue[$level->getId()] ?? null;
+        if ($is === null) return false;
+        unset($this->chestqueue[$level->getId()]);
+        $pos = $is->getChest();
+        if ($chunk->getX() !== ($pos->getFloorX() >> 4) or $chunk->getZ() !== ($pos->getFloorZ() >> 4)) return false;
+
+        $island = SkyBlock::getInstance()->getIslandManager()->getIsland($level->getName());
+        if($island === null) return false;
+
+        $chest = Tile::createTile(Tile::CHEST, $level, Chest::createNBT($pos));
+        if (!$chest instanceof Chest) return false;
+        foreach (SkyBlock::getInstance()->getSettings()->getChestContentByGenerator($is->getName()) as $item) $chest->getInventory()->addItem($item);
         return true;
     }
 
