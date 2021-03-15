@@ -82,7 +82,7 @@ class CustomSkyBlockIslandFactory extends IslandFactory {
      */
     public static function createTemplateIslandWorldAsync(string $identifier, string $type, \Closure $callback) : void {
         $task = new IslandDataLoadTask($type, function(TemplateIsland $is, string $file) use
-        ($identifier, $callback, $type) : void {
+        ($identifier, $callback) : void {
             $settings = ['preset' => serialize([$is])];
             Server::getInstance()->generateLevel($identifier,
 null, TemplateIslandGenerator::getClass(), $settings ?? []);

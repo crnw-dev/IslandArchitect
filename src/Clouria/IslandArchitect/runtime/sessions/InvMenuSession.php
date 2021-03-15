@@ -76,7 +76,7 @@ class InvMenuSession {
 	private $regexid;
 
 	/**
-	 * @var Closure|null
+	 * @var \Closure|null
 	 */
 	private $callback;
 
@@ -129,7 +129,7 @@ class InvMenuSession {
 	protected $random_rolled_times = 0;
 
 	/**
-	 * @var Item|null
+	 * @var array<int, mixed>
 	 */
 	protected $selected = null;
 
@@ -314,7 +314,7 @@ class InvMenuSession {
 			return;
 		}
 		$nbt = $out->getNamedTagEntry('IslandArchitect') ?? null;
-		if ($nbt !== null) $nbt = $nbt->getTag('action', ByteTag::class) ?? null;
+		if ($nbt instanceof CompoundTag) $nbt = $nbt->getTag('action', ByteTag::class) ?? null;
 		if ($nbt !== null) switch ($nbt->getValue()) {
 
 			case self::ITEM_REMOVE:
@@ -536,9 +536,11 @@ class InvMenuSession {
 		$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
 	}
 
-	/**
-	 * @return Item|\pocketmine\item\ItemBlock
-	 */
+    /**
+     * @param Item $item
+     * @param bool $successed
+     * @return Item|\pocketmine\item\ItemBlock
+     */
 	protected static function inputConversion(Item $item, &$successed = false) : Item {
 		$successed = false;
 		$count = $item->getCount();
