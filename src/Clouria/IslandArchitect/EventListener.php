@@ -78,7 +78,7 @@ class EventListener implements Listener {
 
 		$item = $ev->getItem();
 		if (($nbt = $item->getNamedTagEntry('IslandArchitect')) === null) return;
-		if ((($nbt instanceof CompoundTag ? $nbt->getTag('random-generation', CompoundTag::class) : null)) === null) return;
+		if (($nbt = ($nbt instanceof CompoundTag ? $nbt->getTag('random-generation', CompoundTag::class) : null)) === null) return;
 		if (($regex = ($nbt instanceof CompoundTag ? $nbt->getTag('regex', ListTag::class) : null)) === null) return;
 		if ($s::errorCheckOutRequired($s->getPlayer(), $s)) return;
 		$regex = RandomGeneration::fromNBT($regex);

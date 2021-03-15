@@ -186,14 +186,12 @@ class RandomGeneration {
 	    if (!isset($chances)) return false;
 	    arsort($chances, SORT_NUMERIC);
 	    $chances = array_values($chances);
-        $totalchance = $chances[0];
 	    foreach ($this->getAllElements() as $block => $chance) {
-	        $smaller = $chance > $totalchance ? $totalchance : $chance;
 	        $elements[$block] = $chance / $chances[0];
 	        if ($elements[$block] !== $chance) $changed = true;
         }
-	    $this->blocks[$block] = $elements;
-	    if ($changed) $this->changed = true;
-	    return $changed;
+	    $this->blocks = $elements ?? null;
+	    if ($changed ?? false) $this->changed = true;
+	    return $changed ?? false;
     }
 }
