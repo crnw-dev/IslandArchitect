@@ -31,6 +31,9 @@ use pocketmine\{
     level\format\Chunk,
     level\generator\GeneratorManager,
     level\Level,
+    level\particle\RedstoneParticle,
+    math\AxisAlignedBB,
+    math\Vector3,
     Player,
     plugin\PluginBase,
     scheduler\ClosureTask,
@@ -75,9 +78,26 @@ class IslandArchitect extends PluginBase {
 
 		$this->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) : void {
 		    foreach ($this->getSessions() as $s) if ($s->getIsland() !== null) {
+		        // Send random generation block popup
 		        $r = $s->getIsland()->getRandomByVector3($s->getPlayer()->getTargetBlock(12));
-		        if ($r === null) continue;
-		        $s->getPlayer()->sendPopup(TF::YELLOW . 'Random generation block: ' . TF::BOLD . TF::GOLD . $s->getIsland()->getRandomLabel($r));
+		        if ($r !== null) $s->getPlayer()->sendPopup(TF::YELLOW . 'Random generation block: ' . TF::BOLD . TF::GOLD . $s->getIsland()->getRandomLabel($r));
+
+		        // TODO: Send start / end coord, island spawn / chest coord popup
+
+		        // Draw island area outline
+                $sc = $s->getIsland()->getStartCoord();
+                $ec = $s->getIsland()->getEndCoord();
+                $bb = new AxisAlignedBB(
+                    min($sc->getFloorX(), $ec->getFloorX()),
+                    min($sc->getFloorY(), $ec->getFloorY()),
+                    min($sc->getFloorZ(), $ec->getFloorZ()),
+                    max($sc->getFloorX(), $ec->getFloorX()),
+                    max($sc->getFloorY(), $ec->getFloorY()),
+                    max($sc->getFloorZ(), $ec->getFloorZ())
+                );
+                $bb->offset(0.5, 0.5, 0.5);
+                $bb->expand(0.5, 0.5, 0.5);
+                for ($x=$bb->minX; $x <= $bb->maxX; $bb+=0.5) for ($y=$bb->minY; $y <= $bb->maxY; $bb+=0.5) for ($z=$bb->minZ; $z <= $bb->maxZ; $bb+=0.5) $s->getPlayer()->getLevel()->addParticle(new RedstoneParticle(new Vector3($x, $y, $z), 10), [$s->getPlayer()]);
             }
         }), 10);
 	}
