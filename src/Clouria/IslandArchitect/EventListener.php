@@ -19,7 +19,10 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect;
 
-use pocketmine\utils\TextFormat as TF;
+use pocketmine\{
+    level\Position,
+    utils\TextFormat as TF
+};
 use pocketmine\nbt\tag\{
     CompoundTag,
     IntTag,
@@ -29,6 +32,7 @@ use pocketmine\event\{
     block\BlockBreakEvent,
     block\BlockPlaceEvent,
     entity\EntityExplodeEvent,
+    inventory\InventoryOpenEvent,
     level\ChunkLoadEvent,
     level\LevelSaveEvent,
     Listener,
@@ -40,8 +44,10 @@ use room17\SkyBlock\SkyBlock;
 use Clouria\IslandArchitect\{
     customized\CustomizableClassTrait,
     runtime\RandomGeneration,
-    events\RandomGenerationBlockPlaceEvent
-};
+    events\RandomGenerationBlockPlaceEvent,
+    runtime\sessions\IslandChestSession};
+use pocketmine\inventory\ChestInventory;
+use function assert;
 
 class EventListener implements Listener {
     use CustomizableClassTrait;
@@ -146,5 +152,24 @@ class EventListener implements Listener {
      */
     public function onChunkLoad(ChunkLoadEvent $ev) : void {
 	    if ($ev->isNewChunk()) IslandArchitect::getInstance()->createIslandChest($ev->getLevel(), $ev->getChunk());
+    }
+
+    /**
+     * @priority MONITOR
+     */
+    public function onInventoryOpen(InventoryOpenEvent $ev) : void {
+        if (!$ev->getInventory() instanceof ChestInventory) return;
+        $pos = $ev->getInventory()->getHolder()->asPosition();
+        assert($pos instanceof Position);
+        foreach (IslandArchitect::getInstance()->getSessions() as $s) {
+            $is = $s->getIsland();
+            if (
+                $is === null or
+                $is->getLevel() !== $pos->getLevel()->getFolderName() or
+                $is->getChest() === null or
+                !$is->getChest()->equals($pos->asVector3())
+            ) return;
+            new IslandChestSession($s);
+        }
     }
 }

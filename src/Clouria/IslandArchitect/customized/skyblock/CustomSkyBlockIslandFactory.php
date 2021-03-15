@@ -19,8 +19,11 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\customized\skyblock;
 
-use pocketmine\Server;
-use pocketmine\level\Level;
+use pocketmine\{
+    Server,
+    level\Level,
+    level\Position
+};
 
 use room17\SkyBlock\{
     island\IslandFactory,
@@ -89,7 +92,7 @@ null, TemplateIslandGenerator::getClass(), $settings ?? []);
             Server::getInstance()->loadLevel($identifier);
             $level = Server::getInstance()->getLevelByName($identifier);
 
-            $level->setSpawnLocation($is->getSpawn());
+            $level->setSpawnLocation($is->getSpawn() ?? new Position(0, 0 /* TODO: $is->getYOffset() */,0, $level));
             IslandArchitect::getInstance()->queueIslandChestCreation($level, $is);
             $callback($level);
         });

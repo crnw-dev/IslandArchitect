@@ -20,13 +20,16 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect;
 
-use room17\SkyBlock\SkyBlock;
+
 use Clouria\IslandArchitect\{
     customized\skyblock\CustomSkyBlockCreateCommand,
     runtime\sessions\PlayerSession,
     runtime\TemplateIsland,
     runtime\TemplateIslandGenerator};
+
 use muqsit\invmenu\InvMenuHandler;
+use room17\SkyBlock\SkyBlock;
+
 use pocketmine\{
     level\format\Chunk,
     level\generator\GeneratorManager,
@@ -78,15 +81,19 @@ class IslandArchitect extends PluginBase {
 
 		$this->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) : void {
 		    foreach ($this->getSessions() as $s) if ($s->getIsland() !== null) {
+		        $sb = $s->getPlayer()->getTargetBlock(12);
+		        $sc = $s->getIsland()->getStartCoord();
+                $ec = $s->getIsland()->getEndCoord();
+
 		        // Send random generation block popup
-		        $r = $s->getIsland()->getRandomByVector3($s->getPlayer()->getTargetBlock(12));
+		        $r = $s->getIsland()->getRandomByVector3($sb);
 		        if ($r !== null) $s->getPlayer()->sendPopup(TF::YELLOW . 'Random generation block: ' . TF::BOLD . TF::GOLD . $s->getIsland()->getRandomLabel($r));
 
-		        // TODO: Send start / end coord, island spawn / chest coord popup
+		        // Island chest coord popup
+                $chest = $s->getIsland()->getChest();
+                if ($chest !== null and $chest->asVector3()->equals($sb->asVector3())) $s->getPlayer()->sendPopup(TF::YELLOW . 'Island chest block' . "\n" . TF::ITALIC . TF::GRAY . '(Click to view or edit contents)');
 
 		        // Draw island area outline
-                $sc = $s->getIsland()->getStartCoord();
-                $ec = $s->getIsland()->getEndCoord();
                 $bb = new AxisAlignedBB(
                     min($sc->getFloorX(), $ec->getFloorX()),
                     min($sc->getFloorY(), $ec->getFloorY()),
