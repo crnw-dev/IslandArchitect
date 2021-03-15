@@ -39,7 +39,7 @@ use function mkdir;
 class IslandDataEmitTask extends AsyncTask {
 
 	/**
-	 * @var TemplateIsland
+	 * @var string (Serialized)
 	 */
 	protected $island;
 
@@ -49,14 +49,15 @@ class IslandDataEmitTask extends AsyncTask {
 	protected $path;
 
 	/**
-	 * @var mixed[]
+	 * @var string (Serialized)
 	 */
 	protected $chunks;
 
-	/**
-	 * @param mixed $chunks If the array is not empty, an export action will be taken instead of normal save action
-	 * @param \Closure|null $callback Compatible with <code>function() {}</code>
-	 */
+    /**
+     * @param TemplateIsland $island
+     * @param mixed $chunks If the array is not empty, an export action will be taken instead of normal save action
+     * @param \Closure|null $callback Compatible with <code>function() {}</code>
+     */
 	public function __construct(TemplateIsland $island, ?array $chunks, ?\Closure $callback = null) {
 		$this->island = serialize($island);
 		$this->chunks = serialize($chunks);

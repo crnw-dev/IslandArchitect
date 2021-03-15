@@ -46,8 +46,6 @@ use function class_exists;
 
 class IslandArchitect extends PluginBase {
 
-	public const DEV_ISLAND = false;
-
 	private static $instance = null;
 
 	/**
@@ -114,12 +112,8 @@ class IslandArchitect extends PluginBase {
 	}
 
     public function getSession(Player $player, bool $nonnull = false) : ?PlayerSession {
-		if (self::DEV_ISLAND) $nonnull = true;
 		if (($this->sessions[$player->getName()] ?? null) !== null) $s = $this->sessions[$player->getName()];
-		elseif ($nonnull) {
-			$s = ($this->sessions[$player->getName()] = new PlayerSession($player));
-			if (self::DEV_ISLAND) $s->checkOutIsland(new TemplateIsland('test'));
-		}
+		elseif ($nonnull) $s = ($this->sessions[$player->getName()] = new PlayerSession($player));
 		return $s ?? null;
 	}
 
@@ -136,7 +130,7 @@ class IslandArchitect extends PluginBase {
 
     /**
      * @return PlayerSession[]
-     */
+         */
 	public function getSessions() : array {
 	    return $this->sessions;
     }
@@ -158,7 +152,7 @@ class IslandArchitect extends PluginBase {
     private $chestqueue;
 
     public function queueIslandChestCreation(Level $level, TemplateIsland $island) : bool {
-        if (isset($this->chestqueue[$level->getId()])) return false;
+        if (($this->chestqueue[$level->getId()] ?? null) !== null) return false;
         $this->chestqueue[$level->getId()] = $island;
         return true;
     }

@@ -78,14 +78,14 @@ class EventListener implements Listener {
 
 		$item = $ev->getItem();
 		if (($nbt = $item->getNamedTagEntry('IslandArchitect')) === null) return;
-		if (($nbt = $nbt->getTag('random-generation', CompoundTag::class)) === null) return;
-		if (($regex = $nbt->getTag('regex', ListTag::class)) === null) return;
+		if ((($nbt instanceof CompoundTag ? $nbt->getTag('random-generation', CompoundTag::class) : null)) === null) return;
+		if (($regex = ($nbt instanceof CompoundTag ? $nbt->getTag('regex', ListTag::class) : null)) === null) return;
 		if ($s::errorCheckOutRequired($s->getPlayer(), $s)) return;
 		$regex = RandomGeneration::fromNBT($regex);
 		$e = new RandomGenerationBlockPlaceEvent($s, $regex, $ev->getBlock()->asPosition(), $item);
 		$e->call();
 		if ($e->isCancelled()) return;
-		if (($regexid = $nbt->getTag('regexid', IntTag::class)) === null) {
+		if (($regexid = ($nbt instanceof CompoundTag ? $nbt->getTag('regexid', IntTag::class) : null)) === null) {
 		    foreach ($s->getIsland()->getRandoms() as $i => $sr) if ($sr->equals($regex)) $regexid = $i;
 		    if ($regexid === null) $regexid = $s->getIsland()->addRandom($regex);
         }

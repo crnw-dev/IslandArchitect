@@ -50,10 +50,12 @@ class RandomGeneration {
 		return true;
 	}
 
-	/**
-	 * @param int|null $chance Null to set the chance to 0
-	 * @return bool
-	 */
+    /**
+     * @param int $id
+     * @param int $meta
+     * @param int|null $chance Null to set the chance to 0
+     * @return bool
+     */
 	public function decreaseElementChance(int $id, int $meta = 0, ?int $chance = null) : bool {
 		if (!isset($chance)) {
 			unset($this->blocks[$id . ':' . $meta]);
@@ -86,7 +88,7 @@ class RandomGeneration {
 
 	public static function fromNBT(ListTag $nbt) : self {
 		$self = new self;
-		foreach ($nbt as $block) $self->increaseElementChance($block->getShort('id'), $block->getByte('meta', 0), $block->getShort('chance'));
+		foreach ($nbt as $block) if ($block instanceof CompoundTag) $self->increaseElementChance($block->getShort('id'), $block->getByte('meta', 0), $block->getShort('chance'));
 		return $self;
 	}
 
@@ -96,9 +98,10 @@ class RandomGeneration {
 		return Item::get($array[0], $array[1]);
 	}
 
-	/**
-	 * @return int[]
-	 */
+    /**
+     * @param Random $random
+     * @return int[]
+     */
 	public function randomElementArray(Random $random) : array {
 		$blocks = $this->getAllElements();
 

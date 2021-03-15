@@ -59,7 +59,7 @@ class TemplateIslandGenerator extends GeneratorInterface {
         $chunk->setGenerated();
         for ($x=0; $x < 16; $x++) for ($z=0; $z < 16; $z++) for ($y=0; $y <= Level::Y_MAX; $y++) {
             $block = $this->island->getProcessedBlock(($chunk->getX() << 4) + $x, $y, ($chunk->getZ() << 4) + $z, $this->random);
-            if ($block === null or $block === Item::AIR) continue;
+            if ($block === null or $block[0] === Item::AIR) continue;
             $chunk->setBlock($x, $y, $z, (int)$block[0], (int)$block[1]);
         }
 	}
@@ -75,7 +75,7 @@ class TemplateIslandGenerator extends GeneratorInterface {
     }
 
     public function getSpawn() : Vector3 {
-        return new $this->island->getSpawn();
+        return $this->island->getSpawn();
     }
 
 }

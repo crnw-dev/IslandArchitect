@@ -141,7 +141,7 @@ class PlayerSession {
 		    return;
         }
 		$this->getPlayer()->sendMessage(TF::GOLD . 'Start exporting...');
-		$task = new IslandDataEmitTask($island, $chunks, function() use ($island, $time) : void {
+		$task = new IslandDataEmitTask($island, $chunks, function() use ($time) : void {
 			$this->export_lock = false;
 			$this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Export completed!' . TF::ITALIC . TF::GRAY . ' (' . round(microtime(true) - $time, 2) . 's)');
 		});
