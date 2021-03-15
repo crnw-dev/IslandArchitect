@@ -1,5 +1,4 @@
 <?php
-
 /*
 		
 		  _____     _                 _          
@@ -17,17 +16,24 @@
 		@ClouriaNetwork | Apache License 2.0
 														*/
 
-declare(strict_types=1);
-namespace Clouria\IslandArchitect\events;
+namespace Clouria\IslandArchitect\customized;
 
-use pocketmine\event\plugin\PluginEvent;
+trait CustomizableClassTrait {
 
-use Clouria\IslandArchitect\IslandArchitect;
+    /**
+     * @var string
+     */
+    private static $class;
 
-abstract class IslandArchitectEvent extends PluginEvent {
+    final public static function setClass(string $class) : bool {
+        if (!is_a($class, self::class, true)) throw new \InvalidArgumentException('The input class must be a subclass of ' . self::class . '');
+        if (isset(self::$class) and is_a($class, self::$class, true)) return false;
+        self::$class = $class;
+        return true;
+    }
 
-    public function __construct() {
-        parent::__construct(IslandArchitect::getInstance());
+    final public static function getClass() : string {
+        return self::$class ?? self::class;
     }
 
 }

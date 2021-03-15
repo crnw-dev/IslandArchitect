@@ -21,50 +21,61 @@ declare(strict_types=1);
 // namespace Clouria\IslandArchitect\runtime;
 
 use pocketmine\{
-	math\Vector3,
-	utils\Utils,
-    block\Block
-};
+    item\Item,
+    level\Level,
+    math\Vector3,
+    level\generator\Generator as GeneratorInterface};
 
-use room17\SkyBlock\island\generator\IslandGenerator;
+use Clouria\IslandArchitect\customized\CustomizableClassTrait;
 
 use function unserialize;
-use function is_file;
-use function file_get_contents;
 
-class TemplateIslandGenerator extends IslandGenerator {
+class TemplateIslandGenerator extends GeneratorInterface {
+    use CustomizableClassTrait;
 
-	/**
+    public const GENERATOR_NAME = 'templateislandgenerator';
+
+    /**
 	 * @var TemplateIsland|null
 	 */
 	protected $island = null;
 
-	public function generateChunk(int $chunkX, int $chunkZ) : void {
+    /**
+     * @var array
+     */
+    protected $settings;
+    protected $spawnset = false;
+
+    public function __construct(array $settings = []) {
+	    $this->settings = $settings;
+
+	    $island = unserialize($settings['preset'])[0];
+        if ($island === null) throw new \RuntimeException('Cannot pass template island instance into the generator thread');
+        $this->island = $island;
+	}
+
+    public function generateChunk(int $chunkX, int $chunkZ) : void {
 		$chunk = $this->level->getChunk($chunkX, $chunkZ);
         $chunk->setGenerated();
-        if (!isset($this->island)) {
-	        $path = Utils::cleanPath(unserialize($this->getSettings()['preset'][0]));
-			if (!is_file($path)) throw new \RuntimeException('Island data file (' . $path . ') is missing');
-			$island = TemplateIsland::load(file_get_contents($path));
-			if ($island === null) throw new \RuntimeException('Island "' . basename($path, '.json') . '"("' . $path . '") failed to load');
-			$this->island = $island;
-		}
-		foreach ($this->island->getChunkBlocks($chunk->getX(), $chunk->getZ(), $this->random) as $x => $xd) foreach ($xd as $z => $zd) foreach ($zd as $y => $yd) {
-			if ((int)$yd[0] === Block::AIR) continue;
-			$chunk->setBlock((int)$x, (int)$y, (int)$z, (int)$yd[0], (int)$yd[1]);
-		}
+        for ($x=0; $x < 16; $x++) for ($z=0; $z < 16; $z++) for ($y=0; $y <= Level::Y_MAX; $y++) {
+            $block = $this->island->getProcessedBlock(($chunk->getX() << 4) + $x, $y, ($chunk->getZ() << 4) + $z, $this->random);
+            if ($block === null or $block === Item::AIR) continue;
+            $chunk->setBlock($x, $y, $z, (int)$block[0], (int)$block[1]);
+        }
 	}
 
 	public function getName() : string {
 		return isset($this->island) ? $this->island->getName() : 'TemplateIslandGenerator';
 	}
 
-	public static function getWorldSpawn() : Vector3 {
-    	return new Vector3(0, 0, 0);
-	}
+    public function populateChunk(int $chunkX, int $chunkZ) : void {}
 
-    public static function getChestPosition() : Vector3 {
-    	return new Vector3(0, 0, 0);
+    public function getSettings() : array {
+        return $this->settings;
+    }
+
+    public function getSpawn() : Vector3 {
+        return new $this->island->getSpawn();
     }
 
 }

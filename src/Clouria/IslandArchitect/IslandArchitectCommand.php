@@ -18,24 +18,32 @@
 
 namespace Clouria\IslandArchitect;
 
-use jojoe77777\FormAPI\ModalForm;
-use Clouria\IslandArchitect\{conversion\IslandDataLoadTask,
-    events\TemplateIslandCheckOutEvent,
-    runtime\sessions\InvMenuSession,
-    runtime\sessions\PlayerSession,
-    runtime\TemplateIsland};
-use pocketmine\{command\Command,
+use pocketmine\{
+    command\Command,
     command\CommandSender,
     level\Position,
     Player,
     Server,
     utils\TextFormat as TF,
-    utils\Utils};
+    utils\Utils
+};
+
+use jojoe77777\FormAPI\ModalForm;
+
+use Clouria\IslandArchitect\{
+    conversion\IslandDataLoadTask,
+    customized\CustomizableClassTrait,
+    events\TemplateIslandCheckOutEvent,
+    runtime\sessions\InvMenuSession,
+    runtime\sessions\PlayerSession,
+    runtime\TemplateIsland
+};
+
 use function strtolower;
 use function class_exists;
 
 class IslandArchitectCommand extends Command {
-    // TODO: Customizable class trait
+    use CustomizableClassTrait;
 
     public function __construct() {
         parent::__construct('island-architect', 'Command of the IslandArchitect plugin', '/island-architect help', ['ia', 'isarch']);
@@ -84,7 +92,7 @@ class IslandArchitectCommand extends Command {
 			case 'checkout':
 			case 'check-out':
 			case 'i':
-				if (!isset($args[1]) or !empty(preg_replace('/[0-9a-zA-Z-_]+/i', '', $args[1]))) {
+				if (!isset($args[1]) or !empty(preg_replace('/[0-9a-z-_]+/i', '', $args[1]))) {
 					$sender->sendMessage(TF::BOLD . TF::RED . 'Invalid island name or island name argument missing!');
 					break;
 				}

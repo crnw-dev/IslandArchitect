@@ -20,9 +20,20 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
-use Clouria\IslandArchitect\events\RandomGenerationBlockPlaceEvent;
-use Clouria\IslandArchitect\events\RandomGenerationBlockUpdateEvent;
-use pocketmine\{block\Block, item\Item, level\Level, math\Vector3, utils\Random};
+use pocketmine\{
+    block\Block,
+    item\Item,
+    level\Level,
+    math\Vector3,
+    utils\Random
+};
+
+use Clouria\IslandArchitect\{
+    events\RandomGenerationBlockPlaceEvent,
+    events\RandomGenerationBlockUpdateEvent
+};
+
+use function is_array;
 use function array_push;
 use function array_rand;
 use function array_search;
@@ -109,7 +120,7 @@ class TemplateIsland {
 	 * @var string|null
 	 */
 	protected $level = null;
-	
+
 	public function getLevel() : ?string {
 		return $this->level;
 	}
@@ -264,23 +275,54 @@ class TemplateIsland {
 	 */
 	protected $structure;
 
-	public function getChunkBlocks(int $cx, int $cz, Random $random) : array {
-		for ($z=$cz << 4; $z < ($cz + 1) << 4; $z++) for ($x=$cx << 4; $x < ($cx + 1) << 4; $x++) for ($y=0; $y <= Level::Y_MAX; $y++) {
-			$block = $this->structure[$x . ':' . $y . ':' . $z] ?? null;
-			if (!isset($block)) continue;
-			$block = explode(':', $block);
-			if ((int)$block[0] === 0) $blocks[$x][$z][$y] = [(int)($block[1] ?? Item::AIR) & 0xff, (int)($block[2] ?? 0) & 0xff];
-			if ((int)$block[0] === 1) $blocks[$x][$z][$y] = $this->getRandomById((int)$block[1])->randomElementArray($random);
-		}
-		return $blocks ?? [];
-	}
+    /**
+     * @param int $x
+     * @param int $y
+     * @param int $z
+     * @param Random $random
+     * @return array|null null = Block is air (The returned block ID is not limited in valid block range 0-255, valid block meta 0-15, also not casted to int)
+     */
+	public function getProcessedBlock(int $x, int $y, int $z, Random $random) : ?array {
+        $block = $this->structure[$x . ':' . $y . ':' . $z] ?? null;
+        $chestcoord = $this->getChest();
+        if (!isset($block)) {
+            if (
+                $chestcoord !== null and
+                $chestcoord->getFloorX() === $x and
+                $chestcoord->getFloorZ() === $z and
+                $chestcoord->getFloorY() === $y
+            ) return [Item::CHEST, 0];
+            else return null;
+        }
+        $block = explode(':', $block);
+        if (!isset($block[1])) return null;
+        switch ((int)$block[0]) {
+            case 1:
+                $block = $this->getRandomById((int)$block[1])->randomElementArray($random);
+                if ($block[0] === Item::AIR) return null;
+                else return $block;
+
+            default:
+                if (
+                    $chestcoord !== null and
+                    $chestcoord->getFloorX() === $x and
+                    $chestcoord->getFloorZ() === $z and
+                    $chestcoord->getFloorY() === $y
+                ) return [Item::CHEST, 0];
+                return [$block[1], $block[2] ?? 0];
+        }
+    }
 
 	public const VERSION = '1.2';
 
 	public function save() : string {
 		$data['level'] = $this->getLevel();
-		$data['startcoord'] = $this->getStartCoord();
-		$data['endcoord'] = $this->getEndCoord();
+		$data['startcoord'] = $this->getStartCoord() === null ? null : $this->getStartCoord()->floor();
+		$data['endcoord'] = $this->getEndCoord() === null ? null : $this->getEndCoord()->floor();
+		if (($vec = $this->getSpawn()) !== null) $data['spawn'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
+		else $data['spawn'] = null;
+		if (($vec = $this->getChest()) !== null) $data['chest'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
+		else $data['chest'] = null;
 		$data['random_blocks'] = $this->random_blocks;
 		$data['random_labels'] = $this->random_labels;
 		foreach ($this->symbolic as $regexid => $symbolic) {
@@ -297,44 +339,68 @@ class TemplateIsland {
 	}
 
 	/**
-	 * @param mixed[] $chunks 
+	 * @param mixed[] $chunks
 	 * @return string JSON encoded template island data
 	 */
 	public function export(array $chunks) : string {
-		$sc = $this->getStartCoord();
-		$ec = $this->getEndCoord();
+		$sc = $this->getStartCoord()->floor();
+		$ec = $this->getEndCoord()->floor();
+        $ux = max($sc->getFloorX(), $ec->getFloorX());
+		$lx = min($sc->getFloorX(), $ec->getFloorX());
+		$uz = max($sc->getFloorZ(), $ec->getFloorZ());
+		$lz = min($sc->getFloorZ(), $ec->getFloorZ());
+		$uy = max($sc->getFloorY(), $ec->getFloorY());
+		$ly = min($sc->getFloorY(), $ec->getFloorY());
 
 		$usedrandoms = [];
 		foreach ($chunks[0] as $hash => $chunk) {
 			$chunk = $chunks[1][$hash]::fastDeserialize($chunk);
-			$chunksmap[$hash] = $chunk;
-		}
-		for ($x = min($sc->getFloorX(), $ec->getFloorX()); $x <= max($sc->getFloorX(), $ec->getFloorX()); $x++) for ($z = min($sc->getFloorZ(), $ec->getFloorZ()); $z <= max($sc->getFloorZ(), $ec->getFloorZ()); $z++) {
-			$chunk = $chunksmap[Level::chunkHash($x >> 4, $z >> 4)] ?? null;
-			if ($chunk === null) continue;
-			$bx = $x - min($sc->getFloorX(), $ec->getFloorX());
-			$bz = $z - min($sc->getFloorZ(), $ec->getFloorZ());
-			for ($y = min($sc->getFloorY(), $ec->getFloorY()); $y <= max($sc->getFloorY(), $ec->getFloorY()); $y++) {
-				if (($id = $chunk->getBlockId($x & 0x0f, $y & 0x0f, $z & 0x0f)) === Block::AIR) continue;
-				$by = $y - min($sc->getFloorY(), $ec->getFloorY());
-				$coord = $x . ':' . $y . ':' . $z;
-				$bcoord = $bx . ':' . $by . ':' . $bz;
-				if (isset($this->random_blocks[$coord])) {
-					$id = $this->random_blocks[$coord];
-					if (($r = $this->getRandomById($this->random_blocks[$coord])) === null) continue;
-					if (!$r->isValid()) continue;
-					if (($i = array_search($id, $usedrandoms, true)) === false) $id = array_push($usedrandoms, $id) - 1;
-					else $id = $usedrandoms[$i];
-					$data['structure'][$bcoord] = '1:' . $id;
-				} else {
-					$data['structure'][$bcoord] = '0:' . $id;
-					$meta = $chunk->getBlockData($x & 0x0f, $y, $z & 0x0f);
-					if ($meta !== Item::AIR) $data['structure'][$bcoord] .= $meta;
-				}
-			}
+			for ($x=0; $x < 16; $x++) for ($z=0; $z < 16; $z++) {
+			    $wx = ($chunk->getX() << 4) + $x;
+			    $wz = ($chunk->getZ() << 4) + $z;
+			    if (
+			        $wx < $lx or
+                    $wx > $ux or
+			        $wz < $lz or
+                    $wz > $uz
+                ) continue;
+                $bx = $wx - $lx;
+                $bz = $wz - $lz;
+                for ($y = $ly; $y <= $uy; $y++) {
+                    if (($id = $chunk->getBlockId($x, $y, $z)) === Block::AIR) continue;
+                    $by = $y - $ly;
+                    $coord = $wx . ':' . $y . ':' . $wz;
+                    $bcoord = $bx . ':' . $by . ':' . $bz;
+                    if (isset($this->random_blocks[$coord])) {
+                        $id = $this->random_blocks[$coord];
+                        if (($r = $this->getRandomById($this->random_blocks[$coord])) === null) continue;
+                        if (!$r->isValid()) continue;
+                        if (($i = array_search($id, $usedrandoms, true)) === false) $id = array_push($usedrandoms, $id) - 1;
+                        else $id = $usedrandoms[$i];
+                        $data['structure'][$bcoord] = '1:' . $id;
+                    } else {
+                        $data['structure'][$bcoord] = '0:' . $id;
+                        $meta = $chunk->getBlockData($x & 0x0f, $y, $z & 0x0f);
+                        if ($meta !== Item::AIR) $data['structure'][$bcoord] .= $meta;
+                    }
+                }
+            }
+            unset($chunks[$hash]);
 		}
 
 		if (!empty($usedrandoms ?? [])) foreach ($this->randoms as $id => $random) if (in_array($id, $usedrandoms)) $data['randoms'][] = $random->getAllElements();
+
+		if (($vec = $this->getSpawn()) !== null) {
+            $vec = $vec->subtract($lx, $ly, $lz);
+            $coord = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
+		    $data['spawn'] = $coord;
+        }
+
+		if (($vec = $this->getChest()) !== null) {
+            $vec = $vec->subtract($lx, $ly, $lz);
+            $coord = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
+		    $data['chest'] = $coord;
+        }
 
 		return $this->encode($data ?? []);
 	}
@@ -342,12 +408,6 @@ class TemplateIsland {
 	protected function encode(array $data) : string {
 		$data['version'] = self::VERSION;
 		$data['name'] = $this->getName();
-
-		if (($vec = $this->getSpawn()) !== null) $data['spawn'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
-		else $data['spawn'] = null;
-
-		if (($vec = $this->getChest()) !== null) $data['chest'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
-		else $data['chest'] = null;
 
 		return json_encode($data);
 	}
@@ -381,11 +441,13 @@ class TemplateIsland {
 		if (isset($data['random_blocks']) or isset($data['blocks'])) $self->random_blocks = $data['random_blocks'] ?? $data['blocks'];
 		if (isset($data['random_labels']) or isset($data['labels'])) $self->random_labels = $data['random_labels'] ?? $data['labels'];
 		if (isset($data['spawn'])) {
-			$coord = $data['spawn'];
+		    if (!is_array($data['spawn'])) $coord = explode(':', $data['spawn']);
+			else $coord = $data['spawn'];
 			$self->spawn = new Vector3((int)($coord['x'] ?? $coord[0]), (int)($coord['y'] ?? $coord[1]), (int)($coord['z'] ?? $coord[2]));
 		}
 		if (isset($data['chest'])) {
-			$coord = $data['chest'];
+		    if (!is_array($data['chest'])) $coord = explode(':', $data['chest']);
+			else $coord = $data['chest'];
 			$self->chest = new Vector3((int)($coord['x'] ?? $coord[0]), (int)($coord['y'] ?? $coord[1]), (int)($coord['z'] ?? $coord[2]));
 		}
 		if (isset($data['random_blocks'])) $self->random_blocks = $data['random_blocks'];

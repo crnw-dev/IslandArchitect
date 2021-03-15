@@ -29,18 +29,22 @@ use pocketmine\event\{
     block\BlockBreakEvent,
     block\BlockPlaceEvent,
     entity\EntityExplodeEvent,
+    level\ChunkLoadEvent,
     level\LevelSaveEvent,
     Listener,
-    player\PlayerQuitEvent
-};
+    player\PlayerQuitEvent,
+    plugin\PluginEnableEvent};
+
+use room17\SkyBlock\SkyBlock;
 
 use Clouria\IslandArchitect\{
+    customized\CustomizableClassTrait,
     runtime\RandomGeneration,
     events\RandomGenerationBlockPlaceEvent
 };
 
 class EventListener implements Listener {
-    // TODO: Customizable class trait
+    use CustomizableClassTrait;
 
     /**
 	 * @priority MONITOR
@@ -126,5 +130,21 @@ class EventListener implements Listener {
             $pos = $ev->getPosition();
             if ($affected > 0) $s->getPlayer()->sendMessage(TF::YELLOW . 'An explosion has destroyed ' . TF::BOLD . TF::GOLD . $affected . TF::RESET . TF::YELLOW . ' random generation blocks at ' . TF::BOLD . TF::GREEN . $pos->getFloorX() . ', ' . $pos->getFloorY() . ', ' . $pos->getFloorZ());
         }
+    }
+
+    /**
+	 * @priority HIGH
+	 */
+	public function onPluginEnable(PluginEnableEvent $ev) : void {
+	    $pl = $ev->getPlugin();
+	    if (!$pl instanceof SkyBlock) return;
+	    IslandArchitect::getInstance()->initDependency();
+    }
+
+    /**
+     * @priority MONITOR
+     */
+    public function onChunkLoad(ChunkLoadEvent $ev) : void {
+	    if ($ev->isNewChunk()) IslandArchitect::getInstance()->createIslandChest($ev->getLevel(), $ev->getChunk());
     }
 }

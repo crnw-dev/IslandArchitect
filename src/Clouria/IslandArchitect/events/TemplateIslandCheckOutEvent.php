@@ -30,6 +30,7 @@ use Clouria\IslandArchitect\{
 class TemplateIslandCheckOutEvent extends IslandArchitectEvent implements Cancellable {
 
 	public function __construct(PlayerSession $session, TemplateIsland $island) {
+	    parent::__construct();
 		$this->session = $session;
 		$this->island = $island;
 	}

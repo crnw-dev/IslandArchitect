@@ -1,0 +1,68 @@
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"ChangeListManager\">\r\n    <list default=\"true\" id=\"66ad598b-bcab-4cb5-9af6-0d21804e8cae\" name=\"Default Changelist\" comment=\"\">\r\n      <change afterPath=\"$PROJECT_DIR$/src/Clouria/IslandArchitect/customized/skyblock/CustomSkyBlockCreateCommand.php\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/src/Clouria/IslandArchitect/IslandArchitect.php\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/src/Clouria/IslandArchitect/IslandArchitect.php\" afterDir=\"false\" />\r\n    </list>\r\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\r\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\r\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\r\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\r\n  </component>\r\n  <component name=\"ComposerSettings\">\r\n    <execution />\r\n  </component>\r\n  <component name=\"FileTemplateManagerImpl\">\r\n    <option name=\"SCHEME\" value=\"Project\" />\r\n  </component>\r\n  <component name=\"Git.Settings\">\r\n    <option name=\"RECENT_BRANCH_BY_REPOSITORY\">\r\n      <map>\r\n        <entry key=\"$PROJECT_DIR$\" value=\"stable\" />\r\n      </map>\r\n    </option>\r\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\r\n    <option name=\"RESET_MODE\" value=\"HARD\" />\r\n  </component>\r\n  <component name=\"GitSEFilterConfiguration\">\r\n    <file-type-list>\r\n      <filtered-out-file-type name=\"LOCAL_BRANCH\" />\r\n      <filtered-out-file-type name=\"REMOTE_BRANCH\" />\r\n      <filtered-out-file-type name=\"TAG\" />\r\n      <filtered-out-file-type name=\"COMMIT_BY_MESSAGE\" />\r\n    </file-type-list>\r\n  </component>\r\n  <component name=\"PhpWorkspaceProjectConfiguration\">\r\n    <include_path>\r\n      <path value=\"$PROJECT_DIR$/../../PocketMine-MP\" />\r\n      <path value=\"$PROJECT_DIR$/../../../../../../TemporaryDirectory/BuilderTools/BuilderTools\" />\r\n      <path value=\"$PROJECT_DIR$/../../../../../../TemporaryDirectory/BlockSniper\" />\r\n      <path value=\"$PROJECT_DIR$/../../virions/InvMenu.phar\" />\r\n      <path value=\"$PROJECT_DIR$/../SkyBlock\" />\r\n    </include_path>\r\n  </component>\r\n  <component name=\"ProjectId\" id=\"1pLLcSWHYpSvGFYjQqIvSEHWVdh\" />\r\n  <component name=\"ProjectViewState\">\r\n    <option name=\"autoscrollToSource\" value=\"true\" />\r\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\r\n    <option name=\"showLibraryContents\" value=\"true\" />\r\n    <option name=\"showMembers\" value=\"true\" />\r\n  </component>\r\n  <component name=\"PropertiesComponent\">\r\n    <property name=\"RunOnceActivity.OpenProjectViewOnStart\" value=\"true\" />\r\n    <property name=\"RunOnceActivity.ShowReadmeOnStart\" value=\"true\" />\r\n    <property name=\"TODO_SCOPE\" value=\"All Places\" />\r\n    <property name=\"WebServerToolWindowFactoryState\" value=\"false\" />\r\n    <property name=\"settings.editor.selected.configurable\" value=\"editor.preferences.import\" />\r\n    <property name=\"vue.rearranger.settings.migration\" value=\"true\" />\r\n  </component>\r\n  <component name=\"SpellCheckerSettings\" RuntimeDictionaries=\"0\" Folders=\"0\" CustomDictionaries=\"0\" DefaultDictionary=\"application-level\" UseSingleDictionary=\"true\" transferred=\"true\" />\r\n  <component name=\"TaskManager\">\r\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\r\n      <changelist id=\"66ad598b-bcab-4cb5-9af6-0d21804e8cae\" name=\"Default Changelist\" comment=\"\" />\r\n      <created>1614957517793</created>\r\n      <option name=\"number\" value=\"Default\" />\r\n      <option name=\"presentableId\" value=\"Default\" />\r\n      <updated>1614957517793</updated>\r\n      <workItem from=\"1614957524881\" duration=\"8161000\" />\r\n    </task>\r\n    <task id=\"LOCAL-00001\" summary=\"Revert &quot;Added island generator registration (again)&quot;&#10;&#10;This reverts commit b83574b1\">\r\n      <created>1614958373197</created>\r\n      <option name=\"number\" value=\"00001\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00001\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1614958373197</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00002\" summary=\"Revert &quot;Added island generator registration (again)&quot;&#10;&#10;This reverts commit b83574b1\">\r\n      <created>1614963180557</created>\r\n      <option name=\"number\" value=\"00002\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00002\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1614963180557</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00003\" summary=\"Added template island registration\">\r\n      <created>1614963964123</created>\r\n      <option name=\"number\" value=\"00003\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00003\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1614963964123</updated>\r\n    </task>\r\n    <option name=\"localTasksCounter\" value=\"4\" />\r\n    <servers />\r\n  </component>\r\n  <component name=\"TypeScriptGeneratedFilesManager\">\r\n    <option name=\"version\" value=\"3\" />\r\n  </component>\r\n  <component name=\"Vcs.Log.Tabs.Properties\">\r\n    <option name=\"TAB_STATES\">\r\n      <map>\r\n        <entry key=\"MAIN\">\r\n          <value>\r\n            <State>\r\n              <option name=\"FILTERS\">\r\n                <map>\r\n                  <entry key=\"branch\">\r\n                    <value>\r\n                      <list>\r\n                        <option value=\"template-island-generator\" />\r\n                      </list>\r\n                    </value>\r\n                  </entry>\r\n                </map>\r\n              </option>\r\n            </State>\r\n          </value>\r\n        </entry>\r\n      </map>\r\n    </option>\r\n    <option name=\"oldMeFiltersMigrated\" value=\"true\" />\r\n  </component>\r\n  <component name=\"VcsManagerConfiguration\">\r\n    <MESSAGE value=\"Revert &quot;Added island generator registration (again)&quot;&#10;&#10;This reverts commit b83574b1\" />\r\n    <MESSAGE value=\"Added template island registration\" />\r\n    <option name=\"LAST_COMMIT_MESSAGE\" value=\"Added template island registration\" />\r\n  </component>\r\n  <component name=\"XSLT-Support.FileAssociations.UIState\">\r\n    <expand />\r\n    <select />\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision ee36fe937276021e92262cd8c8c0d84cd66879f7)
++++ b/.idea/workspace.xml	(date 1615734460826)
+@@ -1,9 +1,8 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
+   <component name="ChangeListManager">
+-    <list default="true" id="66ad598b-bcab-4cb5-9af6-0d21804e8cae" name="Default Changelist" comment="">
+-      <change afterPath="$PROJECT_DIR$/src/Clouria/IslandArchitect/customized/skyblock/CustomSkyBlockCreateCommand.php" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/src/Clouria/IslandArchitect/IslandArchitect.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Clouria/IslandArchitect/IslandArchitect.php" afterDir="false" />
++    <list default="true" id="5674b0f3-37e7-43aa-8264-97517475bdc1" name="Default Changelist" comment="">
++      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+     </list>
+     <option name="SHOW_DIALOG" value="false" />
+     <option name="HIGHLIGHT_CONFLICTS" value="true" />
+@@ -41,6 +40,9 @@
+       <path value="$PROJECT_DIR$/../../virions/InvMenu.phar" />
+       <path value="$PROJECT_DIR$/../SkyBlock" />
+     </include_path>
++  </component>
++  <component name="ProblemsViewState">
++    <option name="selectedIndex" value="1" />
+   </component>
+   <component name="ProjectId" id="1pLLcSWHYpSvGFYjQqIvSEHWVdh" />
+   <component name="ProjectViewState">
+@@ -54,6 +56,9 @@
+     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+     <property name="TODO_SCOPE" value="All Places" />
+     <property name="WebServerToolWindowFactoryState" value="false" />
++    <property name="com.intellij.ide.scratch.LRUPopupBuilder$1/New Scratch File" value="PHP" />
++    <property name="node.js.path.for.package.tslint" value="project" />
++    <property name="node.js.selected.package.tslint" value="(autodetect)" />
+     <property name="settings.editor.selected.configurable" value="editor.preferences.import" />
+     <property name="vue.rearranger.settings.migration" value="true" />
+   </component>
+@@ -88,7 +93,14 @@
+       <option name="project" value="LOCAL" />
+       <updated>1614963964123</updated>
+     </task>
+-    <option name="localTasksCounter" value="4" />
++    <task id="LOCAL-00004" summary="The island generator finally...&#10;worked?&#10;&#10;- Optimized code of getting the blocks of a chunk from the template island data instance (Uses less memory)&#10;- Removed method TemplateIsland::getChunkBlocks(...)&#10;- Added public method TemplateIsland::getProcessedBlock(int $x, int $y, int $z, Random)-&gt;array&#10;- Fixed not passing the world instance into the position instance constructor in the custom skyblock island factory class">
++      <created>1615734455766</created>
++      <option name="number" value="00004" />
++      <option name="presentableId" value="LOCAL-00004" />
++      <option name="project" value="LOCAL" />
++      <updated>1615734455766</updated>
++    </task>
++    <option name="localTasksCounter" value="5" />
+     <servers />
+   </component>
+   <component name="TypeScriptGeneratedFilesManager">
+@@ -121,7 +133,8 @@
+   <component name="VcsManagerConfiguration">
+     <MESSAGE value="Revert &quot;Added island generator registration (again)&quot;&#10;&#10;This reverts commit b83574b1" />
+     <MESSAGE value="Added template island registration" />
+-    <option name="LAST_COMMIT_MESSAGE" value="Added template island registration" />
++    <MESSAGE value="The island generator finally...&#10;worked?&#10;&#10;- Optimized code of getting the blocks of a chunk from the template island data instance (Uses less memory)&#10;- Removed method TemplateIsland::getChunkBlocks(...)&#10;- Added public method TemplateIsland::getProcessedBlock(int $x, int $y, int $z, Random)-&gt;array&#10;- Fixed not passing the world instance into the position instance constructor in the custom skyblock island factory class" />
++    <option name="LAST_COMMIT_MESSAGE" value="The island generator finally...&#10;worked?&#10;&#10;- Optimized code of getting the blocks of a chunk from the template island data instance (Uses less memory)&#10;- Removed method TemplateIsland::getChunkBlocks(...)&#10;- Added public method TemplateIsland::getProcessedBlock(int $x, int $y, int $z, Random)-&gt;array&#10;- Fixed not passing the world instance into the position instance constructor in the custom skyblock island factory class" />
+   </component>
+   <component name="XSLT-Support.FileAssociations.UIState">
+     <expand />
