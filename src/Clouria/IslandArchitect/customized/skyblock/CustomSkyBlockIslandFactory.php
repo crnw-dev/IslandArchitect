@@ -4,7 +4,7 @@
 		  _____     _                 _          
 		  \_   \___| | __ _ _ __   __| |         
 		   / /\/ __| |/ _` | '_ \ / _` |         
-		/\/ /_ \__ \ | (_| | | | | (_| |         
+		/\/ /_ \__ \ | (_| | | | | (_| |
 		\____/ |___/_|\__,_|_| |_|\__,_|         
 		                                         
 		   _            _     _ _            _   
@@ -93,7 +93,10 @@ null, TemplateIslandGenerator::getClass(), $settings ?? []);
             $level = Server::getInstance()->getLevelByName($identifier);
 
             $level->setSpawnLocation($is->getSpawn() ?? new Position(0, 0 /* TODO: $is->getYOffset() */,0, $level));
-            IslandArchitect::getInstance()->queueIslandChestCreation($level, $is);
+            if ($is->getChest() !== null) {
+                IslandArchitect::getInstance()->queueIslandChestCreation($level, $is);
+                $level->loadChunk($is->getChest()->getFloorX() >> 4, $is->getChest()->getFloorZ() >> 4);
+            }
             $callback($level);
         });
         Server::getInstance()->getAsyncPool()->submitTask($task);
