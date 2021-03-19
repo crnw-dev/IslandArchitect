@@ -45,6 +45,7 @@ class IslandChestSession {
      * @param \Closure|null $callback
      */
     public function __construct(PlayerSession $session, ?\Closure $callback = null) {
+        return; // TODO: Keep working on in 1.2.2 or futher versions
         if ($session->getIsland() === null) throw new \RuntimeException('Target session hasn\'t check out an island');
 		$this->session = $session;
 		$this->callback = $callback;
