@@ -22,7 +22,14 @@ namespace Clouria\IslandArchitect\runtime\sessions;
 
 use Clouria\IslandArchitect\{conversion\IslandDataEmitTask, IslandArchitect, runtime\TemplateIsland};
 use jojoe77777\FormAPI\SimpleForm;
-use pocketmine\{level\Level, Player, scheduler\ClosureTask, Server, utils\TextFormat as TF};
+use pocketmine\{
+    level\Level,
+    level\particle\FloatingTextParticle,
+    math\Vector3,
+    Player,
+    scheduler\ClosureTask,
+    Server,
+    utils\TextFormat as TF};
 use function class_exists;
 use function count;
 use function get_class;
@@ -34,12 +41,19 @@ use function spl_object_id;
 
 class PlayerSession {
 
-	/**
+    const FLOATINGTEXT_SPAWN = 0;
+
+    /**
 	 * @var Player
 	 */
 	private $player;
 
-	public function __construct(Player $player) {
+    /**
+     * @var array<mixed, FloatingTextParticle>
+     */
+    protected $floatingtext = [];
+
+    public function __construct(Player $player) {
 		$this->player = $player;
 	}
 
@@ -76,7 +90,12 @@ class PlayerSession {
 	}
 
 	public function close() : void {
-		$this->saveIsland();
+        $this->saveIsland();
+        if (!$this->getPlayer()->isOnline()) return;
+        foreach ($this->floatingtext as $ft) {
+            $ft->setInvisible();
+            $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
+        }
 	}
 
 	/**
@@ -173,4 +192,10 @@ class PlayerSession {
 		$player->sendMessage(TF::BOLD . TF::RED . 'Please check out an island first!' . TF::GRAY . TF::ITALIC . ' ("/ia island <Island data file name: string>")');
 		return true;
 	}
+
+    public function getFloatingText($id, bool $nonnull = false) : ?FloatingTextParticle {
+	    if (isset($this->floatingtext[$id])) return $this->floatingtext[$id];
+	    if ($nonnull) return ($this->floatingtext[$id] = new FloatingTextParticle(new Vector3(0, 0, 0), ''));
+	    return null;
+    }
 }
