@@ -24,6 +24,7 @@ namespace Clouria\IslandArchitect;
 use room17\SkyBlock\SkyBlock;
 use muqsit\invmenu\InvMenuHandler;
 use Clouria\IslandArchitect\{
+    events\TickTaskRegisterEvent,
     runtime\TemplateIsland,
     runtime\sessions\PlayerSession,
     runtime\TemplateIslandGenerator,
@@ -77,7 +78,7 @@ class IslandArchitect extends PluginBase {
 
 		if (SkyBlock::getInstance() !== null and SkyBlock::getInstance()->isEnabled()) $this->initDependency();
 
-		$this->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) : void {
+		$task = new ClosureTask(function(int $ct) : void {
 		    foreach ($this->getSessions() as $s) if ($s->getIsland() !== null) {
 		        $sb = $s->getPlayer()->getTargetBlock(12);
 		        $sc = $s->getIsland()->getStartCoord();
@@ -131,7 +132,9 @@ class IslandArchitect extends PluginBase {
                     }
                 }
             }
-        }), 10);
+        });
+		$ev = new TickTaskRegisterEvent($task, 10);
+		$this->getScheduler()->scheduleRepeatingTask($ev->getTask(), $ev->getPeriod());
 	}
 
     /**
