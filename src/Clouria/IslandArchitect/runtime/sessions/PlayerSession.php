@@ -82,9 +82,10 @@ class PlayerSession {
 		$this->island = $island;
 
 		$spawn = $island->getSpawn();
-		if ($island->getSpawn() === null) return;
+		if ($spawn === null) return;
+		$spawn = $spawn->floor()->add(0.5, 0.5, 0.5);
 		$ft = $this->getFloatingText(self::FLOATINGTEXT_SPAWN, true);
-        $ft->setComponents($spawn->getFloorX(), $spawn->getFloorY(), $spawn->getFloorZ());
+        $ft->setComponents($spawn->getX(), $spawn->getY(), $spawn->getZ());
         $ft->setText(TF::BOLD . TF::GOLD . 'Island spawn' . "\n" . TF::RESET . TF::GREEN . $spawn->getFloorX() . ', ' . $spawn->getFloorY() . ', ' . $spawn->getFloorZ());
         $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
 	}

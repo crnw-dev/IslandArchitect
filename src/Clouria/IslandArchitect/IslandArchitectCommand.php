@@ -169,7 +169,8 @@ class IslandArchitectCommand extends Command {
 				$sender->sendMessage(TF::YELLOW . 'Island world spawn set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
 				$s->getIsland()->setSpawn($vec);
 				$ft = $s->getFloatingText($s::FLOATINGTEXT_SPAWN, true);
-				$ft->setComponents($vec->getFloorX(), $vec->getFloorY(), $vec->getFloorZ());
+				$vec = $vec->floor()->add(0.5, 0.5, 0.5);
+				$ft->setComponents($vec->getX(), $vec->getY(), $vec->getZ());
                 $ft->setText(TF::BOLD . TF::GOLD . 'Island spawn' . "\n" . TF::RESET . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ());
                 $sender->getLevel()->addParticle($ft, [$sender]);
 				break;
