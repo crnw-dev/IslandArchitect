@@ -56,6 +56,11 @@ class PlayerSession {
      */
     protected $floatingtext = [];
 
+    /**
+     * @var scalar[]
+     */
+    protected $viewingft = [];
+
     public function __construct(Player $player) {
 		$this->player = $player;
 	}
@@ -70,8 +75,18 @@ class PlayerSession {
 	protected $island = null;
 
 	public function checkOutIsland(TemplateIsland $island) : void {
-		if ($this->export_lock) $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'An island is exporting in background, please wait until the island export is finished!');
-		else $this->island = $island;
+		if ($this->export_lock) {
+            $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'An island is exporting in background, please wait until the island export is finished!');
+            return;
+        }
+		$this->island = $island;
+
+		$spawn = $island->getSpawn();
+		if ($island->getSpawn() === null) return;
+		$ft = $this->getFloatingText(self::FLOATINGTEXT_SPAWN, true);
+        $ft->setComponents($spawn->getFloorX(), $spawn->getFloorY(), $spawn->getFloorZ());
+        $ft->setText(TF::BOLD . TF::GOLD . 'Island spawn' . "\n" . TF::RESET . TF::GREEN . $spawn->getFloorX() . ', ' . $spawn->getFloorY() . ', ' . $spawn->getFloorZ());
+        $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
 	}
 
 	public function getIsland() : ?TemplateIsland {
@@ -213,6 +228,9 @@ class PlayerSession {
      */
     public function showFloatingText($id) : bool {
 	    if (!isset($this->floatingtext[$id])) return false;
+	    if (in_array($id, $this->viewingft, true)) return false;
+	    $this->viewingft[] = $id;
+
 	    $ft = $this->floatingtext[$id];
 	    $ft->setInvisible(false);
 	    $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
@@ -225,6 +243,9 @@ class PlayerSession {
      */
     public function hideFloatingText($id) : bool {
         if (!isset($this->floatingtext[$id])) return false;
+	    if (($r = array_search($id, $this->viewingft, true)) === null) return false;
+        unset($this->viewingft[$r]);
+
 	    $ft = $this->floatingtext[$id];
 	    $ft->setInvisible(true);
 	    $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);

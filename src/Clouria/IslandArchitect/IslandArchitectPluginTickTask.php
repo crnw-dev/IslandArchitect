@@ -50,8 +50,8 @@ class IslandArchitectPluginTickTask extends Task {
                 !$dbb->isVectorInside(new Vector3((int)$spawn->getFloorX() >> 4, (int)$spawn->getFloorY() >> 4, (int)
                     $spawn->getFloorZ() >>
                     4))
-            ) $s->showFloatingText($s::FLOATINGTEXT_SPAWN);
-            else $s->hideFloatingText($s::FLOATINGTEXT_SPAWN);
+            ) $s->hideFloatingText($s::FLOATINGTEXT_SPAWN);
+            else $s->showFloatingText($s::FLOATINGTEXT_SPAWN);
 
             // Draw island area outline
             if ($sc !== null and $ec !== null and $s->getPlayer()->getLevel()->getFolderName() === $is->getLevel()) {
