@@ -20,23 +20,26 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime\sessions;
 
-use Clouria\IslandArchitect\{conversion\IslandDataEmitTask, IslandArchitect, runtime\TemplateIsland};
 use jojoe77777\FormAPI\SimpleForm;
+use Clouria\IslandArchitect\{
+    IslandArchitect,
+    runtime\TemplateIsland,
+    conversion\IslandDataEmitTask};
 use pocketmine\{
-    level\Level,
-    level\particle\FloatingTextParticle,
-    math\Vector3,
     Player,
-    scheduler\ClosureTask,
     Server,
-    utils\TextFormat as TF};
-use function class_exists;
-use function count;
-use function get_class;
+    level\Level,
+    math\Vector3,
+    scheduler\ClosureTask,
+    utils\TextFormat as TF,
+    level\particle\FloatingTextParticle};
 use function max;
-use function microtime;
 use function min;
+use function count;
 use function round;
+use function get_class;
+use function microtime;
+use function class_exists;
 use function spl_object_id;
 
 class PlayerSession {
@@ -193,9 +196,38 @@ class PlayerSession {
 		return true;
 	}
 
+    /**
+     * @param scalar $id
+     * @param bool $nonnull
+     * @return FloatingTextParticle|null
+     */
     public function getFloatingText($id, bool $nonnull = false) : ?FloatingTextParticle {
 	    if (isset($this->floatingtext[$id])) return $this->floatingtext[$id];
 	    if ($nonnull) return ($this->floatingtext[$id] = new FloatingTextParticle(new Vector3(0, 0, 0), ''));
 	    return null;
+    }
+
+    /**
+     * @param scalar $id
+     * @return bool
+     */
+    public function showFloatingText($id) : bool {
+	    if (!isset($this->floatingtext[$id])) return false;
+	    $ft = $this->floatingtext[$id];
+	    $ft->setInvisible(false);
+	    $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
+	    return true;
+    }
+
+    /**
+     * @param scalar $id
+     * @return bool
+     */
+    public function hideFloatingText($id) : bool {
+        if (!isset($this->floatingtext[$id])) return false;
+	    $ft = $this->floatingtext[$id];
+	    $ft->setInvisible(true);
+	    $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
+	    return true;
     }
 }

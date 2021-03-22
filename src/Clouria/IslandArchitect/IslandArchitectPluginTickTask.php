@@ -4,15 +4,14 @@
 namespace Clouria\IslandArchitect;
 
 
+use Clouria\IslandArchitect\customized\CustomizableClassTrait;
 use pocketmine\{
     level\Level,
-    level\particle\RedstoneParticle,
-    math\AxisAlignedBB,
     math\Vector3,
     scheduler\Task,
-    utils\TextFormat as TF};
-
-use Clouria\IslandArchitect\customized\CustomizableClassTrait;
+    math\AxisAlignedBB,
+    utils\TextFormat as TF,
+    level\particle\RedstoneParticle};
 
 class IslandArchitectPluginTickTask extends Task {
     use CustomizableClassTrait;
@@ -46,23 +45,13 @@ class IslandArchitectPluginTickTask extends Task {
 
             // Island spawn floating text
             $spawn = $is->getSpawn();
-            if ($spawn === null or $is->getLevel() !== $s->getPlayer()->getLevel()->getFolderName() or
+            if (
+                $spawn === null or $is->getLevel() !== $s->getPlayer()->getLevel()->getFolderName() or
                 !$dbb->isVectorInside(new Vector3((int)$spawn->getFloorX() >> 4, (int)$spawn->getFloorY() >> 4, (int)
                     $spawn->getFloorZ() >>
-                    4))) {
-                $ft = $s->getFloatingText($s::FLOATINGTEXT_SPAWN);
-                if (isset($ft)) {
-                    $ft->setInvisible();
-                    $s->getPlayer()->getLevel()->addParticle($ft, [$s->getPlayer()]);
-                }
-            } else {
-                $ft = $s->getFloatingText($s::FLOATINGTEXT_SPAWN, true);
-                $ft->setInvisible(false);
-                $ft->setComponents($spawn->getFloorX(), $spawn->getFloorY(), $spawn->getFloorZ());
-                $ft->setText(TF::BOLD . TF::GOLD . 'Island spawn' . "\n" . TF::RESET . TF::GREEN . $spawn->getFloorX
-                    () . ', ' . $spawn->getFloorY() . ', ' . $spawn->getFloorZ());
-                $s->getPlayer()->getLevel()->addParticle($ft, [$s->getPlayer()]);
-            }
+                    4))
+            ) $s->showFloatingText($s::FLOATINGTEXT_SPAWN);
+            else $s->hideFloatingText($s::FLOATINGTEXT_SPAWN);
 
             // Draw island area outline
             if ($sc !== null and $ec !== null and $s->getPlayer()->getLevel()->getFolderName() === $is->getLevel()) {
