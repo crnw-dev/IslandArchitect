@@ -22,30 +22,26 @@ namespace Clouria\IslandArchitect\customized\skyblock;
 use pocketmine\{
     Server,
     level\Level,
-    level\Position
-};
-
+    level\Position};
 use room17\SkyBlock\{
-    island\IslandFactory,
-    event\island\IslandCreateEvent,
+    SkyBlock,
     island\RankIds,
     session\Session,
-    SkyBlock};
-
+    island\IslandFactory,
+    event\island\IslandCreateEvent};
 use Clouria\IslandArchitect\{
-    conversion\IslandDataLoadTask,
-    customized\CustomizableClassTrait,
-    events\IslandWorldPreCreateEvent,
     IslandArchitect,
     runtime\TemplateIsland,
-    runtime\TemplateIslandGenerator};
-
+    conversion\IslandDataLoadTask,
+    runtime\TemplateIslandGenerator,
+    events\IslandWorldPreCreateEvent,
+    customized\CustomizableClassTrait};
 use function uniqid;
 use function microtime;
 use function serialize;
 
 class CustomSkyBlockIslandFactory extends IslandFactory {
-    use CustomizableClassTrait;
+    use CustomizableClassTrait; // TODO: Deprecate the current way of customizable class, register the classes and use event instead
 
     public static function createIslandFor(Session $session, string $type): void {
         $mapped = IslandArchitect::getInstance()->mapGeneratorType($type);
@@ -63,7 +59,9 @@ class CustomSkyBlockIslandFactory extends IslandFactory {
         static::createTemplateIslandWorldAsync($identifier, $type, function(Level $w) use
         ($session, $islandManager, $identifier, $type) : void {
             if (!$session->getPlayer()->isOnline()) return;
-            $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, $type,
+            $class = DummyIslandGenerator::getClass();
+            assert(is_a($class, DummyIslandGenerator::class, true));
+            $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, $class::GENREATOR_NAME,
             $w, 0);
 
             $session->setIsland($island = $islandManager->getIsland($identifier));

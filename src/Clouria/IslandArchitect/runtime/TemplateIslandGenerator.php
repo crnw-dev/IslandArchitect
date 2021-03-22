@@ -20,14 +20,12 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
+use Clouria\IslandArchitect\customized\CustomizableClassTrait;
 use pocketmine\{
     item\Item,
     level\Level,
     math\Vector3,
     level\generator\Generator as GeneratorInterface};
-
-use Clouria\IslandArchitect\customized\CustomizableClassTrait;
-
 use function unserialize;
 
 class TemplateIslandGenerator extends GeneratorInterface {
@@ -44,7 +42,6 @@ class TemplateIslandGenerator extends GeneratorInterface {
      * @var array
      */
     protected $settings;
-    protected $spawnset = false;
 
     public function __construct(array $settings = []) {
 	    $this->settings = $settings;

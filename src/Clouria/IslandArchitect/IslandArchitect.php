@@ -23,12 +23,6 @@ namespace Clouria\IslandArchitect;
 
 use room17\SkyBlock\SkyBlock;
 use muqsit\invmenu\InvMenuHandler;
-use Clouria\IslandArchitect\{
-    events\TickTaskRegisterEvent,
-    runtime\TemplateIsland,
-    runtime\sessions\PlayerSession,
-    runtime\TemplateIslandGenerator,
-    customized\skyblock\CustomSkyBlockCreateCommand};
 use pocketmine\{
     Player,
     tile\Tile,
@@ -38,6 +32,13 @@ use pocketmine\{
     plugin\PluginBase,
     level\format\Chunk,
     level\generator\GeneratorManager};
+use Clouria\IslandArchitect\{
+    runtime\TemplateIsland,
+    events\TickTaskRegisterEvent,
+    runtime\sessions\PlayerSession,
+    runtime\TemplateIslandGenerator,
+    customized\skyblock\DummyIslandGenerator,
+    customized\skyblock\CustomSkyBlockCreateCommand};
 use function substr;
 use function strtolower;
 use function file_exists;
@@ -89,6 +90,10 @@ class IslandArchitect extends PluginBase {
 	    if ($cmd !== null) $pl->getCommandMap()->unregisterCommand($cmd->getName());
 	    $class = CustomSkyBlockCreateCommand::getClass();
 	    $map->registerCommand(new $class($map));
+
+	    $class = DummyIslandGenerator::getClass();
+	    assert(is_a($class, DummyIslandGenerator::class, true));
+	    $pl->getGeneratorManager()->registerGenerator($class::GENREATOR_NAME, DummyIslandGenerator::getClass());
     }
 
 	private function initConfig() : void {
