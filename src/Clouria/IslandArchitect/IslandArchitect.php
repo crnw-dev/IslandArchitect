@@ -119,7 +119,6 @@ class IslandArchitect extends PluginBase {
 	    if (!isset($sf)) return null;
 	    $type = $sf;
 	    if (
-	        isset($type) and
             !(file_exists($type = Utils::cleanPath($type))) and
             !file_exists($type = Utils::cleanPath(
                 (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/') .

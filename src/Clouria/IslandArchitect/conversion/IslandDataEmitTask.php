@@ -39,7 +39,7 @@ use function mkdir;
 class IslandDataEmitTask extends AsyncTask {
 
 	/**
-	 * @var string (Serialized)
+	 * @var TemplateIsland (Serialized)
 	 */
 	protected $island;
 
@@ -49,7 +49,7 @@ class IslandDataEmitTask extends AsyncTask {
 	protected $path;
 
 	/**
-	 * @var string (Serialized)
+	 * @var array|null (Serialized)
 	 */
 	protected $chunks;
 

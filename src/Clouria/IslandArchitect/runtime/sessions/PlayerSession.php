@@ -244,7 +244,7 @@ class PlayerSession {
      */
     public function hideFloatingText($id) : bool {
         if (!isset($this->floatingtext[$id])) return false;
-	    if (($r = array_search($id, $this->viewingft, true)) === null) return false;
+	    if (($r = array_search($id, $this->viewingft, true)) === false) return false;
         unset($this->viewingft[$r]);
 
 	    $ft = $this->floatingtext[$id];

@@ -17,9 +17,7 @@ class IslandArchitectPluginTickTask extends Task {
     use CustomizableClassTrait;
 
     public function onRun(int $ct) : void {
-        foreach (IslandArchitect::getInstance()->getSessions() as $s) if ($s->getIsland() !== null) {
-            $is = $s->getIsland();
-            if ($is === null) continue;
+        foreach (IslandArchitect::getInstance()->getSessions() as $s) if (($is = $s->getIsland()) !== null) {
             $sb = $s->getPlayer()->getTargetBlock(12);
             $sc = $is->getStartCoord();
             $ec = $is->getEndCoord();
