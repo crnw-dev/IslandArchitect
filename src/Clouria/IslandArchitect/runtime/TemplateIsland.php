@@ -21,29 +21,25 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
 use pocketmine\{
-    block\Block,
     item\Item,
+    block\Block,
     level\Level,
     math\Vector3,
-    utils\Random
-};
-
+    utils\Random};
 use Clouria\IslandArchitect\{
     events\RandomGenerationBlockPlaceEvent,
-    events\RandomGenerationBlockUpdateEvent
-};
-
-use function is_array;
-use function array_push;
-use function array_rand;
-use function array_search;
-use function explode;
-use function in_array;
-use function json_decode;
-use function json_encode;
+    events\RandomGenerationBlockUpdateEvent};
 use function max;
 use function min;
+use function explode;
+use function is_array;
+use function in_array;
+use function array_push;
+use function array_rand;
 use function var_export;
+use function json_decode;
+use function json_encode;
+use function array_search;
 
 class TemplateIsland {
 
@@ -388,7 +384,10 @@ class TemplateIsland {
             unset($chunks[$hash]);
 		}
 
-		if (!empty($usedrandoms ?? [])) foreach ($this->randoms as $id => $random) if (in_array($id, $usedrandoms)) $data['randoms'][] = $random->getAllElements();
+		if (!empty($usedrandoms ?? [])) foreach ($this->randoms as $id => $random) if (in_array($id, $usedrandoms)) {
+		    $random->simplifyRegex();
+		    $data['randoms'][] = $random->getAllElements();
+		}
 
 		if (($vec = $this->getSpawn()) !== null) {
             $vec = $vec->subtract($lx, $ly, $lz);
@@ -404,6 +403,14 @@ class TemplateIsland {
 
 		return $this->encode($data ?? []);
 	}
+
+	public function exportRaw() : string {
+	    $data['structure'] = $this->structure;
+		foreach ($this->randoms as $id => $random) $data['randoms'][] = $random->getAllElements();
+		if (isset($this->spawn)) $data['spawn'] = $this->spawn->getFloorX() . ':' . $this->spawn->getFloorY() . ':' . $this->spawn->getFloorZ();
+		if (isset($this->chest)) $data['chest'] = $this->chest->getFloorX() . ':' . $this->chest->getFloorY() . ':' . $this->chest->getFloorZ();
+	    return $this->encode($data ?? []);
+    }
 
 	protected function encode(array $data) : string {
 		$data['version'] = self::VERSION;

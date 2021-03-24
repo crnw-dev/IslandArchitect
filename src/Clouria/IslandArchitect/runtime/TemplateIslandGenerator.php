@@ -20,17 +20,15 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
+use room17\SkyBlock\island\generator\IslandGenerator;
 use pocketmine\{
     item\Item,
     level\Level,
-    math\Vector3,
-    level\generator\Generator as GeneratorInterface};
-
+    math\Vector3};
 use Clouria\IslandArchitect\customized\CustomizableClassTrait;
-
 use function unserialize;
 
-class TemplateIslandGenerator extends GeneratorInterface {
+class TemplateIslandGenerator extends IslandGenerator {
     use CustomizableClassTrait;
 
     public const GENERATOR_NAME = 'templateislandgenerator';
@@ -40,16 +38,10 @@ class TemplateIslandGenerator extends GeneratorInterface {
 	 */
 	protected $island = null;
 
-    /**
-     * @var array
-     */
-    protected $settings;
-    protected $spawnset = false;
-
     public function __construct(array $settings = []) {
-	    $this->settings = $settings;
+        parent::__construct($settings);
 
-	    $island = unserialize($settings['preset'])[0];
+	    $island = TemplateIsland::load(unserialize($this->getSettings()['preset'])[0]);
         if ($island === null) throw new \RuntimeException('Cannot pass template island instance into the generator thread');
         $this->island = $island;
 	}
@@ -59,7 +51,7 @@ class TemplateIslandGenerator extends GeneratorInterface {
         $chunk->setGenerated();
         for ($x=0; $x < 16; $x++) for ($z=0; $z < 16; $z++) for ($y=0; $y <= Level::Y_MAX; $y++) {
             $block = $this->island->getProcessedBlock(($chunk->getX() << 4) + $x, $y, ($chunk->getZ() << 4) + $z, $this->random);
-            if ($block === null or $block === Item::AIR) continue;
+            if ($block === null or $block[0] === Item::AIR) continue;
             $chunk->setBlock($x, $y, $z, (int)$block[0], (int)$block[1]);
         }
 	}
@@ -70,12 +62,15 @@ class TemplateIslandGenerator extends GeneratorInterface {
 
     public function populateChunk(int $chunkX, int $chunkZ) : void {}
 
-    public function getSettings() : array {
-        return $this->settings;
-    }
-
     public function getSpawn() : Vector3 {
-        return new $this->island->getSpawn();
+        return $this->island->getSpawn();
     }
 
+    public static function getWorldSpawn() : Vector3 {
+        return new Vector3(0, 0, 0);
+    }
+
+    public static function getChestPosition() : Vector3 {
+        return new Vector3(0, 0, 0);
+    }
 }

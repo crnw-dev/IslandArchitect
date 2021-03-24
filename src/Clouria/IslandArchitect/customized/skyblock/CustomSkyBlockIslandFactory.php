@@ -4,7 +4,7 @@
 		  _____     _                 _          
 		  \_   \___| | __ _ _ __   __| |         
 		   / /\/ __| |/ _` | '_ \ / _` |         
-		/\/ /_ \__ \ | (_| | | | | (_| |         
+		/\/ /_ \__ \ | (_| | | | | (_| |
 		\____/ |___/_|\__,_|_| |_|\__,_|         
 		                                         
 		   _            _     _ _            _   
@@ -19,30 +19,29 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\customized\skyblock;
 
-use pocketmine\Server;
-use pocketmine\level\Level;
-
+use pocketmine\{
+    Server,
+    level\Level,
+    level\Position};
 use room17\SkyBlock\{
-    island\IslandFactory,
-    event\island\IslandCreateEvent,
+    SkyBlock,
     island\RankIds,
     session\Session,
-    SkyBlock};
-
+    island\IslandFactory,
+    event\island\IslandCreateEvent};
 use Clouria\IslandArchitect\{
-    conversion\IslandDataLoadTask,
-    customized\CustomizableClassTrait,
-    events\IslandWorldPreCreateEvent,
     IslandArchitect,
     runtime\TemplateIsland,
-    runtime\TemplateIslandGenerator};
-
+    conversion\IslandDataLoadTask,
+    runtime\TemplateIslandGenerator,
+    events\IslandWorldPreCreateEvent,
+    customized\CustomizableClassTrait};
 use function uniqid;
 use function microtime;
 use function serialize;
 
 class CustomSkyBlockIslandFactory extends IslandFactory {
-    use CustomizableClassTrait;
+    use CustomizableClassTrait; // TODO: Deprecate the current way of customizable class, register the classes and use event instead
 
     public static function createIslandFor(Session $session, string $type): void {
         $mapped = IslandArchitect::getInstance()->mapGeneratorType($type);
@@ -60,7 +59,9 @@ class CustomSkyBlockIslandFactory extends IslandFactory {
         static::createTemplateIslandWorldAsync($identifier, $type, function(Level $w) use
         ($session, $islandManager, $identifier, $type) : void {
             if (!$session->getPlayer()->isOnline()) return;
-            $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, $type,
+            $class = TemplateIslandGenerator::getClass();
+            assert(is_a($class, TemplateIslandGenerator::class, true));
+            $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, $class::GENERATOR_NAME,
             $w, 0);
 
             $session->setIsland($island = $islandManager->getIsland($identifier));
@@ -82,15 +83,21 @@ class CustomSkyBlockIslandFactory extends IslandFactory {
      */
     public static function createTemplateIslandWorldAsync(string $identifier, string $type, \Closure $callback) : void {
         $task = new IslandDataLoadTask($type, function(TemplateIsland $is, string $file) use
-        ($identifier, $callback, $type) : void {
-            $settings = ['preset' => serialize([$is])];
+        ($identifier, $callback) : void {
+            $settings = ['preset' => serialize([$is->exportRaw()])];
             Server::getInstance()->generateLevel($identifier,
 null, TemplateIslandGenerator::getClass(), $settings ?? []);
             Server::getInstance()->loadLevel($identifier);
             $level = Server::getInstance()->getLevelByName($identifier);
 
-            $level->setSpawnLocation($is->getSpawn());
-            IslandArchitect::getInstance()->queueIslandChestCreation($level, $is);
+            $level->setSpawnLocation($is->getSpawn() ?? new Position(0, 0 /* TODO: $is->getYOffset() */,0, $level));
+            if ($is->getChest() !== null) {
+                IslandArchitect::getInstance()->queueIslandChestCreation($level, $is);
+                $class = TemplateIslandGenerator::getClass();
+                assert(is_a($class, TemplateIslandGenerator::class, true));
+                $hardcodedchest = $class::getChestPosition();
+                $level->loadChunk($hardcodedchest->getFloorX() >> 4, $hardcodedchest->getFloorZ() >> 4);
+            }
             $callback($level);
         });
         Server::getInstance()->getAsyncPool()->submitTask($task);

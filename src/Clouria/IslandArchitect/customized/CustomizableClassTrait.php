@@ -32,6 +32,9 @@ trait CustomizableClassTrait {
         return true;
     }
 
+    /**
+     * @return class-string<self>
+     */
     final public static function getClass() : string {
         return self::$class ?? self::class;
     }

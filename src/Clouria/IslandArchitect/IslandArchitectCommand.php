@@ -18,27 +18,22 @@
 
 namespace Clouria\IslandArchitect;
 
+use jojoe77777\FormAPI\ModalForm;
 use pocketmine\{
-    command\Command,
-    command\CommandSender,
-    level\Position,
     Player,
     Server,
+    utils\Utils,
+    level\Position,
+    command\Command,
     utils\TextFormat as TF,
-    utils\Utils
-};
-
-use jojoe77777\FormAPI\ModalForm;
-
+    command\CommandSender};
 use Clouria\IslandArchitect\{
+    runtime\TemplateIsland,
     conversion\IslandDataLoadTask,
-    customized\CustomizableClassTrait,
-    events\TemplateIslandCheckOutEvent,
-    runtime\sessions\InvMenuSession,
     runtime\sessions\PlayerSession,
-    runtime\TemplateIsland
-};
-
+    runtime\sessions\InvMenuSession,
+    customized\CustomizableClassTrait,
+    events\TemplateIslandCheckOutEvent};
 use function strtolower;
 use function class_exists;
 
@@ -173,6 +168,11 @@ class IslandArchitectCommand extends Command {
 				} else $s->getIsland()->setLevel($vec->getLevel());
 				$sender->sendMessage(TF::YELLOW . 'Island world spawn set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
 				$s->getIsland()->setSpawn($vec);
+				$ft = $s->getFloatingText($s::FLOATINGTEXT_SPAWN, true);
+				$vec = $vec->floor()->add(0.5, 0.5, 0.5);
+				$ft->setComponents($vec->getX(), $vec->getY(), $vec->getZ());
+                $ft->setText(TF::BOLD . TF::GOLD . 'Island spawn' . "\n" . TF::RESET . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ());
+                $sender->getLevel()->addParticle($ft, [$sender]);
 				break;
 
 			case 'setchest':

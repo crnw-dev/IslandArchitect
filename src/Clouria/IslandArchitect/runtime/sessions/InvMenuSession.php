@@ -68,15 +68,15 @@ class InvMenuSession {
 	/**
 	 * @var RandomGeneration
 	 */
-	private $regex;
+	protected $regex;
 
 	/**
 	 * @var int
 	 */
-	private $regexid;
+	protected $regexid;
 
 	/**
-	 * @var Closure|null
+	 * @var \Closure|null
 	 */
 	private $callback;
 
@@ -92,10 +92,7 @@ class InvMenuSession {
 		$this->regexid = $regexid;
 		$this->regex = $regex;
 		$this->callback = $callback;
-		if (!class_exists(InvMenu::class)) {
-			$session->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Cannot open random generation regex modify panel, ' . "\n" . 'required virion "InvMenu(v4)" is not installed. ' . TF::AQUA . 'A blank regex has been added into your island data, you may edit the regex manually with an text editor!');
-			return;
-		}
+		if (self::errorInvMenuNotInstalled($session->getPlayer())) return;
 
 		$this->panelInit();
 		$this->menu->send($session->getPlayer());
@@ -129,7 +126,7 @@ class InvMenuSession {
 	protected $random_rolled_times = 0;
 
 	/**
-	 * @var Item|null
+	 * @var array<int, mixed>
 	 */
 	protected $selected = null;
 
@@ -293,7 +290,13 @@ class InvMenuSession {
 		$this->menu->getInventory()->setItem(42, $i, false);
 	}
 
-	protected function transactionCallback(InvMenuTransaction $transaction) : void {
+    public static function errorInvMenuNotInstalled(Player $player) : bool {
+	    if (class_exists(InvMenu::class)) return false;
+        $player->sendMessage(TF::BOLD . TF::RED . 'Cannot open random generation regex modify panel, ' . "\n" . 'required virion "InvMenu(v4)" is not installed. ' . TF::AQUA . 'A blank regex has been added into your island data, you may edit the regex manually with an text editor!');
+	    return true;
+    }
+
+    protected function transactionCallback(InvMenuTransaction $transaction) : void {
 		$inraw = $transaction->getIn();
 		$in = $inraw;
 		$in = self::inputConversion($in, $successed);
@@ -314,7 +317,7 @@ class InvMenuSession {
 			return;
 		}
 		$nbt = $out->getNamedTagEntry('IslandArchitect') ?? null;
-		if ($nbt !== null) $nbt = $nbt->getTag('action', ByteTag::class) ?? null;
+		if ($nbt instanceof CompoundTag) $nbt = $nbt->getTag('action', ByteTag::class) ?? null;
 		if ($nbt !== null) switch ($nbt->getValue()) {
 
 			case self::ITEM_REMOVE:
@@ -536,9 +539,11 @@ class InvMenuSession {
 		$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
 	}
 
-	/**
-	 * @return Item|\pocketmine\item\ItemBlock
-	 */
+    /**
+     * @param Item $item
+     * @param bool $successed
+     * @return Item|\pocketmine\item\ItemBlock
+     */
 	protected static function inputConversion(Item $item, &$successed = false) : Item {
 		$successed = false;
 		$count = $item->getCount();
