@@ -64,7 +64,7 @@ class IslandArchitectCommand extends Command {
 					$sender->sendMessage(TF::BOLD . TF::RED . 'You can only run this command in the same world as the island: ' . $w);
 						break;
 					}
-				} else $s->getIsland()->setLevel($vec->getLevel());
+				} else $s->getIsland()->setLevel($vec->getLevel()->getFolderName());
 				$sender->sendMessage(TF::YELLOW . 'Start coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
 				$s->getIsland()->setStartCoord($vec);
 				break;
@@ -78,7 +78,7 @@ class IslandArchitectCommand extends Command {
 				if (($w = $s->getIsland()->getLevel()) !== null) if ($w !== $vec->getLevel()->getFolderName()) {
 					$sender->sendMessage(TF::BOLD . TF::RED . 'You can only run this command in the same world as the island: ' . $w);
 					break;
-				} else $s->getIsland()->setLevel($vec->getLevel());
+				} else $s->getIsland()->setLevel($vec->getLevel()->getFolderName());
 				$sender->sendMessage(TF::YELLOW . 'End coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
 				$s->getIsland()->setEndCoord($vec);
 				break;
@@ -165,7 +165,7 @@ class IslandArchitectCommand extends Command {
 				if (($w = $s->getIsland()->getLevel()) !== null) if ($w !== $vec->getLevel()->getFolderName()) {
 					$sender->sendMessage(TF::BOLD . TF::RED . 'You can only run this command in the same world as the island: ' . $w);
 					break;
-				} else $s->getIsland()->setLevel($vec->getLevel());
+				} else $s->getIsland()->setLevel($vec->getLevel()->getFolderName());
 				$sender->sendMessage(TF::YELLOW . 'Island world spawn set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
 				$s->getIsland()->setSpawn($vec);
 				$ft = $s->getFloatingText($s::FLOATINGTEXT_SPAWN, true);
@@ -184,10 +184,36 @@ class IslandArchitectCommand extends Command {
 				if (($w = $s->getIsland()->getLevel()) !== null) if ($w !== $vec->getLevel()->getFolderName()) {
 					$sender->sendMessage(TF::BOLD . TF::RED . 'You can only run this command in the same world as the island: ' . $w);
 					break;
-				} else $s->getIsland()->setLevel($vec->getLevel());
+				} else $s->getIsland()->setLevel($vec->getLevel()->getFolderName());
 				$sender->sendMessage(TF::YELLOW . 'Island chest position set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
 				$s->getIsland()->setChest($vec);
 				break;
+
+            case 'level':
+            case 'world':
+            case 'l':
+                if (PlayerSession::errorCheckOutRequired($sender, $s = IslandArchitect::getInstance()->getSession($sender))) break;
+                $is = $s->getIsland();
+                if (isset($args[1])) {
+                    $dir = scandir(Server::getInstance()->getDataPath() . 'worlds/');
+                    unset($dir[array_search('.', $dir, true)]);
+                    unset($dir[array_search('..', $dir, true)]);
+                    if (!in_array($args[1], $dir, true)) {
+                        $sender->sendMessage(TF::BOLD . TF::RED . 'Level does not exists!');
+                        break;
+                    }
+                    $level = $args[1];
+                } elseif ($is->getLevel() !== $sender->getLevel()->getFolderName()) $level = $sender->getLevel()->getFolderName();
+                else {
+                    $sender->sendMessage(TF::BOLD . TF::RED . 'Please enter a valid level name as argument or teleport to another world before running this command!');
+                    break;
+                }
+                $is->setLevel($level);
+                $is->setStartCoord(null);
+                $is->setEndCoord(null);
+                $is->setSpawn(null);
+                $is->setChest(null);
+                break;
 
 			default:
 				$cmds[] = 'help ' . TF::ITALIC . TF::GRAY . '(Display available subcommands)';

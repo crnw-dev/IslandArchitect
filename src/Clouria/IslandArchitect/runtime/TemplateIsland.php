@@ -23,7 +23,6 @@ namespace Clouria\IslandArchitect\runtime;
 use pocketmine\{
     item\Item,
     block\Block,
-    level\Level,
     math\Vector3,
     utils\Random};
 use Clouria\IslandArchitect\{
@@ -65,8 +64,9 @@ class TemplateIsland {
 		return $this->startcoord;
 	}
 
-	public function setStartCoord(Vector3 $pos) : void {
-		$this->startcoord = $pos->asVector3();
+	public function setStartCoord(?Vector3 $pos) : void {
+		if (isset($pos)) $this->startcoord = $pos->asVector3();
+		else $this->startcoord = null;
 		$this->changed = true;
 	}
 
@@ -79,8 +79,9 @@ class TemplateIsland {
 		return $this->endcoord;
 	}
 
-	public function setEndCoord(Vector3 $pos) : void {
-		$this->endcoord = $pos->asVector3();
+	public function setEndCoord(?Vector3 $pos) : void {
+		if (isset($pos)) $this->endcoord = $pos->asVector3();
+		else $this->endcoord = null;
 		$this->changed = true;
 	}
 
@@ -93,8 +94,9 @@ class TemplateIsland {
 		return $this->spawn;
 	}
 
-	public function setSpawn(Vector3 $pos) : void {
-		$this->spawn = $pos->asVector3();
+	public function setSpawn(?Vector3 $pos) : void {
+		if (isset($pos)) $this->spawn = $pos->asVector3();
+		else $this->spawn = null;
 		$this->changed = true;
 	}
 
@@ -107,8 +109,9 @@ class TemplateIsland {
 		return $this->chest;
 	}
 
-	public function setChest(Vector3 $pos) : void {
-		$this->chest = $pos->asVector3();
+	public function setChest(?Vector3 $pos) : void {
+		if (isset($pos)) $this->chest = $pos->asVector3();
+		else $this->chest = null;
 		$this->changed = true;
 	}
 
@@ -121,8 +124,11 @@ class TemplateIsland {
 		return $this->level;
 	}
 
-	public function setLevel(Level $level) : void {
-		$this->level = $level->getFolderName();
+    /**
+     * @param string $level Folder name of the level
+     */
+	public function setLevel(string $level) : void {
+		$this->level = $level;
 		$this->changed = true;
 	}
 
