@@ -42,7 +42,7 @@ use function array_search;
 
 class TemplateIsland {
 
-	public function __construct(string $name) {
+    public function __construct(string $name) {
 		$this->name = $name;
 	}
 
@@ -131,6 +131,19 @@ class TemplateIsland {
 		$this->level = $level;
 		$this->changed = true;
 	}
+
+	/**
+     * @var int
+     */
+    protected $yoffset = 0;
+
+	public function setYOffset(int $yoffset) : void {
+	    $this->yoffset = $yoffset;
+    }
+
+    public function getYOffset() : int {
+	    return $this->yoffset;
+    }
 
 	/**
 	 * @var RandomGeneration[]
@@ -315,12 +328,13 @@ class TemplateIsland {
         }
     }
 
-	public const VERSION = '1.2';
+	public const VERSION = '1.2'; // TODO: Bump version
 
 	public function save() : string {
 		$data['level'] = $this->getLevel();
 		$data['startcoord'] = $this->getStartCoord() === null ? null : $this->getStartCoord()->floor();
 		$data['endcoord'] = $this->getEndCoord() === null ? null : $this->getEndCoord()->floor();
+		$data['y_offset'] = $this->getYOffset();
 		if (($vec = $this->getSpawn()) !== null) $data['spawn'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
 		else $data['spawn'] = null;
 		if (($vec = $this->getChest()) !== null) $data['chest'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
@@ -407,6 +421,8 @@ class TemplateIsland {
 		    $data['chest'] = $coord;
         }
 
+		if (($yoffset = $this->getYOffset()) > 0) $data['y_offset'] = $yoffset;
+
 		return $this->encode($data ?? []);
 	}
 
@@ -415,6 +431,7 @@ class TemplateIsland {
 		foreach ($this->randoms as $id => $random) $data['randoms'][] = $random->getAllElements();
 		if (isset($this->spawn)) $data['spawn'] = $this->spawn->getFloorX() . ':' . $this->spawn->getFloorY() . ':' . $this->spawn->getFloorZ();
 		if (isset($this->chest)) $data['chest'] = $this->chest->getFloorX() . ':' . $this->chest->getFloorY() . ':' . $this->chest->getFloorZ();
+		if ($this->yoffset > 0) $data['y_offset'] = $this->yoffset;
 	    return $this->encode($data ?? []);
     }
 
@@ -463,6 +480,7 @@ class TemplateIsland {
 			else $coord = $data['chest'];
 			$self->chest = new Vector3((int)($coord['x'] ?? $coord[0]), (int)($coord['y'] ?? $coord[1]), (int)($coord['z'] ?? $coord[2]));
 		}
+		if (isset($data['y_offset']) or isset($data['yoffset'])) $self->yoffset = $data['y_offset'] ?? $data['yoffset'];
 		if (isset($data['random_blocks'])) $self->random_blocks = $data['random_blocks'];
 		if (isset($data['symbolic'])) {
 			$unused_symbolics = self::SYMBOLICS;
