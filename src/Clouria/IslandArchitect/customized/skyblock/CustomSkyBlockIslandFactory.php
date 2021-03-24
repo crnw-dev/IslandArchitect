@@ -59,9 +59,9 @@ class CustomSkyBlockIslandFactory extends IslandFactory {
         static::createTemplateIslandWorldAsync($identifier, $type, function(Level $w) use
         ($session, $islandManager, $identifier, $type) : void {
             if (!$session->getPlayer()->isOnline()) return;
-            $class = DummyIslandGenerator::getClass();
-            assert(is_a($class, DummyIslandGenerator::class, true));
-            $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, $class::GENREATOR_NAME,
+            $class = TemplateIslandGenerator::getClass();
+            assert(is_a($class, TemplateIslandGenerator::class, true));
+            $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, $class::GENERATOR_NAME,
             $w, 0);
 
             $session->setIsland($island = $islandManager->getIsland($identifier));
@@ -84,7 +84,7 @@ class CustomSkyBlockIslandFactory extends IslandFactory {
     public static function createTemplateIslandWorldAsync(string $identifier, string $type, \Closure $callback) : void {
         $task = new IslandDataLoadTask($type, function(TemplateIsland $is, string $file) use
         ($identifier, $callback) : void {
-            $settings = ['preset' => serialize([$is])];
+            $settings = ['preset' => serialize([$is->exportRaw()])];
             Server::getInstance()->generateLevel($identifier,
 null, TemplateIslandGenerator::getClass(), $settings ?? []);
             Server::getInstance()->loadLevel($identifier);
@@ -93,7 +93,10 @@ null, TemplateIslandGenerator::getClass(), $settings ?? []);
             $level->setSpawnLocation($is->getSpawn() ?? new Position(0, 0 /* TODO: $is->getYOffset() */,0, $level));
             if ($is->getChest() !== null) {
                 IslandArchitect::getInstance()->queueIslandChestCreation($level, $is);
-                $level->loadChunk($is->getChest()->getFloorX() >> 4, $is->getChest()->getFloorZ() >> 4);
+                $class = TemplateIslandGenerator::getClass();
+                assert(is_a($class, TemplateIslandGenerator::class, true));
+                $hardcodedchest = $class::getChestPosition();
+                $level->loadChunk($hardcodedchest->getFloorX() >> 4, $hardcodedchest->getFloorZ() >> 4);
             }
             $callback($level);
         });

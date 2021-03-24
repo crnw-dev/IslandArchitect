@@ -20,15 +20,15 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
-use Clouria\IslandArchitect\customized\CustomizableClassTrait;
+use room17\SkyBlock\island\generator\IslandGenerator;
 use pocketmine\{
     item\Item,
     level\Level,
-    math\Vector3,
-    level\generator\Generator as GeneratorInterface};
+    math\Vector3};
+use Clouria\IslandArchitect\customized\CustomizableClassTrait;
 use function unserialize;
 
-class TemplateIslandGenerator extends GeneratorInterface {
+class TemplateIslandGenerator extends IslandGenerator {
     use CustomizableClassTrait;
 
     public const GENERATOR_NAME = 'templateislandgenerator';
@@ -38,15 +38,10 @@ class TemplateIslandGenerator extends GeneratorInterface {
 	 */
 	protected $island = null;
 
-    /**
-     * @var array
-     */
-    protected $settings;
-
     public function __construct(array $settings = []) {
-	    $this->settings = $settings;
+        parent::__construct($settings);
 
-	    $island = unserialize($settings['preset'])[0];
+	    $island = TemplateIsland::load(unserialize($this->getSettings()['preset'])[0]);
         if ($island === null) throw new \RuntimeException('Cannot pass template island instance into the generator thread');
         $this->island = $island;
 	}
@@ -67,12 +62,15 @@ class TemplateIslandGenerator extends GeneratorInterface {
 
     public function populateChunk(int $chunkX, int $chunkZ) : void {}
 
-    public function getSettings() : array {
-        return $this->settings;
-    }
-
     public function getSpawn() : Vector3 {
         return $this->island->getSpawn();
     }
 
+    public static function getWorldSpawn() : Vector3 {
+        return new Vector3(0, 0, 0);
+    }
+
+    public static function getChestPosition() : Vector3 {
+        return new Vector3(0, 0, 0);
+    }
 }

@@ -20,7 +20,6 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect;
 
-
 use room17\SkyBlock\SkyBlock;
 use muqsit\invmenu\InvMenuHandler;
 use pocketmine\{
@@ -30,14 +29,12 @@ use pocketmine\{
     level\Level,
     utils\Utils,
     plugin\PluginBase,
-    level\format\Chunk,
-    level\generator\GeneratorManager};
+    level\format\Chunk};
 use Clouria\IslandArchitect\{
     runtime\TemplateIsland,
     events\TickTaskRegisterEvent,
     runtime\sessions\PlayerSession,
     runtime\TemplateIslandGenerator,
-    customized\skyblock\DummyIslandGenerator,
     customized\skyblock\CustomSkyBlockCreateCommand};
 use function substr;
 use function strtolower;
@@ -64,11 +61,6 @@ class IslandArchitect extends PluginBase {
 		$class = EventListener::getClass();
 		$this->getServer()->getPluginManager()->registerEvents(new $class, $this);
 
-		$class = TemplateIslandGenerator::getClass();
-		if (is_a($class, TemplateIslandGenerator::class, true)) $genname = $class::GENERATOR_NAME;
-		else throw new \RuntimeException();
-		GeneratorManager::addGenerator($class, $genname, true);
-
 		$class = IslandArchitectCommand::getClass();
 		$this->getServer()->getCommandMap()->register($this->getName(), new $class);
 
@@ -91,9 +83,9 @@ class IslandArchitect extends PluginBase {
 	    $class = CustomSkyBlockCreateCommand::getClass();
 	    $map->registerCommand(new $class($map));
 
-	    $class = DummyIslandGenerator::getClass();
-	    assert(is_a($class, DummyIslandGenerator::class, true));
-	    $pl->getGeneratorManager()->registerGenerator($class::GENREATOR_NAME, DummyIslandGenerator::getClass());
+	    $class = TemplateIslandGenerator::getClass();
+	    assert(is_a($class, TemplateIslandGenerator::class, true));
+	    $pl->getGeneratorManager()->registerGenerator($class::GENERATOR_NAME, TemplateIslandGenerator::getClass());
     }
 
 	private function initConfig() : void {
@@ -101,7 +93,7 @@ class IslandArchitect extends PluginBase {
 		$conf = $this->getConfig();
 		foreach ($all = $conf->getAll() as $k => $v) $conf->remove($k);
 
-		$conf->set('island-data-folder', (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'));
+		$conf->set('island-data-folder', Utils::cleanPath((string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/')));
 		$conf->set('panel-allow-unstable-item', (bool)($all['panel-allow-unstable-item'] ?? true));
 		$conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
 		$conf->set('island-creation-command-mapping', (array)($all['island-creation-command-mapping'] ?? [
