@@ -157,7 +157,7 @@ class IslandArchitect extends PluginBase {
     /**
      * @var array<int, TemplateIsland>
      */
-    private $chestqueue;
+    private $chestqueue = [];
 
     public function queueIslandChestCreation(Level $level, TemplateIsland $island) : bool {
         if (($this->chestqueue[$level->getId()] ?? null) !== null) return false;
@@ -171,9 +171,6 @@ class IslandArchitect extends PluginBase {
         unset($this->chestqueue[$level->getId()]);
         $pos = $is->getChest();
         if ($chunk->getX() !== ($pos->getFloorX() >> 4) or $chunk->getZ() !== ($pos->getFloorZ() >> 4)) return false;
-
-        $island = SkyBlock::getInstance()->getIslandManager()->getIsland($level->getName());
-        if($island === null) return false;
 
         $chest = Tile::createTile(Tile::CHEST, $level, Chest::createNBT($pos));
         if (!$chest instanceof Chest) return false;
