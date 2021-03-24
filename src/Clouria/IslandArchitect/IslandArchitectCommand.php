@@ -213,6 +213,20 @@ class IslandArchitectCommand extends Command {
                 $is->setEndCoord(null);
                 $is->setSpawn(null);
                 $is->setChest(null);
+                $is->setYOffset(null);
+                $sender->sendMessage(TF::YELLOW . 'Island level set to ' . TF::GOLD . '"' . $level . '"');
+                break;
+
+            case 'yoffset':
+            case 'y-offset':
+            case 'y':
+                if (PlayerSession::errorCheckOutRequired($sender, $s = IslandArchitect::getInstance()->getSession($sender))) break;
+                if (!isset($args[1]) or (int)$args[1] < 0) {
+                    $sender->sendMessage(TF::BOLD . TF::RED . 'Please enter a valid Y offset value!');
+                    break;
+                }
+                $s->getIsland()->setYOffset((int)$args[1]);
+                $sender->sendMessage(TF::YELLOW . 'Island Y offset set to ' . TF::GOLD . $args[1]);
                 break;
 
 			default:
@@ -224,6 +238,8 @@ class IslandArchitectCommand extends Command {
                 $cmds[] = 'random [Random regex ID: int] ' . TF::ITALIC . TF::GRAY . '(Setup random blocks generation)';
                 $cmds[] = 'setspawn ' . TF::ITALIC . TF::GRAY . '(Set the island world spawn)';
                 $cmds[] = 'setchest ' . TF::ITALIC . TF::GRAY . '(Set the island chest position)';
+                $cmds[] = 'level [Level folder name] ' . TF::ITALIC . TF::GRAY . '(Update the level of the island)';
+                $cmds[] = 'yoffset <Offset value> ' . TF::ITALIC . TF::GRAY . '(Update the level of the island)';
 				$sender->sendMessage(TF::BOLD . TF::GOLD . 'Available subcommands: ' . ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $cmds ?? ['help']));
 				break;
 		}

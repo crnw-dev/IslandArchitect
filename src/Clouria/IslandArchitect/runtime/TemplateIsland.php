@@ -137,7 +137,7 @@ class TemplateIsland {
      */
     protected $yoffset = 0;
 
-	public function setYOffset(int $yoffset) : void {
+	public function setYOffset(?int $yoffset) : void {
 	    $this->yoffset = $yoffset;
     }
 
