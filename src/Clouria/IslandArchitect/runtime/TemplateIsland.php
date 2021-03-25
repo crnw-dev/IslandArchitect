@@ -332,7 +332,7 @@ class TemplateIsland {
         }
     }
 
-	public const VERSION = '1.2'; // TODO: Bump version
+	public const VERSION = '1.3';
 
 	public function save() : string {
 		$data['level'] = $this->getLevel();
