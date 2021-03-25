@@ -91,7 +91,7 @@ class EventListener implements Listener {
 		$e = new RandomGenerationBlockPlaceEvent($s, $regex, $ev->getBlock()->asPosition(), $item);
 		$e->call();
 		if ($e->isCancelled()) return;
-		if (!($regexid = $nbt->getTag('regexid', IntTag::class)) instanceof ListTag) {
+		if (!($regexid = $nbt->getTag('regexid', IntTag::class)) instanceof IntTag) {
 		    foreach ($s->getIsland()->getRandoms() as $i => $sr) if ($sr->equals($regex)) $regexid = $i;
 		    if ($regexid === null) $regexid = $s->getIsland()->addRandom($regex);
         }

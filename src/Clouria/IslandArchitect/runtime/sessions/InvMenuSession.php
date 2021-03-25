@@ -405,7 +405,9 @@ class InvMenuSession {
 
 		} else {
 			if ($out->getId() !== Item::AIR) {
-				if (!isset($this->selected)) $this->selected = [$out->getNamedTagEntry('IslandArchitect')->getShort('id'), $out->getNamedTagEntry('IslandArchitect')->getByte('meta')];
+			    $tag = $out->getNamedTagEntry('IslandArchitect');
+			    assert($tag instanceof CompoundTag);
+				if (!isset($this->selected)) $this->selected = [$tag->getShort('id'), $tag->getByte('meta')];
 				else $this->selected = null;
 				$this->panelSelect();
 				$this->panelElement();
