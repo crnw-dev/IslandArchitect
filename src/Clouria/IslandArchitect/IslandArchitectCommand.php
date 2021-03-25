@@ -20,6 +20,7 @@ namespace Clouria\IslandArchitect;
 
 use jojoe77777\FormAPI\ModalForm;
 use pocketmine\{
+    level\Level,
     Player,
     Server,
     utils\Utils,
@@ -222,6 +223,10 @@ class IslandArchitectCommand extends Command {
             case 'y':
                 if (PlayerSession::errorCheckOutRequired($sender, $s = IslandArchitect::getInstance()->getSession($sender))) break;
                 if (!isset($args[1]) or (int)$args[1] < 0) {
+                    $sender->sendMessage(TF::BOLD . TF::RED . 'Please enter a valid Y offset value!');
+                    break;
+                }
+                if (($sc = $s->getIsland()->getStartCoord()) !== null and ($ec = $s->getIsland()->getEndCoord()) !== null) if ((int)$args[1] + (max($sc->getFloorY(), $ec->getFloorY()) - min($sc->getFloorY(), $ec->getFloorY())) > Level::Y_MAX) {
                     $sender->sendMessage(TF::BOLD . TF::RED . 'Please enter a valid Y offset value!');
                     break;
                 }

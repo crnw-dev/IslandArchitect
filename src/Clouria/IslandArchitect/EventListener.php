@@ -170,6 +170,7 @@ class EventListener implements Listener {
                 !$is->getChest()->equals($pos->asVector3())
             ) return;
             new IslandChestSession($s);
+            $ev->setCancelled();
         }
     }
 }

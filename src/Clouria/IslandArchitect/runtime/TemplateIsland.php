@@ -23,6 +23,7 @@ namespace Clouria\IslandArchitect\runtime;
 use pocketmine\{
     item\Item,
     block\Block,
+    level\Level,
     math\Vector3,
     utils\Random};
 use Clouria\IslandArchitect\{
@@ -139,7 +140,7 @@ class TemplateIsland {
      */
     protected $yoffset = self::DEFAULT_YOFFSET;
 
-	public function setYOffset(?int $yoffset) : void { // TODO: Limit Y offset doesn't make the island generates outside the world by checking the start and end coord
+	public function setYOffset(?int $yoffset) : void {
 	    $this->yoffset = $yoffset ?? self::DEFAULT_YOFFSET;
     }
 
@@ -424,6 +425,8 @@ class TemplateIsland {
 		    $data['chest'] = $coord;
         }
 
+		var_dump($this->yoffset);
+        if ($this->yoffset + max($this->getStartCoord()->getFloorY(), $this->getEndCoord()->getFloorY()) > Level::Y_MAX) $this->yoffset = 0;
 		if (($yoffset = $this->getYOffset()) > 0) $data['y_offset'] = $yoffset;
 
 		return $this->encode($data ?? []);
