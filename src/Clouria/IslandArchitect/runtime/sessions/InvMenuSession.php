@@ -126,7 +126,7 @@ class InvMenuSession {
 	protected $random_rolled_times = 0;
 
 	/**
-	 * @var array<int, mixed>
+	 * @var array<int, mixed>|null
 	 */
 	protected $selected = null;
 

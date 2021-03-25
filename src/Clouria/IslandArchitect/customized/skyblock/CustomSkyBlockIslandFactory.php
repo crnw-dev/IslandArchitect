@@ -90,7 +90,11 @@ null, TemplateIslandGenerator::getClass(), $settings ?? []);
             Server::getInstance()->loadLevel($identifier);
             $level = Server::getInstance()->getLevelByName($identifier);
 
-            $level->setSpawnLocation($is->getSpawn() ?? new Position(0, 0 /* TODO: $is->getYOffset() */,0, $level));
+            if ($is->getSpawn() !== null) {
+                $spawn = $is->getSpawn();
+                $spawn->setComponents($spawn->getX(), $spawn->getY() + $is->getYOffset(), $spawn->getZ());
+            } else $spawn = new Position(0, 0,0, $level);
+            $level->setSpawnLocation($spawn);
             if ($is->getChest() !== null) {
                 IslandArchitect::getInstance()->queueIslandChestCreation($level, $is);
                 $class = TemplateIslandGenerator::getClass();

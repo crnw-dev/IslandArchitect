@@ -119,7 +119,6 @@ class IslandArchitect extends PluginBase {
 	    if (!isset($sf)) return null;
 	    $type = $sf;
 	    if (
-	        isset($type) and
             !(file_exists($type = Utils::cleanPath($type))) and
             !file_exists($type = Utils::cleanPath(
                 (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/') .
@@ -162,6 +161,7 @@ class IslandArchitect extends PluginBase {
         if ($is === null) return false;
         unset($this->chestqueue[$level->getId()]);
         $pos = $is->getChest();
+        $pos = $pos->add(0, $is->getYOffset(), 0);
         if ($chunk->getX() !== ($pos->getFloorX() >> 4) or $chunk->getZ() !== ($pos->getFloorZ() >> 4)) return false;
 
         $chest = Tile::createTile(Tile::CHEST, $level, Chest::createNBT($pos));
