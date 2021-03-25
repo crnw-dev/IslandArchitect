@@ -161,6 +161,7 @@ class IslandArchitect extends PluginBase {
         if ($is === null) return false;
         unset($this->chestqueue[$level->getId()]);
         $pos = $is->getChest();
+        $pos = $pos->add(0, $is->getYOffset(), 0);
         if ($chunk->getX() !== ($pos->getFloorX() >> 4) or $chunk->getZ() !== ($pos->getFloorZ() >> 4)) return false;
 
         $chest = Tile::createTile(Tile::CHEST, $level, Chest::createNBT($pos));

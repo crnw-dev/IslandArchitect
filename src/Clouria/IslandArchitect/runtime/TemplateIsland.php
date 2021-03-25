@@ -132,13 +132,15 @@ class TemplateIsland {
 		$this->changed = true;
 	}
 
+	public const DEFAULT_YOFFSET = 60;
+
 	/**
      * @var int
      */
-    protected $yoffset = 0;
+    protected $yoffset = self::DEFAULT_YOFFSET;
 
-	public function setYOffset(?int $yoffset) : void {
-	    $this->yoffset = $yoffset;
+	public function setYOffset(?int $yoffset) : void { // TODO: Limit Y offset doesn't make the island generates outside the world by checking the start and end coord
+	    $this->yoffset = $yoffset ?? self::DEFAULT_YOFFSET;
     }
 
     public function getYOffset() : int {
@@ -298,6 +300,7 @@ class TemplateIsland {
      * @return array|null null = Block is air (The returned block ID is not limited in valid block range 0-255, valid block meta 0-15, also not casted to int)
      */
 	public function getProcessedBlock(int $x, int $y, int $z, Random $random) : ?array {
+	    $y -= $this->getYOffset();
         $block = $this->structure[$x . ':' . $y . ':' . $z] ?? null;
         $chestcoord = $this->getChest();
         if (!isset($block)) {
