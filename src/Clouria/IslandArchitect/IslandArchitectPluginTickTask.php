@@ -52,7 +52,12 @@ class IslandArchitectPluginTickTask extends Task {
             else $s->showFloatingText($s::FLOATINGTEXT_SPAWN);
 
             // Draw island area outline
-            if ($sc !== null and $ec !== null and $s->getPlayer()->getLevel()->getFolderName() === $is->getLevel()) {
+            if (
+                $sc !== null and
+                $ec !== null and
+                $s->getPlayer()->getLevel()->getFolderName() === $is->getLevel() and
+                (bool)IslandArchitect::getInstance()->getConfig()->get('enable-particles')
+            ) {
                 $bb = new AxisAlignedBB(
                     min($sc->getFloorX(), $ec->getFloorX()),
                     min($sc->getFloorY(), $ec->getFloorY()),
