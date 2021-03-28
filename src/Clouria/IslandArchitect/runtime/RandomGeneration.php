@@ -33,6 +33,10 @@ use pocketmine\nbt\tag\{
 };
 
 use function explode;
+use function asort;
+use function array_values;
+
+use const SORT_NUMERIC;
 
 class RandomGeneration {
 
@@ -46,10 +50,12 @@ class RandomGeneration {
 		return true;
 	}
 
-	/**
-	 * @param int|null $chance Null to set the chance to 0
-	 * @return bool
-	 */
+    /**
+     * @param int $id
+     * @param int $meta
+     * @param int|null $chance Null to set the chance to 0
+     * @return bool
+     */
 	public function decreaseElementChance(int $id, int $meta = 0, ?int $chance = null) : bool {
 		if (!isset($chance)) {
 			unset($this->blocks[$id . ':' . $meta]);
@@ -82,7 +88,7 @@ class RandomGeneration {
 
 	public static function fromNBT(ListTag $nbt) : self {
 		$self = new self;
-		foreach ($nbt as $block) $self->increaseElementChance($block->getShort('id'), $block->getByte('meta', 0), $block->getShort('chance'));
+		foreach ($nbt as $block) if ($block instanceof CompoundTag) $self->increaseElementChance($block->getShort('id'), $block->getByte('meta', 0), $block->getShort('chance'));
 		return $self;
 	}
 
@@ -92,9 +98,10 @@ class RandomGeneration {
 		return Item::get($array[0], $array[1]);
 	}
 
-	/**
-	 * @return int[]
-	 */
+    /**
+     * @param Random $random
+     * @return int[]
+     */
 	public function randomElementArray(Random $random) : array {
 		$blocks = $this->getAllElements();
 
@@ -163,4 +170,28 @@ class RandomGeneration {
 	public function hasChanges() : bool {
 		return $this->changed;
 	}
+
+    /**
+     * @return bool true = Element chance changed
+     */
+	public function simplifyRegex() : bool {
+	    // Forgive my bad math (SOFe is gonna extend his tutorial class...)
+        // Source: https://blog.csdn.net/qq_33160365/article/details/78932232
+	    $totalchance = $this->getTotalChance();
+	    foreach ($this->getAllElements() as $chance) {
+	        $smaller = $chance > $totalchance ? $totalchance : $chance;
+	        for ($i=1; $i <= $smaller; $i++) if (($chance % $i) === 0 and ($totalchance % $i) === 0) $hcf = $i;
+	        $chances[] = $hcf ?? 1;
+        }
+	    if (!isset($chances)) return false;
+	    asort($chances, SORT_NUMERIC);
+	    $chances = array_values($chances);
+	    foreach ($this->getAllElements() as $block => $chance) {
+	        $elements[$block] = $chance / $chances[0];
+	        if ($elements[$block] !== $chance) $changed = true;
+        }
+	    $this->blocks = $elements ?? null;
+	    if ($changed ?? false) $this->changed = true;
+	    return $changed ?? false;
+    }
 }

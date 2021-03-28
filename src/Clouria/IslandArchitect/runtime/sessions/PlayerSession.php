@@ -20,26 +20,48 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime\sessions;
 
-use Clouria\IslandArchitect\{conversion\IslandDataEmitTask, IslandArchitect, runtime\TemplateIsland};
 use jojoe77777\FormAPI\SimpleForm;
-use pocketmine\{level\Level, Player, scheduler\ClosureTask, Server, utils\TextFormat as TF};
-use function class_exists;
-use function count;
-use function get_class;
+use Clouria\IslandArchitect\{
+    IslandArchitect,
+    runtime\TemplateIsland,
+    conversion\IslandDataEmitTask};
+use pocketmine\{
+    Player,
+    Server,
+    level\Level,
+    math\Vector3,
+    scheduler\ClosureTask,
+    utils\TextFormat as TF,
+    level\particle\FloatingTextParticle};
 use function max;
-use function microtime;
 use function min;
+use function count;
 use function round;
+use function get_class;
+use function microtime;
+use function class_exists;
 use function spl_object_id;
 
 class PlayerSession {
 
-	/**
+    const FLOATINGTEXT_SPAWN = 0;
+
+    /**
 	 * @var Player
 	 */
 	private $player;
 
-	public function __construct(Player $player) {
+    /**
+     * @var array<mixed, FloatingTextParticle>
+     */
+    protected $floatingtext = [];
+
+    /**
+     * @var scalar[]
+     */
+    protected $viewingft = [];
+
+    public function __construct(Player $player) {
 		$this->player = $player;
 	}
 
@@ -53,8 +75,19 @@ class PlayerSession {
 	protected $island = null;
 
 	public function checkOutIsland(TemplateIsland $island) : void {
-		if ($this->export_lock) $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'An island is exporting in background, please wait until the island export is finished!');
-		else $this->island = $island;
+		if ($this->export_lock) {
+            $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'An island is exporting in background, please wait until the island export is finished!');
+            return;
+        }
+		$this->island = $island;
+
+		$spawn = $island->getSpawn();
+		if ($spawn === null) return;
+		$spawn = $spawn->floor()->add(0.5, 0.5, 0.5);
+		$ft = $this->getFloatingText(self::FLOATINGTEXT_SPAWN, true);
+        $ft->setComponents($spawn->getX(), $spawn->getY(), $spawn->getZ());
+        $ft->setText(TF::BOLD . TF::GOLD . 'Island spawn' . "\n" . TF::RESET . TF::GREEN . $spawn->getFloorX() . ', ' . $spawn->getFloorY() . ', ' . $spawn->getFloorZ());
+        $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
 	}
 
 	public function getIsland() : ?TemplateIsland {
@@ -76,7 +109,12 @@ class PlayerSession {
 	}
 
 	public function close() : void {
-		$this->saveIsland();
+        $this->saveIsland();
+        if (!$this->getPlayer()->isOnline()) return;
+        foreach ($this->floatingtext as $ft) {
+            $ft->setInvisible();
+            $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
+        }
 	}
 
 	/**
@@ -141,7 +179,7 @@ class PlayerSession {
 		    return;
         }
 		$this->getPlayer()->sendMessage(TF::GOLD . 'Start exporting...');
-		$task = new IslandDataEmitTask($island, $chunks, function() use ($island, $time) : void {
+		$task = new IslandDataEmitTask($island, $chunks, function() use ($time) : void {
 			$this->export_lock = false;
 			$this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Export completed!' . TF::ITALIC . TF::GRAY . ' (' . round(microtime(true) - $time, 2) . 's)');
 		});
@@ -173,4 +211,45 @@ class PlayerSession {
 		$player->sendMessage(TF::BOLD . TF::RED . 'Please check out an island first!' . TF::GRAY . TF::ITALIC . ' ("/ia island <Island data file name: string>")');
 		return true;
 	}
+
+    /**
+     * @param scalar $id
+     * @param bool $nonnull
+     * @return FloatingTextParticle|null
+     */
+    public function getFloatingText($id, bool $nonnull = false) : ?FloatingTextParticle {
+	    if (isset($this->floatingtext[$id])) return $this->floatingtext[$id];
+	    if ($nonnull) return ($this->floatingtext[$id] = new FloatingTextParticle(new Vector3(0, 0, 0), ''));
+	    return null;
+    }
+
+    /**
+     * @param scalar $id
+     * @return bool
+     */
+    public function showFloatingText($id) : bool {
+	    if (!isset($this->floatingtext[$id])) return false;
+	    if (in_array($id, $this->viewingft, true)) return false;
+	    $this->viewingft[] = $id;
+
+	    $ft = $this->floatingtext[$id];
+	    $ft->setInvisible(false);
+	    $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
+	    return true;
+    }
+
+    /**
+     * @param scalar $id
+     * @return bool
+     */
+    public function hideFloatingText($id) : bool {
+        if (!isset($this->floatingtext[$id])) return false;
+	    if (($r = array_search($id, $this->viewingft, true)) === false) return false;
+        unset($this->viewingft[$r]);
+
+	    $ft = $this->floatingtext[$id];
+	    $ft->setInvisible(true);
+	    $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
+	    return true;
+    }
 }

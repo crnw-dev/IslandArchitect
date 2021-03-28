@@ -20,16 +20,29 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect;
 
-use Clouria\IslandArchitect\{runtime\sessions\PlayerSession, runtime\TemplateIsland};
+use room17\SkyBlock\SkyBlock;
 use muqsit\invmenu\InvMenuHandler;
-use pocketmine\{Player, plugin\PluginBase, scheduler\ClosureTask, utils\TextFormat as TF};
-
+use pocketmine\{
+    Player,
+    tile\Tile,
+    tile\Chest,
+    level\Level,
+    utils\Utils,
+    plugin\PluginBase,
+    level\format\Chunk};
+use Clouria\IslandArchitect\{
+    runtime\TemplateIsland,
+    events\TickTaskRegisterEvent,
+    runtime\sessions\PlayerSession,
+    runtime\TemplateIslandGenerator,
+    customized\skyblock\CustomSkyBlockCreateCommand};
+use function substr;
+use function strtolower;
+use function file_exists;
 use function array_search;
 use function class_exists;
 
 class IslandArchitect extends PluginBase {
-
-	public const DEV_ISLAND = false;
 
 	private static $instance = null;
 
@@ -38,67 +51,86 @@ class IslandArchitect extends PluginBase {
 	 */
 	private $sessions = [];
 
-	public function onLoad() : void {
+    public function onLoad() : void {
 		self::$instance = $this;
 	}
 
 	public function onEnable() : void {
 		$this->initConfig();
 		if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
-		$this->getServer()->getPluginManager()->registerEvents(new EventListener, $this);
-		$this->getServer()->getCommandMap()->register($this->getName(), new IslandArchitectCommand);
+		$class = EventListener::getClass();
+		$this->getServer()->getPluginManager()->registerEvents(new $class, $this);
 
-		$this->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) : void {
-		    foreach ($this->getSessions() as $s) if ($s->getIsland() !== null) {
-		        $r = $s->getIsland()->getRandomByVector3($s->getPlayer()->getTargetBlock(12));
-		        if ($r === null) continue;
-		        $s->getPlayer()->sendPopup(TF::YELLOW . 'Random generation block: ' . TF::BOLD . TF::GOLD . $s->getIsland()->getRandomLabel($r));
-            }
-        }), 10);
+		$class = IslandArchitectCommand::getClass();
+		$this->getServer()->getCommandMap()->register($this->getName(), new $class);
+
+		if (SkyBlock::getInstance() !== null and SkyBlock::getInstance()->isEnabled()) $this->initDependency();
+
+		$task = IslandArchitectPluginTickTask::getClass();
+		if (is_a($task, IslandArchitectPluginTickTask::class, true)) $task = new $task;
+		$ev = new TickTaskRegisterEvent($task, 10);
+		$this->getScheduler()->scheduleRepeatingTask($ev->getTask(), $ev->getPeriod());
 	}
+
+    /**
+     * @internal
+     */
+	public function initDependency() : void {
+	    $pl = SkyBlock::getInstance();
+	    $map = $pl->getCommandMap();
+	    $cmd = $map->getCommand('create');
+	    if ($cmd !== null) $pl->getCommandMap()->unregisterCommand($cmd->getName());
+	    $class = CustomSkyBlockCreateCommand::getClass();
+	    $map->registerCommand(new $class($map));
+
+	    $class = TemplateIslandGenerator::getClass();
+	    assert(is_a($class, TemplateIslandGenerator::class, true));
+	    $pl->getGeneratorManager()->registerGenerator($class::GENERATOR_NAME, TemplateIslandGenerator::getClass());
+    }
 
 	private function initConfig() : void {
 		$this->saveDefaultConfig();
 		$conf = $this->getConfig();
 		foreach ($all = $conf->getAll() as $k => $v) $conf->remove($k);
 
-		$conf->set('island-data-folder', (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'));
+		$conf->set('island-data-folder', Utils::cleanPath((string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/')));
 		$conf->set('panel-allow-unstable-item', (bool)($all['panel-allow-unstable-item'] ?? true));
 		$conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
-		$conf->set('experimental-buildertools-support', (bool)($all['experimental-buildertools-support'] ?? false));
-		$conf->set('experimental-blocksniper-support', (bool)($all['experimental-blocksniper-support'] ?? false));
+		$conf->set('enable-particles', (bool)($all['enable-particles'] ?? true));
+		$conf->set('island-creation-command-mapping', (array)($all['island-creation-command-mapping'] ?? [
+		    'generation-name-which-will-be' => 'exported-island-data-file.json',
+            'use-in-island-creation-cmd' => 'relative-path/start-from/island-data-folder.json'
+        ]));
 
 		$conf->save();
 		$conf->reload();
 	}
 
-    private function initDependecy() : void {
-        if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
-        if (class_exists(BuilderTools::class) and (bool)$this->getConfig()->get('experimental-buildertools-support', false)) {
-            $reflect = new \ReflectionProperty(BuilderTools::class, 'editors');
-            $reflect->setAccessible(true);
-            $editors = $reflect->getValue(BuilderTools::class);
-            foreach ($editors as $i => $editor) if ($editors instanceof Printer) unset($editors[$i]);
-            $editors[] = new CustomPrinter;
-
-            $reflect->setValue(BuilderTools::class, $editors);
-        }
-    }
-
-
-	public function getSession(Player $player, bool $nonnull = false) : ?PlayerSession {
-		if (self::DEV_ISLAND) $nonnull = true;
+    public function getSession(Player $player, bool $nonnull = false) : ?PlayerSession {
 		if (($this->sessions[$player->getName()] ?? null) !== null) $s = $this->sessions[$player->getName()];
-		elseif ($nonnull) {
-			$s = ($this->sessions[$player->getName()] = new PlayerSession($player));
-			if (self::DEV_ISLAND) $s->checkOutIsland(new TemplateIsland('test'));
-		}
+		elseif ($nonnull) $s = ($this->sessions[$player->getName()] = new PlayerSession($player));
 		return $s ?? null;
 	}
 
+	public function mapGeneratorType(string $type) : ?string {
+	    foreach ($this->getConfig()->get('island-creation-command-mapping', []) as $st => $file) if (strtolower($st) === strtolower($type)) {
+	        $sf = $file;
+	        break;
+        }
+	    if (!isset($sf)) return null;
+	    $type = $sf;
+	    if (
+            !(file_exists($type = Utils::cleanPath($type))) and
+            !file_exists($type = Utils::cleanPath(
+                (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/') .
+                $type . (strtolower(substr($type, -5)) === '.json' ? '' : '.json')
+            ))) $type = null;
+	    return $type;
+    }
+
     /**
      * @return PlayerSession[]
-     */
+         */
 	public function getSessions() : array {
 	    return $this->sessions;
     }
@@ -108,8 +140,34 @@ class IslandArchitect extends PluginBase {
      * @return bool Return false if the session has already been disposed or not even in the sessions list
      */
     public function disposeSession(PlayerSession $session) : bool {
-        if (($r = array_search($session, $this->sessions, true)) === null) return false;
+        if (($r = array_search($session, $this->sessions, true)) === false) return false;
+        if ($this->sessions[$r]->getIsland()) $this->sessions[$r]->saveIsland();
         unset($this->sessions[$r]);
+        return true;
+    }
+
+    /**
+     * @var array<int, TemplateIsland>
+     */
+    private $chestqueue = [];
+
+    public function queueIslandChestCreation(Level $level, TemplateIsland $island) : bool {
+        if (($this->chestqueue[$level->getId()] ?? null) !== null) return false;
+        $this->chestqueue[$level->getId()] = $island;
+        return true;
+    }
+
+    public function createIslandChest(Level $level, Chunk $chunk) : bool {
+        $is = $this->chestqueue[$level->getId()] ?? null;
+        if ($is === null) return false;
+        unset($this->chestqueue[$level->getId()]);
+        $pos = $is->getChest();
+        $pos = $pos->add(0, $is->getYOffset(), 0);
+        if ($chunk->getX() !== ($pos->getFloorX() >> 4) or $chunk->getZ() !== ($pos->getFloorZ() >> 4)) return false;
+
+        $chest = Tile::createTile(Tile::CHEST, $level, Chest::createNBT($pos));
+        if (!$chest instanceof Chest) return false;
+        foreach (SkyBlock::getInstance()->getSettings()->getChestContentByGenerator($is->getName()) as $item) $chest->getInventory()->addItem($item);
         return true;
     }
 

@@ -22,5 +22,12 @@ namespace Clouria\IslandArchitect\events;
 
 use pocketmine\event\plugin\PluginEvent;
 
+use Clouria\IslandArchitect\IslandArchitect;
+
 abstract class IslandArchitectEvent extends PluginEvent {
+
+    public function __construct() {
+        parent::__construct(IslandArchitect::getInstance());
+    }
+
 }

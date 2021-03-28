@@ -19,23 +19,27 @@
 namespace Clouria\IslandArchitect;
 
 use jojoe77777\FormAPI\ModalForm;
-use Clouria\IslandArchitect\{conversion\IslandDataLoadTask,
-    events\TemplateIslandCheckOutEvent,
-    runtime\sessions\InvMenuSession,
-    runtime\sessions\PlayerSession,
-    runtime\TemplateIsland};
-use pocketmine\{command\Command,
-    command\CommandSender,
-    level\Position,
+use pocketmine\{
+    level\Level,
     Player,
     Server,
+    utils\Utils,
+    level\Position,
+    command\Command,
     utils\TextFormat as TF,
-    utils\Utils};
+    command\CommandSender};
+use Clouria\IslandArchitect\{
+    runtime\TemplateIsland,
+    conversion\IslandDataLoadTask,
+    runtime\sessions\PlayerSession,
+    runtime\sessions\InvMenuSession,
+    customized\CustomizableClassTrait,
+    events\TemplateIslandCheckOutEvent};
 use function strtolower;
 use function class_exists;
 
 class IslandArchitectCommand extends Command {
-    // TODO: Customizable class trait
+    use CustomizableClassTrait;
 
     public function __construct() {
         parent::__construct('island-architect', 'Command of the IslandArchitect plugin', '/island-architect help', ['ia', 'isarch']);
@@ -61,7 +65,7 @@ class IslandArchitectCommand extends Command {
 					$sender->sendMessage(TF::BOLD . TF::RED . 'You can only run this command in the same world as the island: ' . $w);
 						break;
 					}
-				} else $s->getIsland()->setLevel($vec->getLevel());
+				} else $s->getIsland()->setLevel($vec->getLevel()->getFolderName());
 				$sender->sendMessage(TF::YELLOW . 'Start coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
 				$s->getIsland()->setStartCoord($vec);
 				break;
@@ -75,7 +79,7 @@ class IslandArchitectCommand extends Command {
 				if (($w = $s->getIsland()->getLevel()) !== null) if ($w !== $vec->getLevel()->getFolderName()) {
 					$sender->sendMessage(TF::BOLD . TF::RED . 'You can only run this command in the same world as the island: ' . $w);
 					break;
-				} else $s->getIsland()->setLevel($vec->getLevel());
+				} else $s->getIsland()->setLevel($vec->getLevel()->getFolderName());
 				$sender->sendMessage(TF::YELLOW . 'End coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
 				$s->getIsland()->setEndCoord($vec);
 				break;
@@ -84,7 +88,7 @@ class IslandArchitectCommand extends Command {
 			case 'checkout':
 			case 'check-out':
 			case 'i':
-				if (!isset($args[1]) or !empty(preg_replace('/[0-9a-zA-Z-_]+/i', '', $args[1]))) {
+				if (!isset($args[1]) or !empty(preg_replace('/[0-9a-z-_]+/i', '', $args[1]))) {
 					$sender->sendMessage(TF::BOLD . TF::RED . 'Invalid island name or island name argument missing!');
 					break;
 				}
@@ -97,13 +101,15 @@ class IslandArchitectCommand extends Command {
                     $sender->sendMessage(TF::YELLOW . 'Loading island ' . TF::GOLD . '"' . $args[1] . '"...');
                     $callback = function (?TemplateIsland $is, string $filepath) use ($sender, $time) : void {
                         if (!$sender->isOnline()) return;
-                        if (!isset($is)) $is = new TemplateIsland(basename($filepath, '.json'));
+                        if (!isset($is)) {
+                            $is = new TemplateIsland(basename($filepath, '.json'));
+                            $sender->sendMessage(TF::BOLD . TF::GOLD . 'Created' . TF::GREEN . ' new island "' . $is->getName() . '"!');
+                        } else $sender->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . 's)');
                         $s = IslandArchitect::getInstance()->getSession($sender, true);
                         $ev = new TemplateIslandCheckOutEvent($s, $is);
                         $ev->call();
                         if ($ev->isCancelled()) return;
                         $s->checkOutIsland($is);
-                        $sender->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . 's)');
                     };
                     foreach (IslandArchitect::getInstance()->getSessions() as $s) if (
                         ($i = $s->getIsland()) !== null and
@@ -111,7 +117,7 @@ class IslandArchitectCommand extends Command {
                     ) {
                         $path = Utils::cleanPath(IslandArchitect::getInstance()->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/'));
                         $callback($i, $path . ($path[-1] === '/' ? '' : '/') . $i->getName());
-                        break;
+                        return;
                     }
                     $task = new IslandDataLoadTask($args[1], $callback);
                     Server::getInstance()->getAsyncPool()->submitTask($task);
@@ -160,9 +166,14 @@ class IslandArchitectCommand extends Command {
 				if (($w = $s->getIsland()->getLevel()) !== null) if ($w !== $vec->getLevel()->getFolderName()) {
 					$sender->sendMessage(TF::BOLD . TF::RED . 'You can only run this command in the same world as the island: ' . $w);
 					break;
-				} else $s->getIsland()->setLevel($vec->getLevel());
+				} else $s->getIsland()->setLevel($vec->getLevel()->getFolderName());
 				$sender->sendMessage(TF::YELLOW . 'Island world spawn set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
 				$s->getIsland()->setSpawn($vec);
+				$ft = $s->getFloatingText($s::FLOATINGTEXT_SPAWN, true);
+				$vec = $vec->floor()->add(0.5, 0.5, 0.5);
+				$ft->setComponents($vec->getX(), $vec->getY(), $vec->getZ());
+                $ft->setText(TF::BOLD . TF::GOLD . 'Island spawn' . "\n" . TF::RESET . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ());
+                $sender->getLevel()->addParticle($ft, [$sender]);
 				break;
 
 			case 'setchest':
@@ -174,10 +185,54 @@ class IslandArchitectCommand extends Command {
 				if (($w = $s->getIsland()->getLevel()) !== null) if ($w !== $vec->getLevel()->getFolderName()) {
 					$sender->sendMessage(TF::BOLD . TF::RED . 'You can only run this command in the same world as the island: ' . $w);
 					break;
-				} else $s->getIsland()->setLevel($vec->getLevel());
+				} else $s->getIsland()->setLevel($vec->getLevel()->getFolderName());
 				$sender->sendMessage(TF::YELLOW . 'Island chest position set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
 				$s->getIsland()->setChest($vec);
 				break;
+
+            case 'level':
+            case 'world':
+            case 'l':
+                if (PlayerSession::errorCheckOutRequired($sender, $s = IslandArchitect::getInstance()->getSession($sender))) break;
+                $is = $s->getIsland();
+                if (isset($args[1])) {
+                    $dir = scandir(Server::getInstance()->getDataPath() . 'worlds/');
+                    unset($dir[array_search('.', $dir, true)]);
+                    unset($dir[array_search('..', $dir, true)]);
+                    if (!in_array($args[1], $dir, true)) {
+                        $sender->sendMessage(TF::BOLD . TF::RED . 'Level does not exists!');
+                        break;
+                    }
+                    $level = $args[1];
+                } elseif ($is->getLevel() !== $sender->getLevel()->getFolderName()) $level = $sender->getLevel()->getFolderName();
+                else {
+                    $sender->sendMessage(TF::BOLD . TF::RED . 'Please enter a valid level name as argument or teleport to another world before running this command!');
+                    break;
+                }
+                $is->setLevel($level);
+                $is->setStartCoord(null);
+                $is->setEndCoord(null);
+                $is->setSpawn(null);
+                $is->setChest(null);
+                $is->setYOffset(null);
+                $sender->sendMessage(TF::YELLOW . 'Island level set to ' . TF::GOLD . '"' . $level . '"');
+                break;
+
+            case 'yoffset':
+            case 'y-offset':
+            case 'y':
+                if (PlayerSession::errorCheckOutRequired($sender, $s = IslandArchitect::getInstance()->getSession($sender))) break;
+                if (!isset($args[1]) or (int)$args[1] < 0) {
+                    $sender->sendMessage(TF::BOLD . TF::RED . 'Please enter a valid Y offset value!');
+                    break;
+                }
+                if (($sc = $s->getIsland()->getStartCoord()) !== null and ($ec = $s->getIsland()->getEndCoord()) !== null) if ((int)$args[1] + (max($sc->getFloorY(), $ec->getFloorY()) - min($sc->getFloorY(), $ec->getFloorY())) > Level::Y_MAX) {
+                    $sender->sendMessage(TF::BOLD . TF::RED . 'Please enter a valid Y offset value!');
+                    break;
+                }
+                $s->getIsland()->setYOffset((int)$args[1]);
+                $sender->sendMessage(TF::YELLOW . 'Island Y offset set to ' . TF::GOLD . $args[1]);
+                break;
 
 			default:
 				$cmds[] = 'help ' . TF::ITALIC . TF::GRAY . '(Display available subcommands)';
@@ -188,6 +243,8 @@ class IslandArchitectCommand extends Command {
                 $cmds[] = 'random [Random regex ID: int] ' . TF::ITALIC . TF::GRAY . '(Setup random blocks generation)';
                 $cmds[] = 'setspawn ' . TF::ITALIC . TF::GRAY . '(Set the island world spawn)';
                 $cmds[] = 'setchest ' . TF::ITALIC . TF::GRAY . '(Set the island chest position)';
+                $cmds[] = 'level [Level folder name] ' . TF::ITALIC . TF::GRAY . '(Update the level of the island)';
+                $cmds[] = 'yoffset <Offset value> ' . TF::ITALIC . TF::GRAY . '(Update the level of the island)';
 				$sender->sendMessage(TF::BOLD . TF::GOLD . 'Available subcommands: ' . ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $cmds ?? ['help']));
 				break;
 		}
