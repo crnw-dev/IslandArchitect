@@ -100,6 +100,18 @@ class IslandArchitect extends PluginBase {
 		    'generation-name-which-will-be' => 'exported-island-data-file.json',
             'use-in-island-creation-cmd' => 'relative-path/start-from/island-data-folder.json'
         ]));
+		$conf->set('default-regex', (array)($all['default-regex'] ?? [
+            'Random ores' => [
+                1 => 24,
+                15 => 12,
+                14 => 2,
+                56 => 1,
+                21 => 2,
+                73 => 4,
+                16 => 12,
+                129 => 1
+            ]
+        ]));
 
 		$conf->save();
 		$conf->reload();
