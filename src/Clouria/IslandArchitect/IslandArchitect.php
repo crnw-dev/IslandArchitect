@@ -110,6 +110,12 @@ class IslandArchitect extends PluginBase {
                 73 => 4,
                 16 => 12,
                 129 => 1
+            ],
+            'Random chest directions' => [
+                "54:0" => 1,
+                "54:2" => 1,
+                "54:4" => 1,
+                "54:5" => 1
             ]
         ]));
 
