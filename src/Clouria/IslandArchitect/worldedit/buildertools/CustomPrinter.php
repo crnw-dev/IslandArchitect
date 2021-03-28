@@ -36,6 +36,7 @@ use czechpmdevs\buildertools\{
 use Clouria\IslandArchitect\{
     customized\CustomizableClassTrait,
     customized\GetPrivateMethodClosureTrait,
+    events\RandomGenerationBlockPaintEvent,
     IslandArchitect,
     runtime\RandomGeneration};
 
@@ -103,7 +104,7 @@ class CustomPrinter extends Printer {
         }
         $e = new RandomGenerationBlockPaintEvent($s, $regex, $array, $item); // TODO
 		$e->call();
-		if ($ev->isCancelled()) return;
+		if ($e->isCancelled()) return;
 		if (!($regexid = $nbt->getTag('regexid', IntTag::class)) instanceof IntTag) {
 		    foreach ($s->getIsland()->getRandoms() as $i => $sr) if ($sr->equals($regex)) $regexid = $i;
 		    if ($regexid === null) $regexid = $s->getIsland()->addRandom($regex);
