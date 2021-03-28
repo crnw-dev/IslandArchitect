@@ -24,83 +24,91 @@ use pocketmine\{
     block\Block,
     level\Position,
     math\Vector3,
-    Player
-};
+    nbt\tag\CompoundTag,
+    nbt\tag\IntTag,
+    nbt\tag\ListTag,
+    Player};
 
 use czechpmdevs\buildertools\{
-    blockstorage\BlockArray,
-    BuilderTools,
-    editors\Editor,
     editors\Printer,
-    math\BlockGenerator,
-    math\Math
-};
+    utils\Math};
 
-use Clouria\IslandArchitect\IslandArchitect;
+use Clouria\IslandArchitect\{
+    customized\CustomizableClassTrait,
+    customized\GetPrivateMethodClosureTrait,
+    IslandArchitect,
+    runtime\RandomGeneration};
 
-class CustomPrinter extends Printer
-{
-        public function draw(Player $player, Position $center, Block $block, int $brush = 4, int $mode = 0x00, bool $throwBlock = false) {
-        $undoList = new BlockArray();
-        $undoList->setLevel($center->getLevel());
+class CustomPrinter extends Printer {
+    use CustomizableClassTrait, GetPrivateMethodClosureTrait;
+
+        public function draw(Player $player, Position $center, Block $block, int $brush = 4, int $mode = 0, bool $fall = false) {
+        parent::draw($player, $center, $block, $brush, $mode, $fall);
+
+        $item = $player->getInventory()->getItemInHand();
+		if (!($nbt = $item->getNamedTagEntry('IslandArchitect')) instanceof CompoundTag) return;
+		if (!($nbt = $nbt->getTag('random-generation', CompoundTag::class)) instanceof CompoundTag) return;
+		if (!($regex = $nbt->getTag('regex', ListTag::class)) instanceof ListTag) return;
+		$s = IslandArchitect::getInstance()->getSession($player);
+		if ($s::errorCheckOutRequired($s->getPlayer(), $s)) return;
+		$regex = RandomGeneration::fromNBT($regex);
+
+        // $undoList = new BlockList;
+        // TODO: Allow removing random generation blocks with the undo command
         $center = Math::roundPosition($center);
 
-        $placeBlock = function (Vector3 $vector3) use ($player, $undoList, $block, $center, $throwBlock) {
-            if($throwBlock) {
-                $reflect = new \ReflectionMethod(Printer::class, 'throwBlock');
-                $reflect->setAccessible(true);
-                $reflect = $reflect->getClosure($this);
-                $vector3 = $reflect(Position::fromObject($vector3, $center->getLevel()), $block);
-            }
-            if($vector3->getY() < 0) {
-                return;
-            }
+        switch ($mode) {
+            case self::CUBE:
+                for ($x = $center->getX()-$brush; $x <= $center->getX()+$brush; $x++) {
+                    for ($y = $center->getY()-$brush; $y <= $center->getY()+$brush; $y++) {
+                        for ($z = $center->getZ()-$brush; $z <= $center->getZ()+$brush; $z++) {
+                            if (!$fall) {
+                                if($y > 0) {
+                                    $array[] = new Vector3($x, $y, $z);
+                                    // $undoList->addBlock(new Vector3($x, $y, $z), $block);
+                                }
+                            }/* else {
+                                $finalPos = $this->getPrivateMethodClosure('throwBlock')(new Position($x, $y, $z, $center->getLevel()), $block);
+                                $undoList->addBlock($finalPos, $block);
+                            }*/
+                        }
+                    }
+                }
+                break;
 
-            $fullBlock = $center->getLevel()->getBlock($vector3);
-            $undoList->addBlock($vector3, $fullBlock->getId(), $fullBlock->getDamage());
-            $center->getLevel()->setBlockIdAt($vector3->getX(), $vector3->getY(), $vector3->getZ(), $block->getId());
-            $center->getLevel()->setBlockDataAt($vector3->getX(), $vector3->getY(), $vector3->getZ(), $block->getDamage());
+            case self::SPHERE:
+                for ($x = $center->getX()-$brush; $x <= $center->getX()+$brush; $x++) {
+                    $xsqr = ($center->getX()-$x) * ($center->getX()-$x);
+                    for ($y = $center->getY()-$brush; $y <= $center->getY()+$brush; $y++) {
+                        $ysqr = ($center->getY()-$y) * ($center->getY()-$y);
+                        for ($z = $center->getZ()-$brush; $z <= $center->getZ()+$brush; $z++) {
+                            $zsqr = ($center->getZ()-$z) * ($center->getZ()-$z);
+                            if(($xsqr + $ysqr + $zsqr) <= ($brush*$brush)) {
+                                if(!$fall) {
+                                    if($y > 0) {
+                                        $array[] = new Vector3($x, $y, $z);
+                                        // $undoList->addBlock(new Vector3($x, $y, $z), $block);
+                                    }
 
-            $session = IslandArchitect::getInstance()->getSession($player);
-            if ($session !== null and $session->getIsland() !== null) {
-                $session->getIsland()->setBlockRandom($vector3);
-                $i = $player->getInventory()->getItemInHand();
-                $i = $i->getNamedTagEntry('IslandArchitect');
-                /**
-                 * @TODO
-                 */
-            }
-        };
-
-        if($mode == self::CUBE) {
-            foreach (BlockGenerator::generateCube($brush) as $vector3) {
-                $placeBlock($center->add($vector3));
-            }
-        } elseif($mode == self::SPHERE) {
-            foreach (BlockGenerator::generateSphere($brush) as $vector3) {
-                $placeBlock($center->add($vector3));
-            }
-        } elseif($mode == self::CYLINDER) {
-            foreach (BlockGenerator::generateCylinder($brush, $brush) as $vector3) {
-                $placeBlock($center->add($vector3));
-            }
-        } elseif($mode == self::HOLLOW_CUBE) {
-            foreach (BlockGenerator::generateCube($brush, true) as $vector3) {
-                $placeBlock($center->add($vector3));
-            }
-        } elseif($mode == self::HOLLOW_SPHERE) {
-            foreach (BlockGenerator::generateSphere($brush, true) as $vector3) {
-                $placeBlock($center->add($vector3));
-            }
-        } elseif($mode == self::HOLLOW_CYLINDER) {
-            foreach (BlockGenerator::generateCylinder($brush, $brush,true) as $vector3) {
-                $placeBlock($center->add($vector3));
-            }
+                                }
+                                /*else {
+                                    $finalPos = $this->getPrivateMethodClosure('throwBlock')(new Position($x, $y, $z, $center->getLevel()), $block);
+                                    $undoList->addBlock($finalPos, $block);
+                                }*/
+                            }
+                        }
+                    }
+                }
+                break;
         }
-
-        /** @var Canceller $canceller */
-        $canceller = BuilderTools::getEditor(Editor::CANCELLER);
-        $canceller->addStep($player, $undoList);
+        $e = new RandomGenerationBlockPaintEvent($s, $regex, $array, $item); // TODO
+		$e->call();
+		if ($ev->isCancelled()) return;
+		if (!($regexid = $nbt->getTag('regexid', IntTag::class)) instanceof IntTag) {
+		    foreach ($s->getIsland()->getRandoms() as $i => $sr) if ($sr->equals($regex)) $regexid = $i;
+		    if ($regexid === null) $regexid = $s->getIsland()->addRandom($regex);
+        }
+		foreach ($array as $vec) $s->getIsland()->setBlockRandom($vec, $regexid);
     }
 
 }
