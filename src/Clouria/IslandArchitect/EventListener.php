@@ -70,9 +70,17 @@ class EventListener implements Listener {
 		$vec = $ev->getBlock()->asVector3();
 		if (($r = $s->getIsland()->getRandomByVector3($vec)) === null) return;
 		$s->getPlayer()->sendPopup(TF::BOLD . TF::YELLOW . 'You have destroyed a random generation block, ' . TF::GOLD . 'the item has returned to your inventory!');
-		$i = $s->getIsland()->getRandomById($r)->getRandomGenerationItem($s->getIsland()->getRandomSymbolicItem($r), $r);
-		$i->setCount(64);
-		$s->getPlayer()->getInventory()->addItem($i);
+		$i = ($regex = $s->getIsland()->getRandomById($r))->getRandomGenerationItem($s->getIsland()->getRandomSymbolicItem($r), $r);
+		$nbt = $s->getPlayer()->getInventory()->getItemInHand()->getNamedTagEntry('IslandArchitect');
+		if (
+            $nbt instanceof CompoundTag and
+            ($nbt = $nbt->getTag('random-generation', CompoundTag::class)) instanceof CompoundTag and
+            ($nbt = $nbt->getTag('regex', ListTag::class)) instanceof ListTag and
+            !RandomGeneration::fromNBT($nbt)->equals($regex)
+        ) {
+		    $i->setCount(64);
+            $s->getPlayer()->getInventory()->addItem($i);
+        }
 	}
 
 	/**
@@ -91,7 +99,7 @@ class EventListener implements Listener {
 		$e = new RandomGenerationBlockPlaceEvent($s, $regex, $ev->getBlock()->asPosition(), $item);
 		$e->call();
 		if ($e->isCancelled()) return;
-		if (!($regexid = $nbt->getTag('regexid', IntTag::class)) instanceof ListTag) {
+		if (!($regexid = $nbt->getTag('regexid', IntTag::class)) instanceof IntTag) {
 		    foreach ($s->getIsland()->getRandoms() as $i => $sr) if ($sr->equals($regex)) $regexid = $i;
 		    if ($regexid === null) $regexid = $s->getIsland()->addRandom($regex);
         }

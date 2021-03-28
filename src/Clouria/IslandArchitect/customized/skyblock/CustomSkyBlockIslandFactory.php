@@ -57,7 +57,7 @@ class CustomSkyBlockIslandFactory extends IslandFactory {
         $islandManager = SkyBlock::getInstance()->getIslandManager();
 
         static::createTemplateIslandWorldAsync($identifier, $type, function(Level $w) use
-        ($session, $islandManager, $identifier, $type) : void {
+        ($session, $islandManager, $identifier) : void {
             if (!$session->getPlayer()->isOnline()) return;
             $class = TemplateIslandGenerator::getClass();
             assert(is_a($class, TemplateIslandGenerator::class, true));
