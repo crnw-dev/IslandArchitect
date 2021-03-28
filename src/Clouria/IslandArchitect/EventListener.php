@@ -70,14 +70,15 @@ class EventListener implements Listener {
 		$vec = $ev->getBlock()->asVector3();
 		if (($r = $s->getIsland()->getRandomByVector3($vec)) === null) return;
 		$s->getPlayer()->sendPopup(TF::BOLD . TF::YELLOW . 'You have destroyed a random generation block, ' . TF::GOLD . 'the item has returned to your inventory!');
-		$i = ($regex = $s->getIsland()->getRandomById($r))->getRandomGenerationItem($s->getIsland()->getRandomSymbolicItem($r), $r);
+		$regex = $s->getIsland()->getRandomById($r);
 		$nbt = $s->getPlayer()->getInventory()->getItemInHand()->getNamedTagEntry('IslandArchitect');
 		if (
-            $nbt instanceof CompoundTag and
-            ($nbt = $nbt->getTag('random-generation', CompoundTag::class)) instanceof CompoundTag and
-            ($nbt = $nbt->getTag('regex', ListTag::class)) instanceof ListTag and
+            !$nbt instanceof CompoundTag or
+            !($nbt = $nbt->getTag('random-generation', CompoundTag::class)) instanceof CompoundTag or
+            !($nbt = $nbt->getTag('regex', ListTag::class)) instanceof ListTag or
             !RandomGeneration::fromNBT($nbt)->equals($regex)
         ) {
+		    $i = $regex->getRandomGenerationItem($s->getIsland()->getRandomSymbolicItem($r));
 		    $i->setCount(64);
             $s->getPlayer()->getInventory()->addItem($i);
         }
