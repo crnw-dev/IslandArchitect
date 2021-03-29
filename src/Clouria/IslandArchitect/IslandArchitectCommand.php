@@ -29,6 +29,7 @@ use pocketmine\{
     utils\TextFormat as TF,
     command\CommandSender};
 use Clouria\IslandArchitect\{
+    runtime\RandomGeneration,
     runtime\TemplateIsland,
     conversion\IslandDataLoadTask,
     runtime\sessions\PlayerSession,
@@ -103,6 +104,16 @@ class IslandArchitectCommand extends Command {
                         if (!$sender->isOnline()) return;
                         if (!isset($is)) {
                             $is = new TemplateIsland(basename($filepath, '.json'));
+                            foreach ((array)IslandArchitect::getInstance()->getConfig()->get('default-regex', IslandArchitect::DEFAULT_REGEX) as $label => $regex) {
+                                $r = new RandomGeneration;
+                                foreach ((array)$regex as $element => $chance) {
+                                    $element = explode(':', $element);
+                                    $r->increaseElementChance((int)$element[0], (int)($element[1] ?? 0), $chance);
+                                }
+                                $regexid = $is->addRandom($r);
+                                $is->setRandomLabel($regexid, $label);
+                            }
+                            $is->noMoreChanges();
                             $sender->sendMessage(TF::BOLD . TF::GOLD . 'Created' . TF::GREEN . ' new island "' . $is->getName() . '"!');
                         } else $sender->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . 's)');
                         $s = IslandArchitect::getInstance()->getSession($sender, true);
