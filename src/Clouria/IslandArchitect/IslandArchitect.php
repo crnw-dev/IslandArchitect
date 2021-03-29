@@ -116,6 +116,12 @@ class IslandArchitect extends PluginBase {
                 "54:2" => 1,
                 "54:4" => 1,
                 "54:5" => 1
+            ],
+            'Random flowers' => [ // This does not follow generation rate of bone-mealing grass in PocketMine-MP
+                "31:1" => 4,
+                "0:0" => 8,
+                "37:0" => 1,
+                "38:0" => 1
             ]
         ]));
 
