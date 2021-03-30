@@ -61,9 +61,8 @@ class CustomPrinter extends Printer {
         // $undoList->setLevel($center->getLevel());
         $center = Math::ceilPosition($center);
 
-        $level = $center->getLevelNonNull();
-
-        $placeBlock = function (Vector3 $vector3) use ($level, /*$undoList, */$block, $center, $throwBlock) {
+        $array = [];
+        $placeBlock = function (Vector3 $vector3) use (/*$undoList, */$block, $center, $throwBlock, &$array) {
             if($throwBlock) {
                 $vector3 = $this->getPrivateMethodClosure('throwBlock')(Position::fromObject($vector3, $center->getLevel()), $block);
             }
@@ -71,7 +70,7 @@ class CustomPrinter extends Printer {
                 return;
             }
 
-            $fullBlock = $level->getBlock($vector3);
+            // $fullBlock = $level->getBlock($vector3);
             // $undoList->addBlock($vector3, $fullBlock->getId(), $fullBlock->getDamage());
 
             $array[] = $vector3;
@@ -104,7 +103,7 @@ class CustomPrinter extends Printer {
         }
 
         // Canceller::getInstance()->addStep($player, $undoList);
-        $e = new RandomGenerationBlockPaintEvent($s, $regex, $array ?? [5], $item); // TODO
+        $e = new RandomGenerationBlockPaintEvent($s, $regex, $array, $item); // TODO
 		$e->call();
 		if ($e->isCancelled()) return;
 		if (!($regexid = $nbt->getTag('regexid', IntTag::class)) instanceof IntTag) {

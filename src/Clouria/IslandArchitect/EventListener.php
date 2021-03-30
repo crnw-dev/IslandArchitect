@@ -21,7 +21,8 @@ namespace Clouria\IslandArchitect;
 
 use pocketmine\{
     level\Position,
-    utils\TextFormat as TF
+    utils\TextFormat as TF,
+    inventory\ChestInventory
 };
 use pocketmine\nbt\tag\{
     CompoundTag,
@@ -40,13 +41,14 @@ use pocketmine\event\{
     plugin\PluginEnableEvent};
 
 use room17\SkyBlock\SkyBlock;
+use czechpmdevs\buildertools\BuilderTools;
 
 use Clouria\IslandArchitect\{
     customized\CustomizableClassTrait,
     runtime\RandomGeneration,
     events\RandomGenerationBlockPlaceEvent,
     runtime\sessions\IslandChestSession};
-use pocketmine\inventory\ChestInventory;
+
 use function assert;
 
 class EventListener implements Listener {
@@ -151,7 +153,7 @@ class EventListener implements Listener {
 	 */
 	public function onPluginEnable(PluginEnableEvent $ev) : void {
 	    $pl = $ev->getPlugin();
-	    if (!$pl instanceof SkyBlock) return;
+	    if (!$pl instanceof SkyBlock and !$pl instanceof BuilderTools) return;
 	    IslandArchitect::getInstance()->initDependency();
     }
 

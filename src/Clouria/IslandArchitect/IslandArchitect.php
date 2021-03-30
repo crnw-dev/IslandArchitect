@@ -20,8 +20,6 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect;
 
-use room17\SkyBlock\SkyBlock;
-use muqsit\invmenu\InvMenuHandler;
 use pocketmine\{
     Player,
     tile\Tile,
@@ -30,12 +28,20 @@ use pocketmine\{
     utils\Utils,
     plugin\PluginBase,
     level\format\Chunk};
+
+use room17\SkyBlock\SkyBlock;
+use muqsit\invmenu\InvMenuHandler;
+use czechpmdevs\buildertools\BuilderTools;
+
 use Clouria\IslandArchitect\{
     runtime\TemplateIsland,
     events\TickTaskRegisterEvent,
     runtime\sessions\PlayerSession,
     runtime\TemplateIslandGenerator,
-    customized\skyblock\CustomSkyBlockCreateCommand};
+    customized\skyblock\CustomSkyBlockCreateCommand,
+    worldedit\buildertools\CustomPrinter};
+
+use czechpmdevs\buildertools\editors\Printer;
 use function substr;
 use function strtolower;
 use function file_exists;
@@ -64,7 +70,7 @@ class IslandArchitect extends PluginBase {
 		$class = IslandArchitectCommand::getClass();
 		$this->getServer()->getCommandMap()->register($this->getName(), new $class);
 
-		if (SkyBlock::getInstance() !== null and SkyBlock::getInstance()->isEnabled()) $this->initDependency();
+		if (SkyBlock::getInstance()->isEnabled() and BuilderTools::getInstance()->isEnabled()) $this->initDependency();
 
 		$task = IslandArchitectPluginTickTask::getClass();
 		if (is_a($task, IslandArchitectPluginTickTask::class, true)) $task = new $task;
@@ -76,6 +82,9 @@ class IslandArchitect extends PluginBase {
      * @internal
      */
 	public function initDependency() : void {
+        /**
+         * @see SkyBlock::getInstance()
+         */
 	    $pl = SkyBlock::getInstance();
 	    $map = $pl->getCommandMap();
 	    $cmd = $map->getCommand('create');
@@ -86,6 +95,14 @@ class IslandArchitect extends PluginBase {
 	    $class = TemplateIslandGenerator::getClass();
 	    assert(is_a($class, TemplateIslandGenerator::class, true));
 	    $pl->getGeneratorManager()->registerGenerator($class::GENERATOR_NAME, TemplateIslandGenerator::getClass());
+
+	    /**
+         * @see BuilderTools::getInstance()
+         */
+	    $class = CustomPrinter::getClass();
+	    assert(is_a($class, CustomPrinter::class, true));
+
+	    Printer::setInstance(new $class);
     }
 
 	private function initConfig() : void {

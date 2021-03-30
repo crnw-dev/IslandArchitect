@@ -190,9 +190,12 @@ class TemplateIsland {
 	 */
 	private $random_blocks = [];
 
-	/**
-	 * @see TemplateIsland::getRandomByVector3()
-	 */
+    /**
+     * @param Vector3 $block
+     * @param int|null $id
+     * @param RandomGenerationBlockPlaceEvent|null $event
+     * @see TemplateIsland::getRandomByVector3()
+     */
 	public function setBlockRandom(Vector3 $block, ?int $id, ?RandomGenerationBlockPlaceEvent $event = null) : void {
 		$ev = new RandomGenerationBlockUpdateEvent($block, $id, $event);
 		$ev->call();
