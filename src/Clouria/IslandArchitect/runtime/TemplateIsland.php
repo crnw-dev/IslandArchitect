@@ -425,7 +425,6 @@ class TemplateIsland {
 		    $data['chest'] = $coord;
         }
 
-		var_dump($this->yoffset);
         if ($this->yoffset + max($this->getStartCoord()->getFloorY(), $this->getEndCoord()->getFloorY()) > Level::Y_MAX) $this->yoffset = 0;
 		if (($yoffset = $this->getYOffset()) > 0) $data['y_offset'] = $yoffset;
 
