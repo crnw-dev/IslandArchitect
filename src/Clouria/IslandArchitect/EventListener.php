@@ -68,6 +68,8 @@ class EventListener implements Listener {
 	 * @ignoreCancelled
 	 */
 	public function onBlockBreak(BlockBreakEvent $ev) : void {
+	    // TODO: Make player cannot place random generation blocks if they are not in the same world as the island
+
 		if (($s = IslandArchitect::getInstance()->getSession($ev->getPlayer())) === null or $s->getIsland() === null) return;
 
 		$vec = $ev->getBlock()->asVector3();

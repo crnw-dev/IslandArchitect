@@ -23,8 +23,8 @@ namespace Clouria\IslandArchitect\events;
 
 use pocketmine\{
     item\Item,
-    event\Cancellable
-};
+    event\Cancellable,
+    math\Vector3};
 
 use Clouria\IslandArchitect\{
     runtime\RandomGeneration,
@@ -79,7 +79,7 @@ class RandomGenerationBlockPaintEvent extends IslandArchitectEvent implements Ca
     }
 
     /**
-     * @return array
+     * @return Vector3[]
      */
     public function getBlocks() : array {
         return $this->blocks;

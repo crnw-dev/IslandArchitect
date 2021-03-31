@@ -42,7 +42,6 @@ use Clouria\IslandArchitect\{
     customized\skyblock\CustomSkyBlockCreateCommand,
     worldedit\buildertools\CustomPrinter};
 
-use czechpmdevs\buildertools\editors\Printer;
 use function substr;
 use function strtolower;
 use function file_exists;
@@ -88,11 +87,13 @@ class IslandArchitect extends PluginBase {
             case class_exists(BuilderTools::class) and $pl instanceof BuilderTools:
                 $class = CustomPrinter::getClass();
                 assert(is_a($class, CustomPrinter::class, true));
-                Printer::setInstance(new $class);
+
+                $reflect = new \ReflectionProperty(BuilderTools::class, 'editors');
+                $reflect->setAccessible(true);
+                $reflect->setValue(BuilderTools::class, new $class);
                 break;
 
             case class_exists(SkyBlock::class) and $pl instanceof SkyBlock:
-                $pl = SkyBlock::getInstance();
                 $map = $pl->getCommandMap();
                 $cmd = $map->getCommand('create');
                 if ($cmd !== null) $pl->getCommandMap()->unregisterCommand($cmd->getName());
