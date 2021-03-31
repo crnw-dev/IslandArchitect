@@ -50,6 +50,7 @@ use Clouria\IslandArchitect\{
     runtime\sessions\IslandChestSession};
 
 use function assert;
+use function class_exists;
 
 class EventListener implements Listener {
     use CustomizableClassTrait;
@@ -153,8 +154,8 @@ class EventListener implements Listener {
 	 */
 	public function onPluginEnable(PluginEnableEvent $ev) : void {
 	    $pl = $ev->getPlugin();
-	    if (!$pl instanceof SkyBlock and !$pl instanceof BuilderTools) return;
-	    IslandArchitect::getInstance()->initDependency();
+	    if (class_exists(SkyBlock::class) and $pl instanceof SkyBlock) IslandArchitect::getInstance()->initDependency($pl);
+	    if (class_exists(BuilderTools::class) and $pl instanceof BuilderTools) IslandArchitect::getInstance()->initDependency($pl);
     }
 
     /**
