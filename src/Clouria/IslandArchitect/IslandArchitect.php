@@ -19,23 +19,30 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect;
 
-use room17\SkyBlock\SkyBlock;
-use muqsit\invmenu\InvMenuHandler;
 use pocketmine\{
     item\Item,
     Player,
+    plugin\Plugin,
     tile\Tile,
     tile\Chest,
     level\Level,
     utils\Utils,
     plugin\PluginBase,
     level\format\Chunk};
+
+use room17\SkyBlock\SkyBlock;
+use muqsit\invmenu\InvMenuHandler;
+use czechpmdevs\buildertools\BuilderTools;
+use czechpmdevs\buildertools\editors\Printer;
+
 use Clouria\IslandArchitect\{
     runtime\TemplateIsland,
     events\TickTaskRegisterEvent,
     runtime\sessions\PlayerSession,
     runtime\TemplateIslandGenerator,
-    customized\skyblock\CustomSkyBlockCreateCommand};
+    customized\skyblock\CustomSkyBlockCreateCommand,
+    worldedit\buildertools\CustomPrinter};
+
 use function substr;
 use function strtolower;
 use function file_exists;
@@ -180,7 +187,8 @@ class IslandArchitect extends PluginBase {
 		$class = IslandArchitectCommand::getClass();
 		$this->getServer()->getCommandMap()->register($this->getName(), new $class);
 
-		if (SkyBlock::getInstance() !== null and SkyBlock::getInstance()->isEnabled()) $this->initDependency();
+		if (SkyBlock::getInstance()->isEnabled()) $this->initDependency(SkyBlock::getInstance());
+		if (BuilderTools::getInstance()->isEnabled()) $this->initDependency(BuilderTools::getInstance());
 
 		$task = IslandArchitectPluginTickTask::getClass();
 		if (is_a($task, IslandArchitectPluginTickTask::class, true)) $task = new $task;
@@ -191,17 +199,31 @@ class IslandArchitect extends PluginBase {
     /**
      * @internal
      */
-	public function initDependency() : void {
-	    $pl = SkyBlock::getInstance();
-	    $map = $pl->getCommandMap();
-	    $cmd = $map->getCommand('create');
-	    if ($cmd !== null) $pl->getCommandMap()->unregisterCommand($cmd->getName());
-	    $class = CustomSkyBlockCreateCommand::getClass();
-	    $map->registerCommand(new $class($map));
+	public function initDependency(Plugin $pl) : void {
+	    switch (true) {
+            case class_exists(BuilderTools::class) and $pl instanceof BuilderTools:
+                $class = CustomPrinter::getClass();
+                assert(is_a($class, CustomPrinter::class, true));
 
-	    $class = TemplateIslandGenerator::getClass();
-	    assert(is_a($class, TemplateIslandGenerator::class, true));
-	    $pl->getGeneratorManager()->registerGenerator($class::GENERATOR_NAME, TemplateIslandGenerator::getClass());
+                $reflect = new \ReflectionProperty(BuilderTools::class, 'editors');
+                $reflect->setAccessible(true);
+                $editors = $reflect->getValue(BuilderTools::class);
+                $editors['Printer'] = new $class;
+                $reflect->setValue(BuilderTools::class, $editors);
+                break;
+
+            case class_exists(SkyBlock::class) and $pl instanceof SkyBlock:
+                $map = $pl->getCommandMap();
+                $cmd = $map->getCommand('create');
+                if ($cmd !== null) $pl->getCommandMap()->unregisterCommand($cmd->getName());
+                $class = CustomSkyBlockCreateCommand::getClass();
+                $map->registerCommand(new $class($map));
+
+                $class = TemplateIslandGenerator::getClass();
+                assert(is_a($class, TemplateIslandGenerator::class, true));
+                $pl->getGeneratorManager()->registerGenerator($class::GENERATOR_NAME, TemplateIslandGenerator::getClass());
+                break;
+        }
     }
 
 	private function initConfig() : void {

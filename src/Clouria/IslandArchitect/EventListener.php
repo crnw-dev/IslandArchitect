@@ -21,7 +21,8 @@ namespace Clouria\IslandArchitect;
 
 use pocketmine\{
     level\Position,
-    utils\TextFormat as TF
+    utils\TextFormat as TF,
+    inventory\ChestInventory
 };
 use pocketmine\nbt\tag\{
     CompoundTag,
@@ -40,14 +41,16 @@ use pocketmine\event\{
     plugin\PluginEnableEvent};
 
 use room17\SkyBlock\SkyBlock;
+use czechpmdevs\buildertools\BuilderTools;
 
 use Clouria\IslandArchitect\{
     customized\CustomizableClassTrait,
     runtime\RandomGeneration,
     events\RandomGenerationBlockPlaceEvent,
     runtime\sessions\IslandChestSession};
-use pocketmine\inventory\ChestInventory;
+
 use function assert;
+use function class_exists;
 
 class EventListener implements Listener {
     use CustomizableClassTrait;
@@ -65,6 +68,8 @@ class EventListener implements Listener {
 	 * @ignoreCancelled
 	 */
 	public function onBlockBreak(BlockBreakEvent $ev) : void {
+	    // TODO: Make player cannot place random generation blocks if they are not in the same world as the island
+
 		if (($s = IslandArchitect::getInstance()->getSession($ev->getPlayer())) === null or $s->getIsland() === null) return;
 
 		$vec = $ev->getBlock()->asVector3();
@@ -152,8 +157,8 @@ class EventListener implements Listener {
 	 */
 	public function onPluginEnable(PluginEnableEvent $ev) : void {
 	    $pl = $ev->getPlugin();
-	    if (!$pl instanceof SkyBlock) return;
-	    IslandArchitect::getInstance()->initDependency();
+	    if (class_exists(SkyBlock::class) and $pl instanceof SkyBlock) IslandArchitect::getInstance()->initDependency($pl);
+	    if (class_exists(BuilderTools::class) and $pl instanceof BuilderTools) IslandArchitect::getInstance()->initDependency($pl);
     }
 
     /**
