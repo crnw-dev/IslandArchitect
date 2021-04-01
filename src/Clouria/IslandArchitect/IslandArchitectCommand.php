@@ -33,7 +33,6 @@ use Clouria\IslandArchitect\{
     runtime\TemplateIsland,
     conversion\IslandDataLoadTask,
     runtime\sessions\PlayerSession,
-    runtime\sessions\InvMenuSession,
     customized\CustomizableClassTrait,
     events\TemplateIslandCheckOutEvent};
 use function strtolower;
@@ -157,7 +156,7 @@ class IslandArchitectCommand extends Command {
                         $regexid = $rid;
                         break;
                     }
-					new InvMenuSession($s, $regexid ?? null);
+					$s->editRandom($regexid ?? null);
 				} else $s->listRandoms();
 				break;
 

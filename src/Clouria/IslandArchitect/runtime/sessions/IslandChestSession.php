@@ -22,7 +22,8 @@ namespace Clouria\IslandArchitect\runtime\sessions;
 
 use pocketmine\{
     Player,
-    item\Item
+    item\Item,
+    utils\TextFormat as TF
 };
 
 use muqsit\invmenu\InvMenu;
@@ -87,6 +88,8 @@ class IslandChestSession {
     }
 
     public static function errorInvMenuNotInstalled(Player $player) : bool {
-        return InvMenuSession::errorInvMenuNotInstalled($player);
+        if (class_exists(InvMenu::class)) return false;
+        $player->sendMessage(TF::BOLD . TF::RED . 'Cannot open random generation regex modify panel, ' . "\n" . 'required virion "InvMenu(v4)" is not installed. ' . TF::AQUA . 'A blank regex has been added into your island data, you may edit the regex manually with an text editor!');
+	    return true;
     }
 }

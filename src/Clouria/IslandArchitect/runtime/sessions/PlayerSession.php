@@ -98,13 +98,13 @@ class PlayerSession {
 		if (class_exists(SimpleForm::class)) {
 			$f = new SimpleForm(function(Player $p, int $d = null) : void {
 				if ($d === null) return;
-				new InvMenuSession($this, $d);
+				$this->editRandom($d);
 			});
 			foreach ($this->getIsland()->getRandoms() as $i => $r) $f->addButton(TF::BOLD . TF::DARK_BLUE . $this->getIsland()->getRandomLabel($i) . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(' . count($r->getAllElements()) . ' elements)');
 			$f->setTitle(TF::BOLD . TF::DARK_AQUA . 'Regex List');
 			$f->addButton(TF::BOLD . TF::DARK_GREEN . 'New regex');
 			$this->getPlayer()->sendForm($f);
-		} else new InvMenuSession($this);
+		} else $this->editRandom();
 	}
 
 	public function close() : void {
@@ -250,5 +250,12 @@ class PlayerSession {
 	    $ft->setInvisible(true);
 	    $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
 	    return true;
+    }
+
+    public function editRandom(int $regexid = null) : bool {
+        if (count($this->getIsland()->getRandoms()) >= 0x7fffffff) return false;
+        // 2147483647, max limit of int tag value and random generation regex number
+        $form = new SimpleForm();
+        return true;
     }
 }
