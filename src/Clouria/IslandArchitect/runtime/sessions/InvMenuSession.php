@@ -168,7 +168,7 @@ class InvMenuSession {
 	}
 
 	protected function panelElement() : void {
-		for ($i=0; $i < self::PANEL_AVAILABLE_SLOTS_SIZE; $i++) $this->menu->getInventory()->clear($i, false);
+		for ($i=0; $i < self::PANEL_AVAILABLE_SLOTS_SIZE; $i++) $this->menu->getInventory()->clear(self::getElementSlot($i), false);
 		$totalchance = $this->getRegex()->getTotalChance();
 		foreach ($this->getRegex()->getAllElements() as $block => $chance) {
 			$block = explode(':', $block);
@@ -177,7 +177,7 @@ class InvMenuSession {
 			$item = Item::get((int)$block[0], (int)($block[1]));
 			$itemname = $item->getVanillaName();
 			if ($selected) $item = Item::get(Item::WOOL, 5);
-			elseif ($item->getId() === Item::AIR) $item = self::displayConversion($item);
+			elseif ($item->getId() === Item::AIR) $item = self::displayConversion($item); // TODO
 			$item->setCustomName(
 				TF::RESET . $itemname . "\n" .
 				TF::YELLOW . 'ID: ' . TF::BOLD . TF::GOLD . (int)$block[0] . "\n" .
@@ -193,7 +193,7 @@ class InvMenuSession {
 				$cti = ++$ti;
 				if ($cti <= $this->display) continue;
 				if ($cti > ($this->display + self::PANEL_AVAILABLE_SLOTS_SIZE)) continue;
-				$this->menu->getInventory()->setItem($ti - $this->display - 1, $item, false);
+				$this->menu->getInventory()->setItem(self::getElementSlot($ti - $this->display - 1), $item, false);
 			}
 		}
 	}
@@ -250,6 +250,14 @@ class InvMenuSession {
 	    if (class_exists(InvMenu::class)) return false;
         $player->sendMessage(TF::BOLD . TF::RED . 'Cannot open random generation regex modify panel, ' . "\n" . 'required virion "InvMenu(v4)" is not installed. ' . TF::AQUA . 'A blank regex has been added into your island data, you may edit the regex manually with an text editor!');
 	    return true;
+    }
+
+    protected static function getElementSlot(int $slot) : int {
+        $i = $slot / 9;
+        if ($i - (int)$i === (float)0 or $slot === 0) return $i + 2;
+        $i = $slot / 10;
+        if ($i - (int)$i === (float)0 or $slot === 1) return $i + 1;
+        return $i;
     }
 
     protected function transactionCallback(InvMenuTransaction $transaction) : void {
