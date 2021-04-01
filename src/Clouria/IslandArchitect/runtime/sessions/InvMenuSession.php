@@ -23,9 +23,7 @@ use pocketmine\{
 	Player,
 	item\Item,
 	utils\TextFormat as TF,
-	utils\Random,
-	inventory\Inventory,
-    level\generator\Generator
+	inventory\Inventory
 };
 use pocketmine\nbt\tag\{
 	CompoundTag,
@@ -37,7 +35,6 @@ use muqsit\invmenu\{
 	InvMenu,
 	transaction\DeterministicInvMenuTransaction as InvMenuTransaction
 };
-use jojoe77777\FormAPI\CustomForm;
 
 use Clouria\IslandArchitect\{
 	IslandArchitect,
@@ -46,16 +43,11 @@ use Clouria\IslandArchitect\{
 
 use function max;
 use function explode;
-use function random_int;
 use function ceil;
 use function count;
-use function preg_replace;
 use function class_exists;
 use function spl_object_hash;
 use function min;
-
-use const INT32_MIN;
-use const INT32_MAX;
 
 class InvMenuSession {
 
@@ -115,22 +107,16 @@ class InvMenuSession {
 	protected $menu;
 
 	/**
-	 * @var Random
-	 */	
-	private $random;
-
-	/**
 	 * @var int
 	 */
-	protected $random_rolled_times = 0;
 
-	/**
+    /**
 	 * @var array<int, mixed>|null
 	 */
 	protected $selected = null;
 
 	/**
-	 * @var int The positive offset of elements(multiplied by the chance if expanded) display in the inventory, normally 33 as a page since there is 33 available slots.
+	 * @var int The positive offset of elements(multiplied by the chance if expanded) display in the inventory
 	 * @see InvMenuSession::PANEL_AVAILABLE_SLOTS_SIZE
 	 */
 	protected $display = 0;
@@ -145,18 +131,15 @@ class InvMenuSession {
 	 */
 	protected $giveitem_lock = false;
 
-	public const PANEL_AVAILABLE_SLOTS_SIZE = 32;
+	public const PANEL_AVAILABLE_SLOTS_SIZE = 42;
 
 	public const ITEM_REMOVE = 0;
 	public const ITEM_LUCK = 1;
 	public const ITEM_UNLUCK = 2;
 	public const ITEM_PREVIOUS = 3;
 	public const ITEM_NEXT = 4;
-	public const ITEM_SEED = 5;
-	public const ITEM_ROLL = 6;
-	public const ITEM_COLLAPSE = 7;
-	public const ITEM_SYMBOLIC = 8;
-	public const ITEM_LABEL = 9;
+	public const ITEM_COLLAPSE = 5;
+	public const ITEM_SELECTED = 6;
 
 	protected function panelInit() : void {
 		if (!isset($this->menu)) {
@@ -178,29 +161,10 @@ class InvMenuSession {
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
 		foreach ([32, 33, 34, 35, 36, 37, 38, 39, 40, 41] as $slot) $this->menu->getInventory()->setItem($slot, $i, false);
 
-		$this->random = new Random(self::getDefaultSeed() ?? random_int(INT32_MIN, INT32_MAX));
-		if (class_exists(CustomForm::class)) {
-		    $this->panelSeed();
-		    $this->panelLabel();
-        }
-		else {
-			$i = Item::get(Item::PUMPKIN_SEEDS);
-			$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . (int)$this->random->getSeed() . "\n\n" . TF::RESET . TF::BOLD . TF::RED . 'Cannot edit seed, ' . "\n" . 'required virion "FormAPI" is not installed.');
-			$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
-			$this->menu->getInventory()->setItem(42, $i, false);
-
-			$i = Item::get(Item::DARKOAK_SIGN);
-			$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . (int)$this->random->getSeed() . "\n\n" . TF::RESET . TF::BOLD . TF::RED . 'Cannot edit regex label, ' . "\n" . 'required virion "FormAPI" is not installed.');
-			$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
-			$this->menu->getInventory()->setItem(50, $i, false);
-		}
-
 		$this->panelElement();
 		$this->panelSelect();
 		$this->panelPage();
 		$this->panelCollapse();
-		$this->panelRandom();
-		$this->panelSymbolic();
 	}
 
 	protected function panelElement() : void {
@@ -282,13 +246,6 @@ class InvMenuSession {
 		$this->menu->getInventory()->setItem(47, $i, false);
 	}
 
-	protected function panelSeed() : void {
-		$i = Item::get(Item::SEEDS);
-		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . $this->random->getSeed() . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to edit seed or reset random noises)');
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_SEED)]));
-		$this->menu->getInventory()->setItem(42, $i, false);
-	}
-
     public static function errorInvMenuNotInstalled(Player $player) : bool {
 	    if (class_exists(InvMenu::class)) return false;
         $player->sendMessage(TF::BOLD . TF::RED . 'Cannot open random generation regex modify panel, ' . "\n" . 'required virion "InvMenu(v4)" is not installed. ' . TF::AQUA . 'A blank regex has been added into your island data, you may edit the regex manually with an text editor!');
@@ -310,7 +267,6 @@ class InvMenuSession {
 			$this->getRegex()->increaseElementChance($in->getId(), $in->getDamage(), $in->getCount());
 			$this->panelSelect();
 			$this->panelElement();
-			$this->panelRandom();
 			$this->panelPage();
 			$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
 			return;
@@ -325,7 +281,6 @@ class InvMenuSession {
 				$this->getRegex()->decreaseElementChance($selected[0], $selected[1]);
 				$this->panelSelect();
 				$this->panelElement();
-				$this->panelRandom();
 				$this->panelPage();
 				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
 				break;
@@ -335,7 +290,6 @@ class InvMenuSession {
 				$this->getRegex()->increaseElementChance($selected[0], $selected[1]);
 				$this->panelSelect();
 				$this->panelElement();
-				$this->panelRandom();
 				$this->panelPage();
 				if (!$this->collapse) $this->panelPage();
 				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
@@ -346,7 +300,6 @@ class InvMenuSession {
 				$this->getRegex()->decreaseElementChance($selected[0], $selected[1], 1);
 				$this->panelSelect();
 				$this->panelElement();
-				$this->panelRandom();
 				$this->panelPage();
 				if (!$this->collapse) $this->panelPage();
 				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
@@ -371,22 +324,6 @@ class InvMenuSession {
 				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
 				break;
 
-			case self::ITEM_SEED:
-			case self::ITEM_LABEL:
-				$this->giveitem_lock = true;
-				$this->getSession()->getPlayer()->removeWindow($this->menu->getInventory());
-				$this->giveitem_lock = false;
-				$transaction->then(function() use ($nbt) : void {
-					if ($nbt->getValue() == self::ITEM_SEED) $this->editSeed();
-					else $this->editLabel();
-				});
-				break;
-
-			case self::ITEM_ROLL:
-				$this->panelRandom();
-				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
-				break;
-
 			case self::ITEM_COLLAPSE:
 				$this->collapse = !$this->collapse;
 				if ($this->getRegex()->getTotalChance() > self::PANEL_AVAILABLE_SLOTS_SIZE) {
@@ -396,10 +333,6 @@ class InvMenuSession {
 				$this->panelElement();
 				$this->panelCollapse();
 				$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
-				break;
-
-			case self::ITEM_SYMBOLIC:
-				$this->editSymbolic();
 				break;
 
 		} else {
@@ -428,116 +361,11 @@ class InvMenuSession {
 		$this->menu->getInventory()->setItem(53, $i, false);
 	}
 
-	protected function panelRandom() : void {
-		$i = Item::get(Item::EXPERIENCE_BOTTLE, 0, min(max($this->random_rolled_times++, 1), 100));
-		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Next roll' . "\n" . TF::RESET . TF::YELLOW . 'Rolled times: ' . TF::BOLD . TF::GOLD . ($this->random_rolled_times - 1));
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_ROLL)]));
-		$this->menu->getInventory()->setItem(44, $i, false);
-		
-		if (empty($this->getRegex()->getAllElements())) {
-			$i = self::getBarrier();
-			$i->setCustomName(TF::GRAY . '(No random output)');
-		} else {
-			$i = $this->getRegex()->randomElementItem($this->random);
-			$itemname = $i->getVanillaName();
-			$i = self::displayConversion($i);	
-			$i->setCustomName(TF::RESET . $itemname . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(Random result)');
-		}
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', -1)]));
-		$this->menu->getInventory()->setItem(43, $i, false);
-	}
-
 	protected function panelCollapse() : void {
 		$i = Item::get(Item::SHULKER_BOX, $this->collapse ? 14 : 5);
 		$i->setCustomName(TF::RESET . TF::YELLOW . 'Expand mode: ' . TF::BOLD . ($this->collapse ? TF::RED . 'Off' : TF::GREEN . 'On') . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to toggle)');
 		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_COLLAPSE)]));
 		$this->menu->getInventory()->setItem(51, $i, false);
-	}
-
-	protected function panelSymbolic() : void {
-		$i = $this->getSession()->getIsland()->getRandomSymbolicItem($this->getRegexId());
-		$i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Change regex symbolic');
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_SYMBOLIC)]));
-		$this->menu->getInventory()->setItem(45, $i, false);
-	}
-
-	protected function panelLabel() : void {
-        $i = Item::get(Item::BIRCH_SIGN);
-		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . $this->getSession()->getIsland()->getRandomLabel($this->getRegexId()) . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click / drop to rename regex label)');
-		$i->setNamedTagEntry(new CompoundTag('IslandArchitect', [new ByteTag('action', self::ITEM_LABEL)]));
-		$this->menu->getInventory()->setItem(50, $i, false);
-    }
-
-	public function editSeed() : void {
-		$f = new CustomForm(function(Player $p, array $d = null) : void {
-			if ($d !== null and !empty($d[0] ?? null)) {
-					$this->random = new Random(empty(preg_replace('/[0-9-]+/i', '', $d[0])) ? (int)$d[0] : Generator::convertSeed($d[0]));
-					$this->random_rolled_times = 0;
-					$this->panelSeed();
-					$this->panelRandom();
-				}
-			$this->menu->send($this->getSession()->getPlayer());
-		});
-		$f->setTitle(TF::BOLD . TF::DARK_AQUA . 'Edit Seed');
-		$f->addInput(TF::BOLD . TF::ITALIC . TF::GRAY . '(Empty box to discard change)', (string)$this->random->getSeed(), isset($this->random) ? (string)$this->random->getSeed() : '');
-		$this->getSession()->getPlayer()->sendForm($f);
-	}
-
-	public function editLabel() : void {
-        $f = new CustomForm(function(Player $p, array $d = null) : void {
-			if ($d !== null) {
-                if (!empty($d[0] ?? null)) $this->getSession()->getIsland()->setRandomLabel($this->getRegexId(), (string)$d[0]);
-                else $this->getSession()->getIsland()->resetRandomLabel($this->getRegexId());
-                $this->panelLabel();
-            }
-			$this->menu->send($this->getSession()->getPlayer());
-		});
-        $f->setTitle(TF::BOLD . TF::DARK_AQUA . 'Edit Label');
-		$f->addInput(TF::BOLD . TF::ITALIC . TF::GRAY . '(Empty box to reset)', TF::BOLD . 'Regex #' . $this->getRegexId());
-		$this->getSession()->getPlayer()->sendForm($f);
-    }
-
-	protected function editSymbolic() : void {
-		for ($i=0; $i < $this->menu->getInventory()->getSize(); $i++) {
-			switch ($i) {
-				case 45:
-					$item = Item::get(Item::AIR);
-					break;
-
-				// Arrow head
-				case 19:
-				case 28:
-				case 37:
-				case 38:
-				case 39:
-
-				// Arrow body
-				case 29:
-				case 21:
-				case 13:
-				case 5:
-					$item = Item::get(Item::IRON_BARS);
-					break;
-
-				default:
-					$item = Item::get(Item::INVISIBLEBEDROCK);
-					break;
-			}
-			$item->setCustomName(TF::GRAY . '(Move your symbolic block into the empty slot' . "\n" . 'or click / drop item in other slots to cancel)');
-			$this->menu->getInventory()->setItem($i, $item, false);
-		}
-		$this->menu->setListener(InvMenu::readonly(function(InvMenuTransaction $transaction) : void {
-			$in = $transaction->getIn();
-			$out = $transaction->getOut();
-			if ($out->getId() === Item::AIR) {
-				if ($in->getBlock()->getId() === Item::AIR or ($transaction->getTransaction()->getInventories()[spl_object_hash($this->getSession()->getPlayer()->getInventory())] ?? null) === null) return;
-				$in = self::inputConversion($in);
-				$this->getSession()->getIsland()->setRandomSymbolic($this->getRegexId(), $in->getId(), $in->getDamage());
-			}
-			$this->panelInit();
-			$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
-		}));
-		$this->menu->getInventory()->sendContents($this->getSession()->getPlayer());
 	}
 
     /**
@@ -594,12 +422,6 @@ class InvMenuSession {
 
 	public static function allowUnstableItem() : bool {
 		return (bool)IslandArchitect::getInstance()->getConfig()->get('panel-allow-unstable-item', true);
-	}
-
-	public static function getDefaultSeed() : ?int {
-		$seed = IslandArchitect::getInstance()->getConfig()->get('panel-default-seed', null);
-		if ($seed !== null) $seed = (int)$seed;
-		return $seed;
 	}
 
 }
