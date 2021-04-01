@@ -33,6 +33,7 @@ use pocketmine\{
 use room17\SkyBlock\SkyBlock;
 use muqsit\invmenu\InvMenuHandler;
 use czechpmdevs\buildertools\BuilderTools;
+use czechpmdevs\buildertools\editors\Printer;
 
 use Clouria\IslandArchitect\{
     runtime\TemplateIsland,
@@ -90,7 +91,9 @@ class IslandArchitect extends PluginBase {
 
                 $reflect = new \ReflectionProperty(BuilderTools::class, 'editors');
                 $reflect->setAccessible(true);
-                $reflect->setValue(BuilderTools::class, new $class);
+                $editors = $reflect->getValue(BuilderTools::class);
+                $editors['Printer'] = new $class;
+                $reflect->setValue(BuilderTools::class, $editors);
                 break;
 
             case class_exists(SkyBlock::class) and $pl instanceof SkyBlock:

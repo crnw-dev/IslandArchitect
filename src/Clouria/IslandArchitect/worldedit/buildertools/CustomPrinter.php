@@ -40,27 +40,32 @@ use Clouria\IslandArchitect\{
     customized\GetPrivateMethodClosureTrait,
     events\RandomGenerationBlockPaintEvent,
     IslandArchitect,
-    runtime\RandomGeneration};
+    runtime\RandomGeneration,
+    runtime\sessions\PlayerSession};
 
 class CustomPrinter extends Printer {
     use CustomizableClassTrait, GetPrivateMethodClosureTrait;
 
     public function draw(Player $player, Position $center, Block $block, int $brush = 4, int $mode = 0x00, bool $fall = false) {
-        parent::draw($player, $center, $block, $brush, $mode, $fall);
-
-        $s = IslandArchitect::getInstance()->getSession($player);
-        if ($s === null or $s->getIsland() === null) return;
-        if ($s->getIsland() !== null) if ($s->getIsland()->getLevel() !== $player->getLevel()->getFolderName()) {
+        $item = $player->getInventory()->getItemInHand();
+		if (
+		    !($nbt = $item->getNamedTagEntry('IslandArchitect')) instanceof CompoundTag or
+            !($nbt = $nbt->getTag('random-generation', CompoundTag::class)) instanceof CompoundTag or
+            !($regex = $nbt->getTag('regex', ListTag::class)) instanceof ListTag
+        ) {
+		    parent::draw($player, $center, $block, $brush, $mode, $fall);
+		    return;
+        }
+		$s = IslandArchitect::getInstance()->getSession($player);
+        if (PlayerSession::errorCheckOutRequired($player, $s)) return;
+        if ($s->getIsland()->getLevel() !== $player->getLevel()->getFolderName()) {
             $player->sendMessage(TF::BOLD . TF::RED . 'You can only place random generation blocks in the same world as the island: ' . $s->getIsland()->getLevel());
             return;
         } else $s->getIsland()->setLevel($player->getLevel()->getFolderName());
 
-        $item = $player->getInventory()->getItemInHand();
-		if (!($nbt = $item->getNamedTagEntry('IslandArchitect')) instanceof CompoundTag) return;
-		if (!($nbt = $nbt->getTag('random-generation', CompoundTag::class)) instanceof CompoundTag) return;
-		if (!($regex = $nbt->getTag('regex', ListTag::class)) instanceof ListTag) return;
+		parent::draw($player, $center, $block, $brush, $mode, $fall);
+
 		$s = IslandArchitect::getInstance()->getSession($player);
-		if ($s::errorCheckOutRequired($s->getPlayer(), $s)) return;
 		$regex = RandomGeneration::fromNBT($regex);
 
         // TODO: Allow removing random generation blocks with the undo command
@@ -108,7 +113,7 @@ class CustomPrinter extends Printer {
                 break;
         }
 
-        $e = new RandomGenerationBlockPaintEvent($s, $regex, $array ?? [], $item); // TODO
+        $e = new RandomGenerationBlockPaintEvent($s, $regex, $array ?? [], $item);
 		$e->call();
 		if ($e->isCancelled()) return;
 		if (!($regexid = $nbt->getTag('regexid', IntTag::class)) instanceof IntTag) {
