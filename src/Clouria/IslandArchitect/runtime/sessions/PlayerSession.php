@@ -262,6 +262,11 @@ class PlayerSession {
         // 2147483647, max limit of int tag value and random generation regex number
         $regexid = $this->getIsland()->addRandom(new RandomGeneration);
         $form = new SimpleForm(function (Player $p, int $d) use ($regexid) : void {
+            $r = $this->getIsland()->getRandomById($regexid);
+            if ($r === null) {
+                $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'The target random generation regex has been removed!');
+                return;
+            }
             switch ($d) {
                 case 0:
                     $this->editRandomContent($regexid);
@@ -274,12 +279,36 @@ class PlayerSession {
                 case 2:
                     $this->editRandomSymbolic($regexid);
                     break;
+
+                case 3:
+                    $this->getPlayer()->getInventory()->addItem($r->getRandomGenerationItem($this->getIsland()->getRandomSymbolicItem($regexid)));
+                    $this->getPlayer()->sendMessage(TF::BOLD . TF::YELLOW . 'The random generation block item has been added to your inventory');
+                    break;
+
+                case 4:
+                    $form = new ModalForm(function (Player $p, bool $d) use ($regexid) : void {
+                        if ($d) {
+                            $this->getIsland()->removeRandomById($regexid);
+                            $this->listRandoms();
+                        } else $this->editRandomContent($regexid);
+                    });
+                    $form->setTitle(TF::BOLD . TF::DARK_RED . 'Delete Confirmation');
+                    $form->setContent(TF::AQUA . 'Are you sure to ' . TF::BOLD . TF::RED . 'remove' . TF::RESET . TF::AQUA . ' random generation regex ' . TF::GOLD . '#' . $regexid .
+                        (($label = $this->getIsland()->getRandomLabel($regexid, true)) === null ? '' : TF::ITALIC . ' (' . $label. ')') . TF::RESET . TF::AQUA .
+                        ' from your current checked out island ' . TF::BOLD . TF::GOLD . '"' . $this->getIsland()->getName() . '"?'
+                    );
+                    $form->setButton1('gui.yes');
+                    $form->setButton2('gui.yes');
+                    $this->getPlayer()->sendForm($form);
+                    break;
             }
         });
         $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Modify Regex');
         $form->addButton(TF::DARK_AQUA . 'Modify content');
         $form->addButton(TF::DARK_AQUA . 'Update label');
         $form->addButton(TF::DARK_AQUA . 'Change symbolic');
+        $form->addButton(TF::BLUE . 'Claim random' . "\n" . 'generation block');
+        $form->addButton(TF::BOLD . TF::RED . 'Remove regex');
         $this->getPlayer()->sendForm($form);
         return true;
     }
