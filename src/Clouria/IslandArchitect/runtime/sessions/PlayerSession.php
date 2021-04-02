@@ -19,22 +19,23 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime\sessions;
 
+use jojoe77777\FormAPI\ModalForm;
 use jojoe77777\FormAPI\SimpleForm;
+use jojoe77777\FormAPI\CustomForm;
 use Clouria\IslandArchitect\{
     IslandArchitect,
-    runtime\RandomGeneration,
     runtime\TemplateIsland,
+    runtime\RandomGeneration,
     conversion\IslandDataEmitTask};
 use pocketmine\{
-    item\Item,
     Player,
     Server,
+    item\Item,
     level\Level,
     math\Vector3,
     scheduler\ClosureTask,
     utils\TextFormat as TF,
     level\particle\FloatingTextParticle};
-use jojoe77777\FormAPI\CustomForm;
 use function max;
 use function min;
 use function count;
@@ -284,15 +285,32 @@ class PlayerSession {
     }
 
     public function editRandomContent(int $regexid) : void {
-        $elements = $this->getIsland()->getRandomById($regexid)->getAllElements();
-        $form = new SimpleForm(function (Player $p, int $d = null) use ($regexid, $elements) : void {
+        $r = $this->getIsland()->getRandomById($regexid);
+        $elements = $r->getAllElements();
+        $form = new SimpleForm(function (Player $p, int $d = null) use ($regexid, $elements, $r) : void {
             if ($d === null) return; // Avoid fallback hell
             $elements = array_values($elements);
             $element = $elements[$d] ?? null;
             if (!isset($element)) {
-                return; // TODO: Submit block InvMenu inventory
+                new SubmitBlockSession($this, function(Item $item) use ($regexid, $r) : void {
+                    if ($item->getId() === Item::AIR) {
+                        $this->editRandomContent($regexid);
+                        return;
+                    }
+                    if ($item->getBlock()->getId() === Item::AIR) {
+                        $form = new ModalForm(function (Player $p, bool $d) use ($regexid) : void {
+                            $this->editRandomContent($regexid);
+                        });
+                        $form->setTitle(TF::BOLD . TF::DARK_RED . 'Error');
+                        $form->setContent(TF::GOLD . 'Submitted item must be a valid block item!');
+                        $this->getPlayer()->sendForm($form);
+                    }
+                    $r->setElementChance($item->getId(), $item->getDamage(), $item->getCount());
+                    $this->editRandomElement($item->getId(), $item->getDamage());
+                });
+                return;
             }
-            $this->editElement($regexid, (int)$element[0], (int)$element[1]);
+            $this->editRandomElement($regexid, (int)$element[0], (int)$element[1]);
         });
         foreach ($elements as $element => $chance) {
             $element = explode(':', $element);
@@ -303,7 +321,7 @@ class PlayerSession {
         $this->getPlayer()->sendForm($form);
     }
 
-    public function editElement(int $regexid, int $id, int $meta = 0) : void {
+    public function editRandomElement(int $regexid, int $id, int $meta = 0) : void {
         $r = $this->getIsland()->getRandomById($regexid);
         $form = new CustomForm(function (Player $p, array $d = null) use ($regexid, $id, $meta, $r) : void {
             if ($d === null) {
@@ -314,7 +332,7 @@ class PlayerSession {
             $id = (int)$d[1];
             $meta = (int)$d[2];
             $r->setElementChance($id, $meta, $d[3]);
-            $this->editElement($regexid, $id, $meta);
+            $this->editRandomElement($regexid, $id, $meta);
         });
         $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Edit Element');
         $form->addInput(TF::AQUA . 'ID', (string)$id, (string)$id);
@@ -339,5 +357,23 @@ class PlayerSession {
         $label = (string)$this->getIsland()->getRandomLabel($regexid);
         $form->addInput(TF::BOLD . TF::GOLD . 'Label', $label, $label);
         $this->getPlayer()->sendForm($form);
+    }
+
+    public function editRandomSymbolic(int $regexid) : void {
+        new SubmitBlockSession($this, function (Item $item) use ($regexid) : void {
+            if ($item->getId() === Item::AIR) {
+                $this->editRandomContent($regexid);
+                return;
+            }
+            if ($item->getBlock()->getId() === Item::AIR) {
+                $form = new ModalForm(function (Player $p, bool $d) use ($regexid) : void {
+                    $this->editRandomContent($regexid);
+                });
+                $form->setTitle(TF::BOLD . TF::DARK_RED . 'Error');
+                $form->setContent(TF::GOLD . 'Submitted item must be a valid block item!');
+                $this->getPlayer()->sendForm($form);
+            }
+            $this->getIsland()->setRandomSymbolic($regexid, $item->getId(), $item->getDamage());
+        });
     }
 }
