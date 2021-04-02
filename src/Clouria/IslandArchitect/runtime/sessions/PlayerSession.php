@@ -22,9 +22,11 @@ namespace Clouria\IslandArchitect\runtime\sessions;
 use jojoe77777\FormAPI\SimpleForm;
 use Clouria\IslandArchitect\{
     IslandArchitect,
+    runtime\RandomGeneration,
     runtime\TemplateIsland,
     conversion\IslandDataEmitTask};
 use pocketmine\{
+    item\Item,
     Player,
     Server,
     level\Level,
@@ -32,6 +34,7 @@ use pocketmine\{
     scheduler\ClosureTask,
     utils\TextFormat as TF,
     level\particle\FloatingTextParticle};
+use jojoe77777\FormAPI\CustomForm;
 use function max;
 use function min;
 use function count;
@@ -39,6 +42,7 @@ use function round;
 use function get_class;
 use function microtime;
 use function class_exists;
+use function array_values;
 use function spl_object_id;
 
 class PlayerSession {
@@ -91,20 +95,6 @@ class PlayerSession {
 
 	public function getIsland() : ?TemplateIsland {
 		return $this->island;
-	}
-
-	public function listRandoms() : void {
-		if ($this->getIsland() === null) return;
-		if (class_exists(SimpleForm::class)) {
-			$f = new SimpleForm(function(Player $p, int $d = null) : void {
-				if ($d === null) return;
-				$this->editRandom($d);
-			});
-			foreach ($this->getIsland()->getRandoms() as $i => $r) $f->addButton(TF::BOLD . TF::DARK_BLUE . $this->getIsland()->getRandomLabel($i) . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(' . count($r->getAllElements()) . ' elements)');
-			$f->setTitle(TF::BOLD . TF::DARK_AQUA . 'Regex List');
-			$f->addButton(TF::BOLD . TF::DARK_GREEN . 'New regex');
-			$this->getPlayer()->sendForm($f);
-		} else $this->editRandom();
 	}
 
 	public function close() : void {
@@ -252,10 +242,88 @@ class PlayerSession {
 	    return true;
     }
 
+    public function listRandoms() : void {
+		if ($this->getIsland() === null) return;
+		if (class_exists(SimpleForm::class)) {
+			$f = new SimpleForm(function(Player $p, int $d = null) : void {
+				if ($d === null) return;
+				if ($d <= count($this->getIsland()->getRandoms()) or count($this->getIsland()->getRandoms()) < 0x7fffffff) $this->editRandom($d);
+			});
+			foreach ($this->getIsland()->getRandoms() as $i => $r) $f->addButton(TF::BOLD . TF::DARK_BLUE . $this->getIsland()->getRandomLabel($i) . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(' . count($r->getAllElements()) . ' elements)');
+			$f->setTitle(TF::BOLD . TF::DARK_AQUA . 'Regex List');
+			$f->addButton(count($this->getIsland()->getRandoms()) < 0x7fffffff ? TF::BOLD . TF::DARK_GREEN . 'New Regex' : TF::BOLD . TF::DARK_GRAY . 'Max limit reached' . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(2147483647 regex)');
+			$this->getPlayer()->sendForm($f);
+		} else $this->editRandom();
+	}
+
     public function editRandom(int $regexid = null) : bool {
         if (count($this->getIsland()->getRandoms()) >= 0x7fffffff) return false;
         // 2147483647, max limit of int tag value and random generation regex number
-        $form = new SimpleForm();
+        $regexid = $this->getIsland()->addRandom(new RandomGeneration);
+        $form = new SimpleForm(function (Player $p, int $d) use ($regexid) : void {
+            switch ($d) {
+                case 0:
+                    $this->editRandomContent($regexid);
+                    break;
+
+                case 1:
+                    $this->editRandomLabel($regexid);
+                    break;
+
+                case 2:
+                    $this->editRandomSymbolic($regexid);
+                    break;
+            }
+        });
+        $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Modify Regex');
+        $form->addButton(TF::DARK_AQUA . 'Modify content');
+        $form->addButton(TF::DARK_AQUA . 'Update label');
+        $form->addButton(TF::DARK_AQUA . 'Change symbolic');
+        $this->getPlayer()->sendForm($form);
+        return true;
+    }
+
+    public function editRandomContent(int $regexid) : void {
+        $elements = $this->getIsland()->getRandomById($regexid)->getAllElements();
+        $form = new SimpleForm(function (Player $p, int $d = null) use ($regexid, $elements) : void {
+            if ($d === null) return; // Avoid fallback hell
+            $elements = array_values($elements);
+            $element = $elements[$d] ?? null;
+            if (!isset($element)) {
+                return; // TODO: Submit block InvMenu inventory
+            }
+            $this->editElement($regexid, (int)$element[0], (int)$element[1]);
+        });
+        foreach ($elements as $element => $chance) {
+            $element = explode(':', $element);
+            $item = Item::get((int)$element[0], (int)$element[1]);
+            $form->addButton(TF::DARK_AQUA . $item->getVanillaName() . "\n" . TF::BLUE . '(' . $element[0] . ':' . $element[1] . ') Chance: ' . $chance);
+        }
+        $form->addButton(TF::BOLD . TF::DARK_GREEN . 'Add Element');
+        $this->getPlayer()->sendForm($form);
+    }
+
+    public function editElement(int $regexid, int $id, int $meta = 0) : bool {
+        $r = $this->getIsland()->getRandomById($regexid);
+        if ($r === null) return false;
+        $form = new CustomForm(function (Player $p, array $d = null) use ($regexid, $id, $meta, $r) : void {
+            if ($d === null) $this->editRandomContent($regexid);
+            $r->setElementChance($id, $meta, 0); // Reset element chance or element will be duplicated if the ID or meta has changed from form
+            $id = (int)$d[1];
+            $meta = (int)$d[2];
+            $r->setElementChance($id, $meta, $d[3]);
+            $this->editElement($regexid, $id, $meta);
+        });
+        $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Edit Element');
+        $form->addInput(TF::AQUA . 'ID', (string)$id, (string)$id);
+        $form->addInput(TF::AQUA . 'Meta', (string)$meta, (string)$meta);
+        $chance = $r->getElementChance($id, $meta);
+        $form->addInput(TF::BOLD . TF::GOLD . 'Chance' . TF::YELLOW . TF::ITALIC . ' (' .
+
+            $chance . ' / ' . ($totalchanceNonZero = ($totalchance = $r->getTotalChance()) == 0 ? (int)$chance : $totalchance) . ', ' . round((int)$chance / $totalchanceNonZero * 100, 2) . '%%)',
+
+            (string)$chance, (string)$chance);
+        $this->getPlayer()->sendForm($form);
         return true;
     }
 }
