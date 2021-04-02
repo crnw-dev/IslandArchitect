@@ -303,11 +303,13 @@ class PlayerSession {
         $this->getPlayer()->sendForm($form);
     }
 
-    public function editElement(int $regexid, int $id, int $meta = 0) : bool {
+    public function editElement(int $regexid, int $id, int $meta = 0) : void {
         $r = $this->getIsland()->getRandomById($regexid);
-        if ($r === null) return false;
         $form = new CustomForm(function (Player $p, array $d = null) use ($regexid, $id, $meta, $r) : void {
-            if ($d === null) $this->editRandomContent($regexid);
+            if ($d === null) {
+                $this->editRandomContent($regexid);
+                return;
+            }
             $r->setElementChance($id, $meta, 0); // Reset element chance or element will be duplicated if the ID or meta has changed from form
             $id = (int)$d[1];
             $meta = (int)$d[2];
@@ -324,6 +326,18 @@ class PlayerSession {
 
             (string)$chance, (string)$chance);
         $this->getPlayer()->sendForm($form);
-        return true;
+    }
+
+    public function editRandomLabel(int $regexid) : void {
+        $form = new CustomForm(function (Player $p, array $d = null) use ($regexid) : void {
+            if ($d === null) {
+                $this->editRandomContent($regexid);
+                return;
+            }
+            $this->getIsland()->setRandomLabel($regexid, (string)$d[0]);
+        });
+        $label = (string)$this->getIsland()->getRandomLabel($regexid);
+        $form->addInput(TF::BOLD . TF::GOLD . 'Label', $label, $label);
+        $this->getPlayer()->sendForm($form);
     }
 }
