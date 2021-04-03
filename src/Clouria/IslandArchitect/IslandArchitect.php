@@ -33,7 +33,6 @@ use pocketmine\{
 use room17\SkyBlock\SkyBlock;
 use muqsit\invmenu\InvMenuHandler;
 use czechpmdevs\buildertools\BuilderTools;
-use czechpmdevs\buildertools\editors\Printer;
 
 use Clouria\IslandArchitect\{
     runtime\TemplateIsland,
@@ -234,7 +233,6 @@ class IslandArchitect extends PluginBase {
 		$conf->set('island-data-folder', Utils::cleanPath((string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/')));
 		// $conf->set('panel-allow-unstable-item', (bool)($all['panel-allow-unstable-item'] ?? true));
 		$conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
-		$conf->set('enable-particles', (bool)($all['enable-particles'] ?? true)); // TODO
 		$conf->set('island-creation-command-mapping', (array)($all['island-creation-command-mapping'] ?? [
 		    'generation-name-which-will-be' => 'exported-island-data-file.json',
             'use-in-island-creation-cmd' => 'relative-path/start-from/island-data-folder.json'

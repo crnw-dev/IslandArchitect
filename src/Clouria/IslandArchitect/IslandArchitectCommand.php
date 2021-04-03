@@ -68,6 +68,10 @@ class IslandArchitectCommand extends Command {
 				} else $s->getIsland()->setLevel($vec->getLevel()->getFolderName());
 				$sender->sendMessage(TF::YELLOW . 'Start coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
 				$s->getIsland()->setStartCoord($vec);
+				$ft = $s->getFloatingText($s::FLOATINGTEXT_STARTCOORD, true);
+				$vec = $vec->floor()->add(0.5, 0.5, 0.5);
+				$ft->setComponents($vec->getX(), $vec->getY(), $vec->getZ());
+                $ft->setText(TF::BOLD . TF::GOLD . 'Island start coordinate' . "\n" . TF::RESET . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ());
 				break;
 
 			case 'pos2':
@@ -82,6 +86,10 @@ class IslandArchitectCommand extends Command {
 				} else $s->getIsland()->setLevel($vec->getLevel()->getFolderName());
 				$sender->sendMessage(TF::YELLOW . 'End coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
 				$s->getIsland()->setEndCoord($vec);
+				$ft = $s->getFloatingText($s::FLOATINGTEXT_ENDCOORD, true);
+				$vec = $vec->floor()->add(0.5, 0.5, 0.5);
+				$ft->setComponents($vec->getX(), $vec->getY(), $vec->getZ());
+                $ft->setText(TF::BOLD . TF::GOLD . 'Island end coordinate' . "\n" . TF::RESET . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ());
 				break;
 
 			case 'island':
@@ -183,7 +191,6 @@ class IslandArchitectCommand extends Command {
 				$vec = $vec->floor()->add(0.5, 0.5, 0.5);
 				$ft->setComponents($vec->getX(), $vec->getY(), $vec->getZ());
                 $ft->setText(TF::BOLD . TF::GOLD . 'Island spawn' . "\n" . TF::RESET . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ());
-                $sender->getLevel()->addParticle($ft, [$sender]);
 				break;
 
 			case 'setchest':

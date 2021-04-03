@@ -53,7 +53,9 @@ use function spl_object_id;
 
 class PlayerSession {
 
-    const FLOATINGTEXT_SPAWN = 0;
+    public const FLOATINGTEXT_SPAWN = 0;
+    public const FLOATINGTEXT_STARTCOORD = 1;
+    public const FLOATINGTEXT_ENDCOORD = 2;
 
     /**
 	 * @var Player
@@ -96,7 +98,6 @@ class PlayerSession {
 		$ft = $this->getFloatingText(self::FLOATINGTEXT_SPAWN, true);
         $ft->setComponents($spawn->getX(), $spawn->getY(), $spawn->getZ());
         $ft->setText(TF::BOLD . TF::GOLD . 'Island spawn' . "\n" . TF::RESET . TF::GREEN . $spawn->getFloorX() . ', ' . $spawn->getFloorY() . ', ' . $spawn->getFloorZ());
-        $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
 	}
 
 	public function getIsland() : ?TemplateIsland {
