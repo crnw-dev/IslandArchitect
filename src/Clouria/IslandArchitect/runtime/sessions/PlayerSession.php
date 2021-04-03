@@ -19,14 +19,6 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime\sessions;
 
-use jojoe77777\FormAPI\ModalForm;
-use jojoe77777\FormAPI\SimpleForm;
-use jojoe77777\FormAPI\CustomForm;
-use Clouria\IslandArchitect\{
-    IslandArchitect,
-    runtime\TemplateIsland,
-    runtime\RandomGeneration,
-    conversion\IslandDataEmitTask};
 use pocketmine\{
     Player,
     Server,
@@ -36,6 +28,19 @@ use pocketmine\{
     scheduler\ClosureTask,
     utils\TextFormat as TF,
     level\particle\FloatingTextParticle};
+
+use jojoe77777\FormAPI\{
+    ModalForm,
+    SimpleForm,
+    CustomForm
+};
+
+use Clouria\IslandArchitect\{
+    IslandArchitect,
+    runtime\TemplateIsland,
+    runtime\RandomGeneration,
+    conversion\IslandDataEmitTask};
+
 use function max;
 use function min;
 use function count;
