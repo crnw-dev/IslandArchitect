@@ -63,10 +63,15 @@ class GenerationPreviewSession {
      * @var InvMenu
      */
     private $menu;
+    /**
+     * @var \Closure|null
+     */
+    private $callback;
 
-    public function __construct(PlayerSession $session, RandomGeneration $regex) {
+    public function __construct(PlayerSession $session, RandomGeneration $regex, ?\Closure $callback = null) {
         $this->session = $session;
         $this->regex = $regex;
+        $this->callback = $callback;
         $this->menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
         $this->getMenu()->setListener(InvMenu::readonly(function (DeterministicInvMenuTransaction $transaction) : void {
             $out = $transaction->getOut();
@@ -94,23 +99,6 @@ class GenerationPreviewSession {
         $this->noise = new Random((int)$seed);
 
         $this->panelInit();
-    }
-
-    protected function panelInit() : void {
-        $inv = $this->getMenu()->getInventory();
-
-        $this->panelGeneration();
-        $this->panelSeed();
-
-        // Frames
-        $i = Item::get(Item::INVISIBLEBEDROCK);
-        $i->setCustomName(TF::RESET);
-        $i->setNamedTagEntry(new ByteTag('action', self::ACTION_FRAME));
-        $inv->setItem(0, $i, false);
-        $inv->setItem(9, $i, false);
-        $inv->setItem(36, $i, false);
-        $inv->setItem(45, $i, false);
-        for ($slot = 1; $slot <= 46; $slot += 9) $inv->setItem($slot, $i, false);
     }
 
     /**
@@ -161,13 +149,6 @@ class GenerationPreviewSession {
         $this->noise = $noise;
     }
 
-    protected function panelSeed() : void {
-        $i = Item::get(Item::SEEDS);
-        $i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Change preview seed ' . TF::ITALIC . TF::GOLD . '(' . $this->getNoise()->getSeed() . ')');
-        $i->setNamedTagEntry(new ByteTag('action', self::ACTION_SEED));
-        $this->getMenu()->getInventory()->setItem(27, $i, false);
-    }
-
     /**
      * @return PlayerSession
      */
@@ -188,5 +169,40 @@ class GenerationPreviewSession {
 		$form->addInput(TF::BOLD . TF::ITALIC . TF::GRAY . '(Empty box to discard change)', (string)$this->getNoise()->getSeed(), isset($this->random) ? (string)$this->random->getSeed() : '');
 		$this->getSession()->getPlayer()->sendForm($form);
 	}
+
+    protected function panelSeed() : void {
+        $i = Item::get(Item::SEEDS);
+        $i->setCustomName(TF::RESET . TF::BOLD . TF::YELLOW . 'Change preview seed ' . TF::ITALIC . TF::GOLD . '(' . $this->getNoise()->getSeed() . ')');
+        $i->setNamedTagEntry(new ByteTag('action', self::ACTION_SEED));
+        $this->getMenu()->getInventory()->setItem(27, $i, false);
+    }
+
+    protected function panelInit() : void {
+        $inv = $this->getMenu()->getInventory();
+
+        $this->panelGeneration();
+        $this->panelSeed();
+
+        // Frames
+        $i = Item::get(Item::INVISIBLEBEDROCK);
+        $i->setCustomName(TF::RESET);
+        $i->setNamedTagEntry(new ByteTag('action', self::ACTION_FRAME));
+        $inv->setItem(0, $i, false);
+        $inv->setItem(9, $i, false);
+        $inv->setItem(36, $i, false);
+        $inv->setItem(45, $i, false);
+        for ($slot = 1; $slot <= 46; $slot += 9) $inv->setItem($slot, $i, false);
+    }
+
+    /**
+     * @return \Closure|null
+     */
+    public function getCallback() : ?\Closure {
+        return $this->callback;
+    }
+
+    public function setCallback(?\Closure $callback) : void {
+        $this->callback = $callback;
+    }
 
 }

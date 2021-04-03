@@ -292,7 +292,9 @@ class PlayerSession {
                     break;
 
                 case 4:
-                    // TODO
+                    new GenerationPreviewSession($this, $r, function() use ($regexid) : void {
+                        $this->editRandom($regexid);
+                    });
                     break;
 
                 case 5:
