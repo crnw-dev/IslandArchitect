@@ -20,21 +20,25 @@ namespace Clouria\IslandArchitect\runtime\sessions;
 
 use pocketmine\{
     item\Item,
-    nbt\tag\ByteTag,
     utils\Random,
-    utils\TextFormat as TF};
+    nbt\tag\ByteTag,
+    utils\TextFormat as TF
+};
 
 use muqsit\invmenu\InvMenu;
-use Clouria\IslandArchitect\IslandArchitect;
-use Clouria\IslandArchitect\runtime\RandomGeneration;
+
+use Clouria\IslandArchitect\{
+    IslandArchitect,
+    runtime\RandomGeneration
+};
 
 use function random_int;
-
 use const INT32_MAX;
 use const INT32_MIN;
 
 class GenerationPreviewSession {
 
+    protected $rolls = 0;
     /**
      * @var PlayerSession
      */
@@ -43,7 +47,6 @@ class GenerationPreviewSession {
      * @var RandomGeneration
      */
     private $regex;
-
     /**
      * @var Random
      */
@@ -68,6 +71,10 @@ class GenerationPreviewSession {
         $this->panelInit();
     }
 
+    public const ACTION_FRAME = 0;
+    public const ACTION_RANDOM = 1;
+    public const ACTION_SEED = 2;
+
     protected function panelInit() : void {
         $inv = $this->getMenu()->getInventory();
 
@@ -80,14 +87,31 @@ class GenerationPreviewSession {
         $i->setCustomName(TF::RESET);
         $i->setNamedTagEntry(new ByteTag('action', self::ACTION_FRAME));
         $inv->setItem(0, $i, false);
+        $inv->setItem(9, $i, false);
+        $inv->setItem(36, $i, false);
         $inv->setItem(45, $i, false);
-        for ($slot=1; $slot <= 46; $slot+=9) $inv->setItem($slot, $i, false);
+        for ($slot = 1; $slot <= 46; $slot += 9) $inv->setItem($slot, $i, false);
+    }
 
-        // Reset noise action item button
+    /**
+     * @return InvMenu
+     */
+    public function getMenu() : InvMenu {
+        return $this->menu;
     }
 
     protected function panelRandom() : void {
-        $this->
+        $i = Item::get(Item::EXPERIENCE_BOTTLE, 0, max(100, $this->rolls));
+        $i->setCustomName(TF::BOLD . TF::YELLOW . 'Next roll ' . TF::ITALIC . TF::GOLD . '(' . $this->rolls . ')');
+        $i->setNamedTagEntry(new ByteTag('action', self::ACTION_RANDOM));
+        $this->getMenu()->getInventory()->setItem(18, $i, false);
+    }
+
+    protected function panelSeed() : void {
+        $i = Item::get(Item::SEEDS);
+        $i->setCustomName(TF::BOLD . TF::YELLOW . 'Change preview seed ' . TF::ITALIC . TF::GOLD . '(' . $this->getNoise()->getSeed() . ')');
+        $i->setNamedTagEntry(new ByteTag('action', self::ACTION_SEED));
+        $this->getMenu()->getInventory()->setItem(27, $i, false);
     }
 
     /**
@@ -109,13 +133,6 @@ class GenerationPreviewSession {
      */
     public function getNoise() : Random {
         return $this->noise;
-    }
-
-    /**
-     * @return InvMenu
-     */
-    public function getMenu() : InvMenu {
-        return $this->menu;
     }
 
 }
