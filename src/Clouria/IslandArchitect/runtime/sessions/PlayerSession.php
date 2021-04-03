@@ -286,6 +286,10 @@ class PlayerSession {
                     break;
 
                 case 4:
+                    // TODO
+                    break;
+
+                case 5:
                     $form = new ModalForm(function (Player $p, bool $d) use ($regexid) : void {
                         if ($d) {
                             $this->getIsland()->removeRandomById($regexid);
@@ -308,6 +312,7 @@ class PlayerSession {
         $form->addButton(TF::DARK_AQUA . 'Update label');
         $form->addButton(TF::DARK_AQUA . 'Change symbolic');
         $form->addButton(TF::BLUE . 'Claim random' . "\n" . 'generation block');
+        $form->addButton(TF::BLUE . 'Preview generation');
         $form->addButton(TF::BOLD . TF::RED . 'Remove regex');
         $this->getPlayer()->sendForm($form);
         return true;
