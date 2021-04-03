@@ -71,6 +71,8 @@ class CustomPrinter extends Printer {
         // TODO: Allow removing random generation blocks with the undo command
         // $undoList = new BlockList;
 
+        // Fun fact undo printer is not implemented in BuilderTools 1.2.0-beta2
+
         $center = Math::roundPosition($center);
         switch ($mode) {
             case self::CUBE:

@@ -186,8 +186,8 @@ class IslandArchitect extends PluginBase {
 		$class = IslandArchitectCommand::getClass();
 		$this->getServer()->getCommandMap()->register($this->getName(), new $class);
 
-		if (SkyBlock::getInstance()->isEnabled()) $this->initDependency(SkyBlock::getInstance());
-		if (BuilderTools::getInstance()->isEnabled()) $this->initDependency(BuilderTools::getInstance());
+		if (class_exists(SkyBlock::class) and SkyBlock::getInstance()->isEnabled()) $this->initDependency(SkyBlock::getInstance());
+		if (class_exists(BuilderTools::class) and BuilderTools::getInstance()->isEnabled()) $this->initDependency(BuilderTools::getInstance());
 
 		$task = IslandArchitectPluginTickTask::getClass();
 		if (is_a($task, IslandArchitectPluginTickTask::class, true)) $task = new $task;

@@ -51,9 +51,9 @@ class RandomGenerationBlockPaintEvent extends IslandArchitectEvent implements Ca
 
     /**
      * RandomGenerationBlockPaintEvent constructor.
-     * @param PlayerSession|null $s
+     * @param PlayerSession|null $session
      * @param RandomGeneration $regex
-     * @param array $array
+     * @param array $blocks
      * @param Item $item
      */
     public function __construct(?PlayerSession $session, RandomGeneration $regex, array $blocks, Item $item) {

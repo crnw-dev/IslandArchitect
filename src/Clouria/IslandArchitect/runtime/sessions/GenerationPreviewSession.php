@@ -124,7 +124,7 @@ class GenerationPreviewSession {
 
             $i = $this->getRegex()->randomElementItem($this->getNoise());
             $i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::YELLOW . '');
-            $inv->setItem($slot, $i);
+            $inv->setItem($slot, $i, false);
         }
     }
 
