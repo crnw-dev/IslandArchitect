@@ -504,7 +504,6 @@ class TemplateIsland {
 			}
 			$self->unused_symbolics = $unused_symbolics;
 		}
-		// TODO: Limit the amount of random generation regex that can be save and load
 		foreach ($data['randoms'] ?? [] as $regexdata) {
 			$regex = new RandomGeneration;
 			foreach ($regexdata as $element => $chance) {

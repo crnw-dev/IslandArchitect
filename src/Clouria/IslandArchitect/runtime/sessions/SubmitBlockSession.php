@@ -16,17 +16,19 @@
 		@ClouriaNetwork | Apache License 2.0
 														*/
 declare(strict_types=1);
+
 namespace Clouria\IslandArchitect\runtime\sessions;
 
 use pocketmine\{
     item\Item,
     nbt\tag\ByteTag,
-    nbt\tag\CompoundTag,
     utils\TextFormat as TF};
 
-use muqsit\invmenu\InvMenu;
-use muqsit\invmenu\transaction\InvMenuTransaction;
-use muqsit\invmenu\transaction\InvMenuTransactionResult;
+use muqsit\invmenu\{
+    InvMenu,
+    transaction\InvMenuTransaction,
+    transaction\InvMenuTransactionResult
+};
 
 class SubmitBlockSession {
 
@@ -51,24 +53,22 @@ class SubmitBlockSession {
         $this->session = $session;
         $this->setCallback($callback);
         $this->menu = InvMenu::create(InvMenu::TYPE_HOPPER);
-        $this->getMenu()->setName(TF::BOLD . TF::DARK_AQUA . 'Please submit a block');
-        $this->getMenu()->setListener(function(InvMenuTransaction $transaction) : InvMenuTransactionResult {
+        $this->getMenu()->setName(TF::BOLD . TF::DARK_BLUE . 'Please submit a block');
+        $this->getMenu()->setListener(function (InvMenuTransaction $transaction) : InvMenuTransactionResult {
             $out = $transaction->getOut();
             if (
-                ($nbt = $out->getNamedTagEntry('IslandArchitect')) instanceof CompoundTag and
-                ($nbt = $nbt->getTag('action', ByteTag::class)) instanceof ByteTag and
+                ($nbt = $out->getNamedTagEntry('action')) instanceof ByteTag and
                 $nbt->getValue() === self::ACTION_FRAME
             ) return $transaction->discard();
             return $transaction->continue();
         });
-        $this->getMenu()->setInventoryCloseListener(function() : void {
+        $this->getMenu()->setInventoryCloseListener(function () : void {
             $this->getCallback()($this->getMenu()->getInventory()->getItem(2));
         });
         $this->panelInit();
 
-        $this->getMenu()->getInventory()->sendContents($session->getPlayer());
+        $this->getMenu()->send($session->getPlayer());
     }
-
 
     /**
      * @return PlayerSession
@@ -102,7 +102,8 @@ class SubmitBlockSession {
         $inv = $this->getMenu()->getInventory();
         $item = Item::get(Item::INVISIBLEBEDROCK);
         $item->setCustomName(TF::RESET);
-        for ($slot=0; $slot < 5; $slot++) $inv->setItem($slot, $item, false);
+        $item->setNamedTagEntry(new ByteTag('action', self::ACTION_FRAME));
+        for ($slot = 0; $slot < 5; $slot++) if ($slot !== 2) $inv->setItem($slot, $item, false);
     }
 
 }
