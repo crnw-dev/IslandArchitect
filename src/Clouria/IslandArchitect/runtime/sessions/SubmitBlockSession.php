@@ -102,7 +102,7 @@ class SubmitBlockSession {
         $inv = $this->getMenu()->getInventory();
         $item = Item::get(Item::INVISIBLEBEDROCK);
         $item->setCustomName(TF::RESET);
-        for ($slot=0; $slot <= 5; $slot++) $inv->setItem($slot, $item, false);
+        for ($slot=0; $slot < 5; $slot++) $inv->setItem($slot, $item, false);
     }
 
 }

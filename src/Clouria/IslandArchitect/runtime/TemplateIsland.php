@@ -40,6 +40,7 @@ use function var_export;
 use function json_decode;
 use function json_encode;
 use function array_search;
+use function array_values;
 
 class TemplateIsland {
 
@@ -165,8 +166,10 @@ class TemplateIsland {
 	}
 
 	public function removeRandomById(int $id) : bool {
+	    // TODO: Random generation blocks should also be removed when removing the regex
 		if (!isset($this->randoms[$id])) return false;
 		unset($this->randoms[$id]);
+		$this->randoms = array_values($this->randoms);
 		$this->changed = true;
 		return true;
 	}
@@ -348,10 +351,12 @@ class TemplateIsland {
 		else $data['chest'] = null;
 		$data['random_blocks'] = $this->random_blocks;
 		$data['random_labels'] = $this->random_labels;
+		$data['symbolic'] = [];
 		foreach ($this->symbolic as $regexid => $symbolic) {
 			$symbolic = $symbolic[0] . (isset($symbolic[1]) ? ':' . $symbolic[1] : '');
 			$data['symbolic'][$regexid] = $symbolic;
 		}
+		$data['randoms'] = [];
 		foreach ($this->randoms as $regexid => $random) {
 			$elements = $random->getAllElements();
 			if (empty($elements)) $data['randoms'][$regexid] = ['blockid:meta' => 'chance'];
@@ -499,6 +504,7 @@ class TemplateIsland {
 			}
 			$self->unused_symbolics = $unused_symbolics;
 		}
+		// TODO: Limit the amount of random generation regex that can be save and load
 		foreach ($data['randoms'] ?? [] as $regexdata) {
 			$regex = new RandomGeneration;
 			foreach ($regexdata as $element => $chance) {

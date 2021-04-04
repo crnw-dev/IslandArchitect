@@ -254,7 +254,10 @@ class PlayerSession {
 		if (class_exists(SimpleForm::class)) {
 			$f = new SimpleForm(function(Player $p, int $d = null) : void {
 				if ($d === null) return;
-				if ($d <= count($this->getIsland()->getRandoms()) or count($this->getIsland()->getRandoms()) < 0x7fffffff) $this->editRandom($d);
+				if ($d <= count($this->getIsland()->getRandoms()) or count($this->getIsland()->getRandoms()) < 0x7fffffff) {
+				    if ($this->getIsland()->getRandomById($d) === null) $this->editRandom(null);
+				    else $this->editRandom($d);
+                }
 			});
 			foreach ($this->getIsland()->getRandoms() as $i => $r) $f->addButton(TF::BOLD . TF::DARK_BLUE . $this->getIsland()->getRandomLabel($i) . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(' . count($r->getAllElements()) . ' elements)');
 			$f->setTitle(TF::BOLD . TF::DARK_AQUA . 'Regex List');
@@ -263,11 +266,15 @@ class PlayerSession {
 		} else $this->editRandom();
 	}
 
-    public function editRandom(int $regexid = null) : bool {
-        if (count($this->getIsland()->getRandoms()) >= 0x7fffffff) return false;
+    public function editRandom(?int $regexid = null) : bool {
+        if ($regexid === null and count($this->getIsland()->getRandoms()) < 0x7fffffff) $regexid = $this->getIsland()->addRandom(new RandomGeneration);
         // 2147483647, max limit of int tag value and random generation regex number
-        $regexid = $this->getIsland()->addRandom(new RandomGeneration);
-        $form = new SimpleForm(function (Player $p, int $d) use ($regexid) : void {
+        elseif ($regexid === null) return false;
+        $form = new SimpleForm(function (Player $p, int $d = null) use ($regexid) : void {
+            if ($d === null) {
+                $this->listRandoms();
+                return;
+            }
             $r = $this->getIsland()->getRandomById($regexid);
             if ($r === null) {
                 $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'The target random generation regex has been removed!');
@@ -275,7 +282,7 @@ class PlayerSession {
             }
             switch ($d) {
                 case 0:
-                    $this->editRandomContent($regexid);
+                    $this->editRandomElements($regexid);
                     break;
 
                 case 1:
@@ -302,31 +309,31 @@ class PlayerSession {
                         if ($d) {
                             $this->getIsland()->removeRandomById($regexid);
                             $this->listRandoms();
-                        } else $this->editRandomContent($regexid);
+                        } else $this->editRandom($regexid);
                     });
                     $form->setTitle(TF::BOLD . TF::DARK_RED . 'Delete Confirmation');
-                    $form->setContent(TF::AQUA . 'Are you sure to ' . TF::BOLD . TF::RED . 'remove' . TF::RESET . TF::AQUA . ' random generation regex ' . TF::GOLD . '#' . $regexid .
-                        (($label = $this->getIsland()->getRandomLabel($regexid, true)) === null ? '' : TF::ITALIC . ' (' . $label. ')') . TF::RESET . TF::AQUA .
+                    $form->setContent(TF::YELLOW . 'Are you sure to ' . TF::BOLD . TF::RED . 'remove' . TF::RESET . TF::YELLOW . ' random generation regex ' . TF::GOLD . '#' . $regexid .
+                        (($label = $this->getIsland()->getRandomLabel($regexid, true)) === null ? '' : TF::ITALIC . ' (' . $label. ')') . TF::RESET . TF::YELLOW .
                         ' from your current checked out island ' . TF::BOLD . TF::GOLD . '"' . $this->getIsland()->getName() . '"?'
                     );
                     $form->setButton1('gui.yes');
-                    $form->setButton2('gui.yes');
+                    $form->setButton2('gui.no');
                     $this->getPlayer()->sendForm($form);
                     break;
             }
         });
         $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Modify Regex');
-        $form->addButton(TF::DARK_AQUA . 'Modify content');
-        $form->addButton(TF::DARK_AQUA . 'Update label');
-        $form->addButton(TF::DARK_AQUA . 'Change symbolic');
+        $form->addButton(TF::DARK_BLUE . 'Modify content');
+        $form->addButton(TF::DARK_BLUE . 'Update label');
+        $form->addButton(TF::DARK_BLUE . 'Change symbolic');
         $form->addButton(TF::BLUE . 'Claim random' . "\n" . 'generation block');
         $form->addButton(TF::BLUE . 'Preview generation');
-        $form->addButton(TF::BOLD . TF::RED . 'Remove regex');
+        $form->addButton(TF::BOLD . TF::DARK_RED . 'Remove regex');
         $this->getPlayer()->sendForm($form);
         return true;
     }
 
-    public function editRandomContent(int $regexid) : void {
+    public function editRandomElements(int $regexid) : void {
         $r = $this->getIsland()->getRandomById($regexid);
         $elements = $r->getAllElements();
         $form = new SimpleForm(function (Player $p, int $d = null) use ($regexid, $elements, $r) : void {
@@ -336,12 +343,12 @@ class PlayerSession {
             if (!isset($element)) {
                 new SubmitBlockSession($this, function(Item $item) use ($regexid, $r) : void {
                     if ($item->getId() === Item::AIR) {
-                        $this->editRandomContent($regexid);
+                        $this->editRandomElements($regexid);
                         return;
                     }
                     if ($item->getBlock()->getId() === Item::AIR) {
                         $form = new ModalForm(function (Player $p, bool $d) use ($regexid) : void {
-                            $this->editRandomContent($regexid);
+                            $this->editRandomElements($regexid);
                         });
                         $form->setTitle(TF::BOLD . TF::DARK_RED . 'Error');
                         $form->setContent(TF::GOLD . 'Submitted item must be a valid block item!');
@@ -367,7 +374,7 @@ class PlayerSession {
         $r = $this->getIsland()->getRandomById($regexid);
         $form = new CustomForm(function (Player $p, array $d = null) use ($regexid, $id, $meta, $r) : void {
             if ($d === null) {
-                $this->editRandomContent($regexid);
+                $this->editRandomElements($regexid);
                 return;
             }
             $r->setElementChance($id, $meta, 0); // Reset element chance or element will be duplicated if the ID or meta has changed from form
@@ -391,7 +398,7 @@ class PlayerSession {
     public function editRandomLabel(int $regexid) : void {
         $form = new CustomForm(function (Player $p, array $d = null) use ($regexid) : void {
             if ($d === null) {
-                $this->editRandomContent($regexid);
+                $this->editRandomElements($regexid);
                 return;
             }
             $this->getIsland()->setRandomLabel($regexid, (string)$d[0]);
@@ -404,12 +411,12 @@ class PlayerSession {
     public function editRandomSymbolic(int $regexid) : void {
         new SubmitBlockSession($this, function (Item $item) use ($regexid) : void {
             if ($item->getId() === Item::AIR) {
-                $this->editRandomContent($regexid);
+                $this->editRandomElements($regexid);
                 return;
             }
             if ($item->getBlock()->getId() === Item::AIR) {
                 $form = new ModalForm(function (Player $p, bool $d) use ($regexid) : void {
-                    $this->editRandomContent($regexid);
+                    $this->editRandomElements($regexid);
                 });
                 $form->setTitle(TF::BOLD . TF::DARK_RED . 'Error');
                 $form->setContent(TF::GOLD . 'Submitted item must be a valid block item!');
