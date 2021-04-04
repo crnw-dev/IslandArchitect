@@ -37,6 +37,8 @@ use Clouria\IslandArchitect\{
     IslandArchitect,
     runtime\RandomGeneration};
 
+use function in_array;
+use function var_dump;
 use function random_int;
 use const INT32_MAX;
 use const INT32_MIN;
@@ -90,6 +92,15 @@ class GenerationPreviewSession {
                     break;
             }
         }));
+        if (count($regex->getAllElements()) > 0) {
+            $rid = $session->getIsland()->getRegexId($regex);
+            $this->getMenu()->setName(TF::BOLD . TF::DARK_BLUE . 'Preview regex' . (isset($rid) ? ' #' . $rid : ''));
+        } else $this->getMenu()->setName(TF::BOLD . TF::DARK_RED . 'Error: Regex is empty');
+        $this->getMenu()->setInventoryCloseListener(function() : void {
+            $rid = $this->getSession()->getIsland()->getRegexId($this->getRegex());
+            if (isset($rid)) $this->getSession()->editRandom($rid);
+            else $this->getSession()->listRandoms();
+        });
 
         if (($seed = IslandArchitect::getInstance()->getConfig()->get('panel-default-seed', null)) === null) try {
             $seed = random_int(INT32_MIN, INT32_MAX);
@@ -99,6 +110,8 @@ class GenerationPreviewSession {
         $this->noise = new Random((int)$seed);
 
         $this->panelInit();
+
+        $this->getMenu()->send($session->getPlayer());
     }
 
     /**
@@ -116,14 +129,11 @@ class GenerationPreviewSession {
 
         $inv = $this->getMenu()->getInventory();
         for ($slot = 0; $slot < 54; $slot++) {
-            if ($slot === 0 or $slot === 1) continue;
-            $i = $slot / 9;
-            if ($i - (int)$i !== (float)0) continue;
-            $i = $slot / 10;
-            if ($i - (int)$i !== (float)0) continue;
+            var_dump($slot, in_array($slot, [0, 9, 18, 27, 36, 45, 1, 10, 20, 30, 40, 50], true));
+            if (in_array($slot, [0, 9, 18, 27, 36, 45, 1, 10, 19, 28, 37, 46], true)) continue;
 
             $i = $this->getRegex()->randomElementItem($this->getNoise());
-            $i->setCustomName(TF::RESET . $i->getVanillaName() . "\n" . TF::YELLOW . '');
+            $i->setCustomName(TF::RESET . $i->getVanillaName() . "\n\n      " . TF::YELLOW . 'Roll: ' . TF::BOLD . TF::GOLD . ++$this->rolls);
             $inv->setItem($slot, $i, false);
         }
     }
@@ -146,6 +156,7 @@ class GenerationPreviewSession {
      * @param Random $noise
      */
     public function setNoise(Random $noise) : void {
+        $this->rolls = 0;
         $this->noise = $noise;
     }
 
