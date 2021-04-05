@@ -21,9 +21,10 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
 use pocketmine\{
+    Server,
     item\Item,
-    block\Block,
     level\Level,
+    block\Block,
     math\Vector3,
     utils\Random};
 use Clouria\IslandArchitect\{
@@ -37,6 +38,7 @@ use function in_array;
 use function array_push;
 use function array_rand;
 use function var_export;
+use function array_keys;
 use function json_decode;
 use function json_encode;
 use function array_search;
@@ -166,10 +168,38 @@ class TemplateIsland {
 	}
 
 	public function removeRandomById(int $id) : bool {
-	    // TODO: Random generation blocks should also be removed when removing the regex
 		if (!isset($this->randoms[$id])) return false;
 		unset($this->randoms[$id]);
 		$this->randoms = array_values($this->randoms);
+		$blocks = $this->random_blocks;
+		foreach ($blocks as $pos => $rid) if ($rid === $id) {
+		    $remove[] = $pos;
+            unset($blocks[$pos]);
+        }
+		$this->random_blocks = $blocks;
+		$labels = $this->random_labels;
+		if (isset($labels[$id])) {
+		    unset($labels[$id]);
+		    $this->random_labels = array_values($labels);
+        }
+		$symbolic = $this->symbolic;
+		if (isset($symbolic[$id])) {
+		    unset($symbolic[$id]);
+		    $this->symbolic = array_values($symbolic);
+        }
+
+		while (($level = Server::getInstance()->getLevelByName($this->getLevel())) === null) {
+            if ($wlock ?? false) break;
+            Server::getInstance()->loadLevel($this->getLevel());
+            $wlock = true;
+        }
+        if ($level !== null) {
+            $block = Block::get(Item::AIR);
+            foreach ($remove ?? [] as $pos) {
+                $pos = explode(':', $pos);
+                $level->setBlock(new Vector3((int)$pos[0], (int)$pos[1], (int)$pos[2]), $block);
+            }
+        }
 		$this->changed = true;
 		return true;
 	}
@@ -208,9 +238,11 @@ class TemplateIsland {
 		$this->changed = true;
 	}
 
-	/**
-	 * @see TemplateIsland::setBlockRandom()
-	 */
+    /**
+     * @param Vector3 $block
+     * @return int|null
+     * @see TemplateIsland::setBlockRandom()
+     */
 	public function getRandomByVector3(Vector3 $block) : ?int {
 		return $this->random_blocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()] ?? null;
 	}

@@ -19,29 +19,26 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect;
 
+use room17\SkyBlock\SkyBlock;
+use muqsit\invmenu\InvMenuHandler;
+use czechpmdevs\buildertools\BuilderTools;
 use pocketmine\{
-    item\Item,
     Player,
-    plugin\Plugin,
+    item\Item,
     tile\Tile,
     tile\Chest,
     level\Level,
     utils\Utils,
+    plugin\Plugin,
     plugin\PluginBase,
     level\format\Chunk};
-
-use room17\SkyBlock\SkyBlock;
-use muqsit\invmenu\InvMenuHandler;
-use czechpmdevs\buildertools\BuilderTools;
-
 use Clouria\IslandArchitect\{
     runtime\TemplateIsland,
     events\TickTaskRegisterEvent,
     runtime\sessions\PlayerSession,
     runtime\TemplateIslandGenerator,
-    customized\skyblock\CustomSkyBlockCreateCommand,
-    worldedit\buildertools\CustomPrinter};
-
+    worldedit\buildertools\CustomPrinter,
+    customized\skyblock\CustomSkyBlockCreateCommand};
 use function substr;
 use function strtolower;
 use function file_exists;
@@ -193,11 +190,10 @@ class IslandArchitect extends PluginBase {
 		if (is_a($task, IslandArchitectPluginTickTask::class, true)) $task = new $task;
 		$ev = new TickTaskRegisterEvent($task, 10);
 		$this->getScheduler()->scheduleRepeatingTask($ev->getTask(), $ev->getPeriod());
-
-		// TODO: Create player sessions for everyone that is already on the server (All the sessions will be dispose after running /reload, but players are still on the server)
 	}
 
     /**
+     * @param Plugin $pl
      * @internal
      */
 	public function initDependency(Plugin $pl) : void {
@@ -301,7 +297,7 @@ class IslandArchitect extends PluginBase {
         if ($is === null) return false;
         unset($this->chestqueue[$level->getId()]);
         $pos = $is->getChest();
-        $pos = $pos->add(0, $is->getYOffset(), 0);
+        $pos = $pos->add(0, $is->getYOffset());
         if ($chunk->getX() !== ($pos->getFloorX() >> 4) or $chunk->getZ() !== ($pos->getFloorZ() >> 4)) return false;
 
         $chest = Tile::createTile(Tile::CHEST, $level, Chest::createNBT($pos));

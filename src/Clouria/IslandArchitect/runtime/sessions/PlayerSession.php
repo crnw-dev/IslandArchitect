@@ -19,6 +19,15 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime\sessions;
 
+use jojoe77777\FormAPI\{
+    ModalForm,
+    SimpleForm,
+    CustomForm};
+use Clouria\IslandArchitect\{
+    IslandArchitect,
+    runtime\TemplateIsland,
+    runtime\RandomGeneration,
+    conversion\IslandDataEmitTask};
 use pocketmine\{
     Player,
     Server,
@@ -28,19 +37,6 @@ use pocketmine\{
     scheduler\ClosureTask,
     utils\TextFormat as TF,
     level\particle\FloatingTextParticle};
-
-use jojoe77777\FormAPI\{
-    ModalForm,
-    SimpleForm,
-    CustomForm
-};
-
-use Clouria\IslandArchitect\{
-    IslandArchitect,
-    runtime\TemplateIsland,
-    runtime\RandomGeneration,
-    conversion\IslandDataEmitTask};
-
 use function max;
 use function min;
 use function count;
@@ -315,7 +311,8 @@ class PlayerSession {
                     $form->setTitle(TF::BOLD . TF::DARK_RED . 'Delete Confirmation');
                     $form->setContent(TF::YELLOW . 'Are you sure to ' . TF::BOLD . TF::RED . 'remove' . TF::RESET . TF::YELLOW . ' random generation regex ' . TF::GOLD . '#' . $regexid .
                         (($label = $this->getIsland()->getRandomLabel($regexid, true)) === null ? '' : TF::ITALIC . ' (' . $label. ')') . TF::RESET . TF::YELLOW .
-                        ' from your current checked out island ' . TF::BOLD . TF::GOLD . '"' . $this->getIsland()->getName() . '"?'
+                        ' from your current checked out island ' . TF::BOLD . TF::GOLD . '"' . $this->getIsland()->getName() . '"' . TF::RESET . TF::YELLOW . ' and all the random generation blocks around the world? ' . TF::BOLD . TF::RED
+                        . 'This action cannot be undo!'
                     );
                     $form->setButton1('gui.yes');
                     $form->setButton2('gui.no');
@@ -337,8 +334,12 @@ class PlayerSession {
     public function listRandomElements(RandomGeneration $regex) : void {
         $elements = $regex->getAllElements();
         $form = new SimpleForm(function (Player $p, int $d = null) use ($elements, $regex) : void {
-            if ($d === null) return; // Avoid fallback hell
-            $elements = array_keys($elements);
+            if ($d === null) {
+                $rid = $this->getIsland()->getRegexId($regex);
+                if ($rid !== null) $this->editRandom($rid);
+                return;
+            }
+            $elements = array_keys($elements, null, true);
             $element = $elements[$d] ?? null;
             if (!isset($element)) {
                 new SubmitBlockSession($this, function(Item $item) use ($regex) : void {
