@@ -19,6 +19,7 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime\sessions;
 
+use muqsit\invmenu\InvMenu;
 use jojoe77777\FormAPI\{
     ModalForm,
     SimpleForm,
@@ -260,7 +261,11 @@ class PlayerSession {
 			$f->setTitle(TF::BOLD . TF::DARK_AQUA . 'Regex List');
 			$f->addButton(count($this->getIsland()->getRandoms()) < 0x7fffffff ? TF::BOLD . TF::DARK_GREEN . 'New Regex' : TF::BOLD . TF::DARK_GRAY . 'Max limit reached' . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(2147483647 regex)');
 			$this->getPlayer()->sendForm($f);
-		} else $this->editRandom();
+		} else {
+            $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Cannot edit random generation regex due to required virion dependency "libFormAPI"' . TF::ITALIC . TF::GRAY . '(https://github.com/Infernus101/FormAPI) ' . TF::RESET .
+                TF::BOLD . TF::RED . 'is not installed. ' . TF::YELLOW . 'An empty regex has been added to the template island data, please edit it manually with an text editor!');
+            $this->getIsland()->addRandom(new RandomGeneration);
+        }
 	}
 
     public function editRandom(?int $regexid = null) : bool {
@@ -296,6 +301,15 @@ class PlayerSession {
                     break;
 
                 case 4:
+                    if (!class_exists(InvMenu::class)) {
+                        $form = new ModalForm(function(Player $p, bool $d) use ($regexid) : void {
+                            $this->editRandom($regexid);
+                        });
+                        $form->setTitle(TF::BOLD . TF::RED . 'Error');
+                        $form->setContent(TF::BOLD . TF::RED . 'Cannot preview generation due to required virion "InvMenu"' . TF::ITALIC . TF::GRAY . '(https://github.com/Muqsit/InvMenu) ' . TF::RESET . TF::BOLD . TF::RED . 'is not installed!');
+                        $this->getPlayer()->sendForm($form);
+                        break;
+                    }
                     new GenerationPreviewSession($this, $r, function() use ($regexid) : void {
                         $this->editRandom($regexid);
                     });
@@ -320,12 +334,12 @@ class PlayerSession {
                     break;
             }
         });
-        $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Modify Regex');
+        $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Modify Regex #' . $regexid);
         $form->addButton(TF::DARK_BLUE . 'Modify content');
         $form->addButton(TF::DARK_BLUE . 'Update label');
         $form->addButton(TF::DARK_BLUE . 'Change symbolic');
         $form->addButton(TF::BLUE . 'Claim random' . "\n" . 'generation block');
-        $form->addButton(TF::BLUE . 'Preview generation');
+        $form->addButton((class_exists(InvMenu::class) ? TF::BLUE : TF::ITALIC . TF::GRAY) . 'Preview generation');
         $form->addButton(TF::BOLD . TF::DARK_RED . 'Remove regex');
         $this->getPlayer()->sendForm($form);
         return true;
@@ -339,7 +353,7 @@ class PlayerSession {
                 if ($rid !== null) $this->editRandom($rid);
                 return;
             }
-            $elements = array_keys($elements, null, true);
+            $elements = array_keys($elements);
             $element = $elements[$d] ?? null;
             if (!isset($element)) {
                 new SubmitBlockSession($this, function(Item $item) use ($regex) : void {
@@ -364,6 +378,8 @@ class PlayerSession {
             $element = explode(':', $element);
             $this->editRandomElement($regex, (int)$element[0], (int)$element[1]);
         });
+        $rid = $this->getIsland()->getRegexId($regex);
+        $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Elements of Regex' . (isset($rid) ? ' #' . $rid : ''));
         $totalchance = $regex->getTotalChance();
         foreach ($elements as $element => $chance) {
             $element = explode(':', $element);
@@ -385,9 +401,9 @@ class PlayerSession {
             $regex->setElementChance($id, $meta, 0); // Reset element chance or element will be duplicated if the ID or meta has changed from form
             $id = (int)$d[0];
             $meta = (int)$d[1];
-            $chance = (int)$d[3];
+            $chance = (int)$d[class_exists(InvMenu::class) ? 3 : 2];
             $regex->setElementChance($id, $meta, $chance < 1 ? 0 : $chance);
-            if ((bool)$d[2]) {
+            if (class_exists(InvMenu::class) and (bool)$d[2]) {
                 new SubmitBlockSession($this, function(Item $item) use ($regex, $id, $meta) : void {
                     if ($item->getId() !== Item::AIR) {
                         if ($item->getBlock()->getId() === Item::AIR) {
@@ -409,7 +425,7 @@ class PlayerSession {
         $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Edit Element');
         $form->addInput(TF::AQUA . 'ID', (string)$id, (string)$id);
         $form->addInput(TF::AQUA . 'Meta', (string)$meta, (string)$meta);
-        $form->addToggle(TF::GREEN . 'Open submit block panel');
+        if (class_exists(InvMenu::class)) $form->addToggle(TF::GREEN . 'Open submit block panel');
         $chance = $regex->getElementChance($id, $meta);
         $form->addInput(TF::BOLD . TF::GOLD . 'Chance' . ((int)$chance > 0 ? TF::YELLOW . TF::ITALIC . ' (' .
 

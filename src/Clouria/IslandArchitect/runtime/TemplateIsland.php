@@ -439,7 +439,7 @@ class TemplateIsland {
                         else $id = $usedrandoms[$i];
                         $data['structure'][$bcoord] = '1:' . $id;
                     } else {
-                        $data['structure'][$bcoord] = '0:' . (isset($this->random_blocks[$coord]) ? array_keys($this->randoms[$this->random_blocks[$coord]]->getAllElements(), null, true)[0] : $id);
+                        $data['structure'][$bcoord] = '0:' . (isset($this->random_blocks[$coord]) ? array_keys($this->randoms[$this->random_blocks[$coord]]->getAllElements())[0] : $id);
                         $meta = $chunk->getBlockData($x & 0x0f, $y, $z & 0x0f);
                         if ($meta !== Item::AIR) $data['structure'][$bcoord] .= ':' . $meta; // Lmao I didn't found this error for like 7 versions
                     }

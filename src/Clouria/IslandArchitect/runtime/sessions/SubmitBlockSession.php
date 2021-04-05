@@ -23,12 +23,11 @@ use pocketmine\{
     item\Item,
     nbt\tag\ByteTag,
     utils\TextFormat as TF};
-
 use muqsit\invmenu\{
     InvMenu,
     transaction\InvMenuTransaction,
-    transaction\InvMenuTransactionResult
-};
+    transaction\InvMenuTransactionResult};
+use function class_exists;
 
 class SubmitBlockSession {
 
@@ -57,6 +56,10 @@ class SubmitBlockSession {
         $this->session = $session;
         $this->setCallback($callback);
         $this->default = $default;
+        if (!class_exists(InvMenu::class)) {
+            $callback($default ?? Item::get(Item::AIR));
+            return;
+        }
         $this->menu = InvMenu::create(InvMenu::TYPE_HOPPER);
         $this->getMenu()->setName(TF::BOLD . TF::DARK_BLUE . 'Please submit a block');
         $this->getMenu()->setListener(function (InvMenuTransaction $transaction) : InvMenuTransactionResult {
