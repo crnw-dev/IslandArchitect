@@ -431,7 +431,7 @@ class TemplateIsland {
                     $by = $y - $ly;
                     $coord = $wx . ':' . $y . ':' . $wz;
                     $bcoord = $bx . ':' . $by . ':' . $bz;
-                    if (isset($this->random_blocks[$coord])) {
+                    if (isset($this->random_blocks[$coord]) and ($this->randoms[$this->random_blocks[$coord]]->getAllElements()) > 1) {
                         $id = $this->random_blocks[$coord];
                         if (($r = $this->getRandomById($this->random_blocks[$coord])) === null) continue;
                         if (!$r->isValid()) continue;
@@ -439,13 +439,13 @@ class TemplateIsland {
                         else $id = $usedrandoms[$i];
                         $data['structure'][$bcoord] = '1:' . $id;
                     } else {
-                        $data['structure'][$bcoord] = '0:' . $id;
+                        $data['structure'][$bcoord] = '0:' . (isset($this->random_blocks[$coord]) ? array_keys($this->randoms[$this->random_blocks[$coord]]->getAllElements(), null, true)[0] : $id);
                         $meta = $chunk->getBlockData($x & 0x0f, $y, $z & 0x0f);
-                        if ($meta !== Item::AIR) $data['structure'][$bcoord] .= $meta;
+                        if ($meta !== Item::AIR) $data['structure'][$bcoord] .= ':' . $meta; // Lmao I didn't found this error for like 7 versions
                     }
                 }
             }
-            unset($chunks[$hash]);
+            unset($chunks[$hash], $wx, $wz, $x, $y, $z);
 		}
 
 		if (!empty($usedrandoms ?? [])) foreach ($this->randoms as $id => $random) if (in_array($id, $usedrandoms)) {
