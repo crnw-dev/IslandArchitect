@@ -193,6 +193,8 @@ class IslandArchitect extends PluginBase {
 		if (is_a($task, IslandArchitectPluginTickTask::class, true)) $task = new $task;
 		$ev = new TickTaskRegisterEvent($task, 10);
 		$this->getScheduler()->scheduleRepeatingTask($ev->getTask(), $ev->getPeriod());
+
+		// TODO: Create player sessions for everyone that is already on the server (All the sessions will be dispose after running /reload, but players are still on the server)
 	}
 
     /**

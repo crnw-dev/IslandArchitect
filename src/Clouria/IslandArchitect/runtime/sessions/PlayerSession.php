@@ -283,7 +283,7 @@ class PlayerSession {
             }
             switch ($d) {
                 case 0:
-                    $this->editRandomElements($r);
+                    $this->listRandomElements($r);
                     break;
 
                 case 1:
@@ -334,7 +334,7 @@ class PlayerSession {
         return true;
     }
 
-    public function editRandomElements(RandomGeneration $regex) : void {
+    public function listRandomElements(RandomGeneration $regex) : void {
         $elements = $regex->getAllElements();
         $form = new SimpleForm(function (Player $p, int $d = null) use ($elements, $regex) : void {
             if ($d === null) return; // Avoid fallback hell
@@ -343,16 +343,17 @@ class PlayerSession {
             if (!isset($element)) {
                 new SubmitBlockSession($this, function(Item $item) use ($regex) : void {
                     if ($item->getId() === Item::AIR) {
-                        $this->editRandomElements($regex);
+                        if ($regex->getElementChance(Item::AIR) < 1) {
+                            $regex->setElementChance(Item::AIR, 0, 1);
+                            $this->editRandomElement($regex, Item::AIR);
+                        } else $this->listRandomElements($regex);
                         return;
                     }
                     if ($item->getBlock()->getId() === Item::AIR) {
-                        $form = new ModalForm(function (Player $p, bool $d) use ($regex) : void {
-                            $this->editRandomElements($regex);
+                        $this->errorInvalidBlock(function (Player $p, bool $d) use ($regex) : void {
+                            $this->listRandomElements($regex);
                         });
-                        $form->setTitle(TF::BOLD . TF::DARK_RED . 'Error');
-                        $form->setContent(TF::GOLD . 'Submitted item must be a valid block item!');
-                        $this->getPlayer()->sendForm($form);
+                        return;
                     }
                     $regex->setElementChance($item->getId(), $item->getDamage(), $item->getCount());
                     $this->editRandomElement($regex, $item->getId(), $item->getDamage());
@@ -362,10 +363,13 @@ class PlayerSession {
             $element = explode(':', $element);
             $this->editRandomElement($regex, (int)$element[0], (int)$element[1]);
         });
+        $totalchance = $regex->getTotalChance();
         foreach ($elements as $element => $chance) {
             $element = explode(':', $element);
             $item = Item::get((int)$element[0], (int)$element[1]);
-            $form->addButton(TF::DARK_BLUE . $item->getVanillaName() . "\n" . TF::BLUE . '(' . $element[0] . ':' . $element[1] . ') Chance: ' . $chance);
+            $form->addButton(TF::DARK_BLUE . $item->getVanillaName() . ' (' . $element[0] . ':' . $element[1] . ') ' . "\n" . TF::BLUE . ' Chance: ' . $chance . ' (' .
+
+            $chance . ' / ' . ($totalchanceNonZero = $totalchance == 0 ? (int)$chance : $totalchance) . ', ' . round((int)$chance / $totalchanceNonZero * 100, 2) . '%%)');
         }
         $form->addButton(TF::BOLD . TF::DARK_GREEN . 'Add Element');
         $this->getPlayer()->sendForm($form);
@@ -374,19 +378,37 @@ class PlayerSession {
     public function editRandomElement(RandomGeneration $regex, int $id, int $meta = 0) : void {
         $form = new CustomForm(function (Player $p, array $d = null) use ($id, $meta, $regex) : void {
             if ($d === null) {
-                $this->editRandomElements($regex);
+                $this->listRandomElements($regex);
                 return;
             }
             $regex->setElementChance($id, $meta, 0); // Reset element chance or element will be duplicated if the ID or meta has changed from form
             $id = (int)$d[0];
             $meta = (int)$d[1];
-            $chance = (int)$d[2];
+            $chance = (int)$d[3];
             $regex->setElementChance($id, $meta, $chance < 1 ? 0 : $chance);
-            $this->editRandomElement($regex, $id, $meta);
+            if ((bool)$d[2]) {
+                new SubmitBlockSession($this, function(Item $item) use ($regex, $id, $meta) : void {
+                    if ($item->getId() !== Item::AIR) {
+                        if ($item->getBlock()->getId() === Item::AIR) {
+                            $this->errorInvalidBlock(function(Player $p, bool $d) use ($regex, $id, $meta)  : void {
+                                $this->editRandomElement($regex, $id, $meta);
+                            });
+                            return;
+                        }
+                        $regex->setElementChance($id, $meta, 0);
+                        $id = $item->getId();
+                        $meta = $item->getDamage();
+                        $chance = $item->getCount();
+                        $regex->setElementChance($id, $meta, $chance);
+                    }
+                    $this->editRandomElement($regex, $id, $meta);
+                }, Item::get($id, $meta, min(max(1, (int)$chance), 64)));
+            } else $this->editRandomElement($regex, $id, $meta);
         });
         $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Edit Element');
         $form->addInput(TF::AQUA . 'ID', (string)$id, (string)$id);
         $form->addInput(TF::AQUA . 'Meta', (string)$meta, (string)$meta);
+        $form->addToggle(TF::GREEN . 'Open submit block panel');
         $chance = $regex->getElementChance($id, $meta);
         $form->addInput(TF::BOLD . TF::GOLD . 'Chance' . ((int)$chance > 0 ? TF::YELLOW . TF::ITALIC . ' (' .
 
@@ -428,5 +450,12 @@ class PlayerSession {
             }
             $this->getIsland()->setRandomSymbolic($regexid, $item->getId(), $item->getDamage());
         });
+    }
+
+    protected function errorInvalidBlock(?\Closure $callback = null) : void {
+        $form = new ModalForm($callback ?? null);
+        $form->setTitle(TF::BOLD . TF::DARK_RED . 'Error');
+        $form->setContent(TF::GOLD . 'Submitted item must be a valid block item!');
+        $this->getPlayer()->sendForm($form);
     }
 }

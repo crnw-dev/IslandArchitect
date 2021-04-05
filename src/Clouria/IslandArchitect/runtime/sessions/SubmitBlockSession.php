@@ -48,10 +48,15 @@ class SubmitBlockSession {
     private $menu;
 
     public const ACTION_FRAME = 0;
+    /**
+     * @var Item|null
+     */
+    protected $default = null;
 
-    public function __construct(PlayerSession $session, \Closure $callback) {
+    public function __construct(PlayerSession $session, \Closure $callback, ?Item $default = null) {
         $this->session = $session;
         $this->setCallback($callback);
+        $this->default = $default;
         $this->menu = InvMenu::create(InvMenu::TYPE_HOPPER);
         $this->getMenu()->setName(TF::BOLD . TF::DARK_BLUE . 'Please submit a block');
         $this->getMenu()->setListener(function (InvMenuTransaction $transaction) : InvMenuTransactionResult {
@@ -63,7 +68,9 @@ class SubmitBlockSession {
             return $transaction->continue();
         });
         $this->getMenu()->setInventoryCloseListener(function () : void {
-            $this->getCallback()($this->getMenu()->getInventory()->getItem(2));
+            $item = $this->getMenu()->getInventory()->getItem(2);
+            $this->getSession()->getPlayer()->getInventory()->addItem($item);
+            $this->getCallback()($item);
         });
         $this->panelInit();
 
@@ -103,7 +110,10 @@ class SubmitBlockSession {
         $item = Item::get(Item::INVISIBLEBEDROCK);
         $item->setCustomName(TF::RESET);
         $item->setNamedTagEntry(new ByteTag('action', self::ACTION_FRAME));
-        for ($slot = 0; $slot < 5; $slot++) if ($slot !== 2) $inv->setItem($slot, $item, false);
+        for ($slot = 0; $slot < 5; $slot++) {
+            if ($slot !== 2) $inv->setItem($slot, $item, false);
+            elseif (isset($this->default)) $inv->setItem($slot, $this->default, false);
+        }
     }
 
 }
