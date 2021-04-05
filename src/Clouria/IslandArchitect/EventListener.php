@@ -47,7 +47,8 @@ use Clouria\IslandArchitect\{
     customized\CustomizableClassTrait,
     runtime\RandomGeneration,
     events\RandomGenerationBlockPlaceEvent,
-    runtime\sessions\IslandChestSession};
+    runtime\sessions\IslandChestSession,
+    runtime\sessions\PlayerSession};
 
 use function assert;
 use function class_exists;
@@ -97,7 +98,7 @@ class EventListener implements Listener {
 		if (!($nbt = $item->getNamedTagEntry('IslandArchitect')) instanceof CompoundTag) return;
 		if (!($nbt = $nbt->getTag('random-generation', CompoundTag::class)) instanceof CompoundTag) return;
 		if (!($regex = $nbt->getTag('regex', ListTag::class)) instanceof ListTag) return;
-		if ($s::errorCheckOutRequired($s->getPlayer(), $s)) return;
+		if (PlayerSession::errorCheckOutRequired($s->getPlayer(), $s)) return;
 		$regex = RandomGeneration::fromNBT($regex);
 		$e = new RandomGenerationBlockPlaceEvent($s, $regex, $ev->getBlock()->asPosition(), $item);
 		$e->call();

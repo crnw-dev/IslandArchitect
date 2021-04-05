@@ -38,7 +38,6 @@ use Clouria\IslandArchitect\{
     runtime\RandomGeneration};
 
 use function in_array;
-use function var_dump;
 use function random_int;
 use const INT32_MAX;
 use const INT32_MIN;
@@ -129,7 +128,6 @@ class GenerationPreviewSession {
 
         $inv = $this->getMenu()->getInventory();
         for ($slot = 0; $slot < 54; $slot++) {
-            var_dump($slot, in_array($slot, [0, 9, 18, 27, 36, 45, 1, 10, 20, 30, 40, 50], true));
             if (in_array($slot, [0, 9, 18, 27, 36, 45, 1, 10, 19, 28, 37, 46], true)) continue;
 
             $i = $this->getRegex()->randomElementItem($this->getNoise());

@@ -74,8 +74,8 @@ class RandomGeneration {
      * @return bool Return false when the chance is slower than 0 or higher than 32767
      */
     public function setElementChance(int $id, int $meta = 0, ?int $chance = null) : bool {
-	    if ($chance > 32767 or $chance < 0) return false;
-	    if ($chance !== 0) $this->blocks[$id . ':' . $meta] = $chance;
+	    if ($chance > 32767) return false;
+	    if ($chance > 0) $this->blocks[$id . ':' . $meta] = $chance;
 	    elseif (isset($this->blocks[$id . ':' . $meta])) unset($this->blocks[$id . ':' . $meta]);
 	    $this->changed = true;
 	    return true;

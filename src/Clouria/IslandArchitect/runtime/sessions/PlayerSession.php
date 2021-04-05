@@ -378,9 +378,10 @@ class PlayerSession {
                 return;
             }
             $regex->setElementChance($id, $meta, 0); // Reset element chance or element will be duplicated if the ID or meta has changed from form
-            $id = (int)$d[0];
-            $meta = (int)$d[1];
-            $regex->setElementChance($id, $meta, (int)$d[2]);
+            $id = (int)$d[1];
+            $meta = (int)$d[2];
+            $chance = (int)$d[3];
+            $regex->setElementChance($id, $meta, $chance < 1 ? 0 : $chance);
             $this->editRandomElement($regex, $id, $meta);
         });
         $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Edit Element');
@@ -398,8 +399,7 @@ class PlayerSession {
     public function editRandomLabel(int $regexid) : void {
         $form = new CustomForm(function (Player $p, array $d = null) use ($regexid) : void {
             if ($d === null) {
-                $r = $this->getIsland()->getRandomById($regexid);
-                if ($r !== null) $this->editRandomElements($r);
+                $this->editRandom($regexid);
                 return;
             }
             $this->getIsland()->setRandomLabel($regexid, (string)$d[0]);
@@ -412,14 +412,12 @@ class PlayerSession {
     public function editRandomSymbolic(int $regexid) : void {
         new SubmitBlockSession($this, function (Item $item) use ($regexid) : void {
             if ($item->getId() === Item::AIR) {
-                $r = $this->getIsland()->getRandomById($regexid);
-                if ($r !== null) $this->editRandomElements($r);
+                $this->editRandom($regexid);
                 return;
             }
             if ($item->getBlock()->getId() === Item::AIR) {
                 $form = new ModalForm(function (Player $p, bool $d) use ($regexid) : void {
-                    $r = $this->getIsland()->getRandomById($regexid);
-                    if ($r !== null) $this->editRandomElements($r);
+                    $this->editRandom($regexid);
                 });
                 $form->setTitle(TF::BOLD . TF::DARK_RED . 'Error');
                 $form->setContent(TF::GOLD . 'Submitted item must be a valid block item!');
