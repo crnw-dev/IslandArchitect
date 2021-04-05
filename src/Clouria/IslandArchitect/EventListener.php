@@ -19,38 +19,34 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect;
 
+use room17\SkyBlock\SkyBlock;
+use czechpmdevs\buildertools\BuilderTools;
+use pocketmine\nbt\tag\{
+    IntTag,
+    ListTag,
+    CompoundTag};
 use pocketmine\{
     level\Position,
     utils\TextFormat as TF,
-    inventory\ChestInventory
-};
-use pocketmine\nbt\tag\{
-    CompoundTag,
-    IntTag,
-    ListTag
-};
-use pocketmine\event\{
-    block\BlockBreakEvent,
-    block\BlockPlaceEvent,
-    entity\EntityExplodeEvent,
-    inventory\InventoryOpenEvent,
-    level\ChunkLoadEvent,
-    level\LevelSaveEvent,
-    Listener,
-    player\PlayerQuitEvent,
-    plugin\PluginEnableEvent};
-
-use room17\SkyBlock\SkyBlock;
-use czechpmdevs\buildertools\BuilderTools;
-
+    inventory\ChestInventory};
 use Clouria\IslandArchitect\{
-    customized\CustomizableClassTrait,
     runtime\RandomGeneration,
-    events\RandomGenerationBlockPlaceEvent,
+    runtime\sessions\PlayerSession,
+    customized\CustomizableClassTrait,
     runtime\sessions\IslandChestSession,
-    runtime\sessions\PlayerSession};
-
+    events\RandomGenerationBlockPlaceEvent};
+use pocketmine\event\{
+    Listener,
+    level\LevelSaveEvent,
+    level\ChunkLoadEvent,
+    block\BlockPlaceEvent,
+    block\BlockBreakEvent,
+    player\PlayerQuitEvent,
+    plugin\PluginEnableEvent,
+    entity\EntityExplodeEvent,
+    inventory\InventoryOpenEvent};
 use function assert;
+use function var_dump;
 use function class_exists;
 
 class EventListener implements Listener {
@@ -98,7 +94,7 @@ class EventListener implements Listener {
 		if (!($nbt = $item->getNamedTagEntry('IslandArchitect')) instanceof CompoundTag) return;
 		if (!($nbt = $nbt->getTag('random-generation', CompoundTag::class)) instanceof CompoundTag) return;
 		if (!($regex = $nbt->getTag('regex', ListTag::class)) instanceof ListTag) return;
-		if (PlayerSession::errorCheckOutRequired($s->getPlayer(), $s)) return;
+		if (PlayerSession::errorCheckOutRequired($ev->getPlayer(), $s)) return;
 		$regex = RandomGeneration::fromNBT($regex);
 		$e = new RandomGenerationBlockPlaceEvent($s, $regex, $ev->getBlock()->asPosition(), $item);
 		$e->call();
@@ -175,6 +171,10 @@ class EventListener implements Listener {
         assert($pos instanceof Position);
         foreach (IslandArchitect::getInstance()->getSessions() as $s) {
             $is = $s->getIsland();
+            var_dump('b', $is === null,
+                $is->getLevel() !== $pos->getLevel()->getFolderName(),
+                $is->getChest() === null,
+                !$is->getChest()->equals($pos->asVector3()));
             if (
                 $is === null or
                 $is->getLevel() !== $pos->getLevel()->getFolderName() or

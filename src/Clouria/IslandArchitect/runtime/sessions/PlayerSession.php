@@ -306,7 +306,7 @@ class PlayerSession {
                             $this->editRandom($regexid);
                         });
                         $form->setTitle(TF::BOLD . TF::RED . 'Error');
-                        $form->setContent(TF::BOLD . TF::RED . 'Cannot preview generation due to required virion "InvMenu"' . TF::ITALIC . TF::GRAY . '(https://github.com/Muqsit/InvMenu) ' . TF::RESET . TF::BOLD . TF::RED . 'is not installed!');
+                        $form->setContent(TF::BOLD . TF::RED . 'Cannot preview generation due to required virion "InvMenu v4"' . TF::ITALIC . TF::GRAY . '(https://github.com/Muqsit/InvMenu) ' . TF::RESET . TF::BOLD . TF::RED . 'is not installed!');
                         $this->getPlayer()->sendForm($form);
                         break;
                     }
