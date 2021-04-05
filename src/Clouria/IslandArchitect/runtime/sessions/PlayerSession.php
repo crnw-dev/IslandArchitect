@@ -378,9 +378,9 @@ class PlayerSession {
                 return;
             }
             $regex->setElementChance($id, $meta, 0); // Reset element chance or element will be duplicated if the ID or meta has changed from form
-            $id = (int)$d[1];
-            $meta = (int)$d[2];
-            $chance = (int)$d[3];
+            $id = (int)$d[0];
+            $meta = (int)$d[1];
+            $chance = (int)$d[2];
             $regex->setElementChance($id, $meta, $chance < 1 ? 0 : $chance);
             $this->editRandomElement($regex, $id, $meta);
         });
@@ -388,11 +388,14 @@ class PlayerSession {
         $form->addInput(TF::AQUA . 'ID', (string)$id, (string)$id);
         $form->addInput(TF::AQUA . 'Meta', (string)$meta, (string)$meta);
         $chance = $regex->getElementChance($id, $meta);
-        $form->addInput(TF::BOLD . TF::GOLD . 'Chance' . TF::YELLOW . TF::ITALIC . ' (' .
+        $form->addInput(TF::BOLD . TF::GOLD . 'Chance' . ((int)$chance > 0 ? TF::YELLOW . TF::ITALIC . ' (' .
 
-            $chance . ' / ' . ($totalchanceNonZero = ($totalchance = $regex->getTotalChance()) == 0 ? (int)$chance : $totalchance) . ', ' . round((int)$chance / $totalchanceNonZero * 100, 2) . '%%)',
+            $chance . ' / ' . ($totalchanceNonZero = ($totalchance = $regex->getTotalChance()) == 0 ? (int)$chance : $totalchance) . ', ' . round((int)$chance / $totalchanceNonZero * 100, 2) . '%%)' :
+            TF::RED . TF::ITALIC . ' (ELEMENT REMOVED, make the chance higher than 0 to keep this element)'
+            ),
 
             (string)$chance, (string)$chance);
+        $form->addLabel(TF::ITALIC . TF::AQUA . '(Set chance 0 or lower to remove this element)');
         $this->getPlayer()->sendForm($form);
     }
 
