@@ -19,24 +19,20 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\runtime\sessions;
 
-use pocketmine\{
-    item\Item,
-    level\generator\Generator,
-    Player,
-    utils\Random,
-    nbt\tag\ByteTag,
-    utils\TextFormat as TF};
-
 use jojoe77777\FormAPI\CustomForm;
-use muqsit\invmenu\{
-    InvMenu,
-    transaction\DeterministicInvMenuTransaction
-};
-
 use Clouria\IslandArchitect\{
     IslandArchitect,
     runtime\RandomGeneration};
-
+use muqsit\invmenu\{
+    InvMenu,
+    transaction\DeterministicInvMenuTransaction};
+use pocketmine\{
+    Player,
+    item\Item,
+    utils\Random,
+    nbt\tag\ByteTag,
+    utils\TextFormat as TF,
+    level\generator\Generator};
 use function in_array;
 use function random_int;
 use const INT32_MAX;
@@ -72,7 +68,7 @@ class GenerationPreviewSession {
     public function __construct(PlayerSession $session, RandomGeneration $regex, ?\Closure $callback = null) {
         $this->session = $session;
         $this->regex = $regex;
-        $this->callback = $callback;
+        $this->setCallback($callback);
         $this->menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
         $this->getMenu()->setListener(InvMenu::readonly(function (DeterministicInvMenuTransaction $transaction) : void {
             $out = $transaction->getOut();
@@ -130,7 +126,7 @@ class GenerationPreviewSession {
         for ($slot = 0; $slot < 54; $slot++) {
             if (in_array($slot, [0, 9, 18, 27, 36, 45, 1, 10, 19, 28, 37, 46], true)) continue;
 
-            $i = $this->getRegex()->randomElementItem($this->getNoise());
+            $i = self::displayConversion($this->getRegex()->randomElementItem($this->getNoise()));
             $i->setCustomName(TF::RESET . $i->getVanillaName() . "\n\n      " . TF::YELLOW . 'Roll: ' . TF::BOLD . TF::GOLD . ++$this->rolls);
             $inv->setItem($slot, $i, false);
         }
@@ -213,5 +209,20 @@ class GenerationPreviewSession {
     public function setCallback(?\Closure $callback) : void {
         $this->callback = $callback;
     }
+
+    protected static function displayConversion(Item $item, &$successed = false) : Item {
+		$successed = false;
+		$count = $item->getCount();
+		$nbt = $item->getNamedTag();
+		switch (true) {
+			case $item->getId() === Item::AIR:
+				$item = Item::get(217);
+				$successed = true;
+				break;
+		}
+		$item->setCount($count);
+		foreach ($nbt as $tag) $item->setNamedTagEntry($tag);
+		return $item;
+	}
 
 }

@@ -63,7 +63,7 @@ class SubmitBlockSession {
         $this->menu = InvMenu::create(InvMenu::TYPE_HOPPER);
         $this->getMenu()->setName(TF::BOLD . TF::DARK_BLUE . 'Please submit a block');
         $this->getMenu()->setListener(function (InvMenuTransaction $transaction) : InvMenuTransactionResult {
-            $out = $transaction->getOut();
+            $out = static::inputConversion($transaction->getOut());
             if (
                 ($nbt = $out->getNamedTagEntry('action')) instanceof ByteTag and
                 $nbt->getValue() === self::ACTION_FRAME
@@ -118,5 +118,33 @@ class SubmitBlockSession {
             elseif (isset($this->default)) $inv->setItem($slot, $this->default, false);
         }
     }
+
+    protected static function inputConversion(Item $item, &$succeed = false) : Item {
+		$succeed = false;
+		$count = $item->getCount();
+		$nbt = $item->getNamedTag();
+		switch (true) {
+			case $item->getId() === Item::BUCKET and $item->getDamage() === 8:
+			case $item->getId() === Item::POTION and $item->getDamage() === 0:
+				$item = Item::get(Item::WATER);
+				$succeed = true;
+				break;
+
+			case $item->getId() === Item::BUCKET and $item->getDamage() === 10:
+				$item = Item::get(Item::LAVA);
+				$succeed = true;
+				break;
+
+			case $item->getId() === Item::BUCKET and $item->getDamage() === 0:
+			case $item->getId() === Item::GLASS_BOTTLE and $item->getDamage() === 0:
+			case $item->getId() === Item::BOWL and $item->getDamage() === 0:
+				$item = Item::get(Item::AIR);
+				$succeed = true;
+				break;
+		}
+		$item->setCount($count);
+		foreach ($nbt as $tag) $item->setNamedTagEntry($tag);
+		return $item;
+	}
 
 }
