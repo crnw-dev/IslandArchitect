@@ -20,11 +20,8 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime\sessions;
 
 
-use pocketmine\{
-    item\Item};
 use room17\SkyBlock\{
-    SkyBlock,
-    utils\Utils};
+    SkyBlock};
 use muqsit\invmenu\{
     InvMenu,
     transaction\InvMenuTransaction,
@@ -55,6 +52,7 @@ class IslandChestSession {
      * @param \Closure|null $callback
      */
     public function __construct(PlayerSession $session, ?\Closure $callback = null) {
+        return; // TODO: Wait until the rich customization release
         if ($session->getIsland() === null) throw new \RuntimeException('Target session hasn\'t check out an island');
         $this->session = $session;
         $this->callback = $callback;
@@ -103,24 +101,5 @@ class IslandChestSession {
     }
 
     protected function closeCallback() : void {
-        if (!$this->isChanged()) return;
-        $slottrack = 1;
-        foreach ($this->menu->getInventory()->getContents(true) as $slot => $item) {
-            for ($i = $slottrack; $i < $slot; $i++) $contents[] = (string)Item::AIR;
-            $contents[] = $item->getId() . ', ' . $item->getDamage() . ', ' . $item->getCount();
-            $slottrack++;
-        }
-        $reflect = new \ReflectionProperty($class = SkyBlock::getInstance()->getSettings(), 'generatorChestContent');
-        $reflect->setAccessible(true);
-        $map = $reflect->getValue($class);
-        $map[$this->getSession()->getIsland()->getName()] = Utils::parseItems($contents ?? []);
-        $reflect->setValue($class, $map);
-
-        $reflect = new \ReflectionProperty($class, 'config');
-        $reflect->setAccessible(true);
-        $conf = $reflect->getValue($class);
-        $confc = $conf->get('CustomChestContent', []);
-        $confc[$this->getSession()->getIsland()->getName()] = $contents ?? [];
-        $conf->save();
     }
 }

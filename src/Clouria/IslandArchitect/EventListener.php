@@ -46,7 +46,6 @@ use pocketmine\event\{
     entity\EntityExplodeEvent,
     inventory\InventoryOpenEvent};
 use function assert;
-use function var_dump;
 use function class_exists;
 
 class EventListener implements Listener {
@@ -171,10 +170,6 @@ class EventListener implements Listener {
         assert($pos instanceof Position);
         foreach (IslandArchitect::getInstance()->getSessions() as $s) {
             $is = $s->getIsland();
-            var_dump('b', $is === null,
-                $is->getLevel() !== $pos->getLevel()->getFolderName(),
-                $is->getChest() === null,
-                !$is->getChest()->equals($pos->asVector3()));
             if (
                 $is === null or
                 $is->getLevel() !== $pos->getLevel()->getFolderName() or
