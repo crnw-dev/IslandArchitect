@@ -2,7 +2,7 @@ name: IslandArchitect
 author: ClouriaNetworkDeveloperss
 authors: [Endermanbugzjfc]
 api: 3.0.0
-version: 1.2.4
+version: 1.2.5
 main: Clouria\IslandArchitect\IslandArchitect
 website: https://github.com/crnw-dev/IslandArchitect
 softdepend: [InvCrashFix, BuilderTools, SkyBlock]
