@@ -21,13 +21,15 @@ namespace Clouria\IslandArchitect;
 
 use room17\SkyBlock\SkyBlock;
 use muqsit\invmenu\InvMenuHandler;
+use czechpmdevs\buildertools\BuilderTools;
 use pocketmine\{
-    item\Item,
     Player,
+    item\Item,
     tile\Tile,
     tile\Chest,
     level\Level,
     utils\Utils,
+    plugin\Plugin,
     plugin\PluginBase,
     level\format\Chunk};
 use Clouria\IslandArchitect\{
@@ -35,6 +37,7 @@ use Clouria\IslandArchitect\{
     events\TickTaskRegisterEvent,
     runtime\sessions\PlayerSession,
     runtime\TemplateIslandGenerator,
+    worldedit\buildertools\CustomPrinter,
     customized\skyblock\CustomSkyBlockCreateCommand};
 use function substr;
 use function strtolower;
@@ -180,7 +183,8 @@ class IslandArchitect extends PluginBase {
 		$class = IslandArchitectCommand::getClass();
 		$this->getServer()->getCommandMap()->register($this->getName(), new $class);
 
-		if (SkyBlock::getInstance() !== null and SkyBlock::getInstance()->isEnabled()) $this->initDependency();
+		if (class_exists(SkyBlock::class) and SkyBlock::getInstance()->isEnabled()) $this->initDependency(SkyBlock::getInstance());
+		if (class_exists(BuilderTools::class) and BuilderTools::getInstance()->isEnabled()) $this->initDependency(BuilderTools::getInstance());
 
 		$task = IslandArchitectPluginTickTask::getClass();
 		if (is_a($task, IslandArchitectPluginTickTask::class, true)) $task = new $task;
@@ -189,19 +193,34 @@ class IslandArchitect extends PluginBase {
 	}
 
     /**
+     * @param Plugin $pl
      * @internal
      */
-	public function initDependency() : void {
-	    $pl = SkyBlock::getInstance();
-	    $map = $pl->getCommandMap();
-	    $cmd = $map->getCommand('create');
-	    if ($cmd !== null) $pl->getCommandMap()->unregisterCommand($cmd->getName());
-	    $class = CustomSkyBlockCreateCommand::getClass();
-	    $map->registerCommand(new $class($map));
+	public function initDependency(Plugin $pl) : void {
+	    switch (true) {
+            case class_exists(BuilderTools::class) and $pl instanceof BuilderTools:
+                $class = CustomPrinter::getClass();
+                assert(is_a($class, CustomPrinter::class, true));
 
-	    $class = TemplateIslandGenerator::getClass();
-	    assert(is_a($class, TemplateIslandGenerator::class, true));
-	    $pl->getGeneratorManager()->registerGenerator($class::GENERATOR_NAME, TemplateIslandGenerator::getClass());
+                $reflect = new \ReflectionProperty(BuilderTools::class, 'editors');
+                $reflect->setAccessible(true);
+                $editors = $reflect->getValue(BuilderTools::class);
+                $editors['Printer'] = new $class;
+                $reflect->setValue(BuilderTools::class, $editors);
+                break;
+
+            case class_exists(SkyBlock::class) and $pl instanceof SkyBlock:
+                $map = $pl->getCommandMap();
+                $cmd = $map->getCommand('create');
+                if ($cmd !== null) $pl->getCommandMap()->unregisterCommand($cmd->getName());
+                $class = CustomSkyBlockCreateCommand::getClass();
+                $map->registerCommand(new $class($map));
+
+                $class = TemplateIslandGenerator::getClass();
+                assert(is_a($class, TemplateIslandGenerator::class, true));
+                $pl->getGeneratorManager()->registerGenerator($class::GENERATOR_NAME, TemplateIslandGenerator::getClass());
+                break;
+        }
     }
 
 	private function initConfig() : void {
@@ -210,9 +229,7 @@ class IslandArchitect extends PluginBase {
 		foreach ($all = $conf->getAll() as $k => $v) $conf->remove($k);
 
 		$conf->set('island-data-folder', Utils::cleanPath((string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/')));
-		$conf->set('panel-allow-unstable-item', (bool)($all['panel-allow-unstable-item'] ?? true));
 		$conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
-		$conf->set('enable-particles', (bool)($all['enable-particles'] ?? true));
 		$conf->set('island-creation-command-mapping', (array)($all['island-creation-command-mapping'] ?? [
 		    'generation-name-which-will-be' => 'exported-island-data-file.json',
             'use-in-island-creation-cmd' => 'relative-path/start-from/island-data-folder.json'
@@ -279,7 +296,7 @@ class IslandArchitect extends PluginBase {
         if ($is === null) return false;
         unset($this->chestqueue[$level->getId()]);
         $pos = $is->getChest();
-        $pos = $pos->add(0, $is->getYOffset(), 0);
+        $pos = $pos->add(0, $is->getYOffset());
         if ($chunk->getX() !== ($pos->getFloorX() >> 4) or $chunk->getZ() !== ($pos->getFloorZ() >> 4)) return false;
 
         $chest = Tile::createTile(Tile::CHEST, $level, Chest::createNBT($pos));

@@ -27,15 +27,15 @@ use room17\SkyBlock\{
 };
 
 use Clouria\IslandArchitect\{
+    customized\GetPrivateMethodClosureTrait,
     IslandArchitect,
-    customized\CustomizableClassTrait
-};
+    customized\CustomizableClassTrait};
 
 use function is_a;
 use function strtolower;
 
 class CustomSkyBlockCreateCommand extends CreateCommand {
-    use CustomizableClassTrait;
+    use CustomizableClassTrait, GetPrivateMethodClosureTrait;
 
     /**
      * @throws \ReflectionException
@@ -49,15 +49,6 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
             if (is_a($class, CustomSkyBlockIslandFactory::class, true)) $class::createIslandFor($session, $generator);
             $session->sendTranslatedMessage(new MessageContainer("SUCCESSFULLY_CREATED_A_ISLAND"));
         } else $session->sendTranslatedMessage(new MessageContainer("NOT_VALID_GENERATOR", ["name" => $generator]));
-    }
-
-    /**
-     * @throws \ReflectionException
-     */
-    protected function getPrivateMethodClosure(string $method) : \Closure {
-        $reflect = new \ReflectionMethod(CreateCommand::class, $method);
-        $reflect->setAccessible(true);
-        return $reflect->getClosure($this);
     }
 
 }

@@ -19,35 +19,34 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect;
 
+use room17\SkyBlock\SkyBlock;
+use czechpmdevs\buildertools\BuilderTools;
+use pocketmine\nbt\tag\{
+    IntTag,
+    ListTag,
+    CompoundTag};
 use pocketmine\{
     level\Position,
-    utils\TextFormat as TF
-};
-use pocketmine\nbt\tag\{
-    CompoundTag,
-    IntTag,
-    ListTag
-};
-use pocketmine\event\{
-    block\BlockBreakEvent,
-    block\BlockPlaceEvent,
-    entity\EntityExplodeEvent,
-    inventory\InventoryOpenEvent,
-    level\ChunkLoadEvent,
-    level\LevelSaveEvent,
-    Listener,
-    player\PlayerQuitEvent,
-    plugin\PluginEnableEvent};
-
-use room17\SkyBlock\SkyBlock;
-
+    utils\TextFormat as TF,
+    inventory\ChestInventory};
 use Clouria\IslandArchitect\{
-    customized\CustomizableClassTrait,
     runtime\RandomGeneration,
-    events\RandomGenerationBlockPlaceEvent,
-    runtime\sessions\IslandChestSession};
-use pocketmine\inventory\ChestInventory;
+    runtime\sessions\PlayerSession,
+    customized\CustomizableClassTrait,
+    runtime\sessions\IslandChestSession,
+    events\RandomGenerationBlockPlaceEvent};
+use pocketmine\event\{
+    Listener,
+    level\LevelSaveEvent,
+    level\ChunkLoadEvent,
+    block\BlockPlaceEvent,
+    block\BlockBreakEvent,
+    player\PlayerQuitEvent,
+    plugin\PluginEnableEvent,
+    entity\EntityExplodeEvent,
+    inventory\InventoryOpenEvent};
 use function assert;
+use function class_exists;
 
 class EventListener implements Listener {
     use CustomizableClassTrait;
@@ -89,13 +88,12 @@ class EventListener implements Listener {
 	 * @ignoreCancelled
 	 */
 	public function onBlockPlace(BlockPlaceEvent $ev) : void {
-		if (($s = IslandArchitect::getInstance()->getSession($ev->getPlayer())) === null or $s->getIsland() === null) return;
-
+	    $s = IslandArchitect::getInstance()->getSession($ev->getPlayer());
 		$item = $ev->getItem();
 		if (!($nbt = $item->getNamedTagEntry('IslandArchitect')) instanceof CompoundTag) return;
 		if (!($nbt = $nbt->getTag('random-generation', CompoundTag::class)) instanceof CompoundTag) return;
 		if (!($regex = $nbt->getTag('regex', ListTag::class)) instanceof ListTag) return;
-		if ($s::errorCheckOutRequired($s->getPlayer(), $s)) return;
+		if (PlayerSession::errorCheckOutRequired($ev->getPlayer(), $s)) return;
 		$regex = RandomGeneration::fromNBT($regex);
 		$e = new RandomGenerationBlockPlaceEvent($s, $regex, $ev->getBlock()->asPosition(), $item);
 		$e->call();
@@ -152,8 +150,8 @@ class EventListener implements Listener {
 	 */
 	public function onPluginEnable(PluginEnableEvent $ev) : void {
 	    $pl = $ev->getPlugin();
-	    if (!$pl instanceof SkyBlock) return;
-	    IslandArchitect::getInstance()->initDependency();
+	    if (class_exists(SkyBlock::class) and $pl instanceof SkyBlock) IslandArchitect::getInstance()->initDependency($pl);
+	    if (class_exists(BuilderTools::class) and $pl instanceof BuilderTools) IslandArchitect::getInstance()->initDependency($pl);
     }
 
     /**

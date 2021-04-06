@@ -21,9 +21,10 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
 use pocketmine\{
+    Server,
     item\Item,
-    block\Block,
     level\Level,
+    block\Block,
     math\Vector3,
     utils\Random};
 use Clouria\IslandArchitect\{
@@ -37,9 +38,11 @@ use function in_array;
 use function array_push;
 use function array_rand;
 use function var_export;
+use function array_keys;
 use function json_decode;
 use function json_encode;
 use function array_search;
+use function array_values;
 
 class TemplateIsland {
 
@@ -167,6 +170,36 @@ class TemplateIsland {
 	public function removeRandomById(int $id) : bool {
 		if (!isset($this->randoms[$id])) return false;
 		unset($this->randoms[$id]);
+		$this->randoms = array_values($this->randoms);
+		$blocks = $this->random_blocks;
+		foreach ($blocks as $pos => $rid) if ($rid === $id) {
+		    $remove[] = $pos;
+            unset($blocks[$pos]);
+        }
+		$this->random_blocks = $blocks;
+		$labels = $this->random_labels;
+		if (isset($labels[$id])) {
+		    unset($labels[$id]);
+		    $this->random_labels = array_values($labels);
+        }
+		$symbolic = $this->symbolic;
+		if (isset($symbolic[$id])) {
+		    unset($symbolic[$id]);
+		    $this->symbolic = array_values($symbolic);
+        }
+
+		while (($level = Server::getInstance()->getLevelByName($this->getLevel())) === null) {
+            if ($wlock ?? false) break;
+            Server::getInstance()->loadLevel($this->getLevel());
+            $wlock = true;
+        }
+        if ($level !== null) {
+            $block = Block::get(Item::AIR);
+            foreach ($remove ?? [] as $pos) {
+                $pos = explode(':', $pos);
+                $level->setBlock(new Vector3((int)$pos[0], (int)$pos[1], (int)$pos[2]), $block);
+            }
+        }
 		$this->changed = true;
 		return true;
 	}
@@ -190,9 +223,12 @@ class TemplateIsland {
 	 */
 	private $random_blocks = [];
 
-	/**
-	 * @see TemplateIsland::getRandomByVector3()
-	 */
+    /**
+     * @param Vector3 $block
+     * @param int|null $id
+     * @param RandomGenerationBlockPlaceEvent|null $event
+     * @see TemplateIsland::getRandomByVector3()
+     */
 	public function setBlockRandom(Vector3 $block, ?int $id, ?RandomGenerationBlockPlaceEvent $event = null) : void {
 		$ev = new RandomGenerationBlockUpdateEvent($block, $id, $event);
 		$ev->call();
@@ -202,9 +238,11 @@ class TemplateIsland {
 		$this->changed = true;
 	}
 
-	/**
-	 * @see TemplateIsland::setBlockRandom()
-	 */
+    /**
+     * @param Vector3 $block
+     * @return int|null
+     * @see TemplateIsland::setBlockRandom()
+     */
 	public function getRandomByVector3(Vector3 $block) : ?int {
 		return $this->random_blocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()] ?? null;
 	}
@@ -345,10 +383,12 @@ class TemplateIsland {
 		else $data['chest'] = null;
 		$data['random_blocks'] = $this->random_blocks;
 		$data['random_labels'] = $this->random_labels;
+		$data['symbolic'] = [];
 		foreach ($this->symbolic as $regexid => $symbolic) {
 			$symbolic = $symbolic[0] . (isset($symbolic[1]) ? ':' . $symbolic[1] : '');
 			$data['symbolic'][$regexid] = $symbolic;
 		}
+		$data['randoms'] = [];
 		foreach ($this->randoms as $regexid => $random) {
 			$elements = $random->getAllElements();
 			if (empty($elements)) $data['randoms'][$regexid] = ['blockid:meta' => 'chance'];
@@ -391,7 +431,7 @@ class TemplateIsland {
                     $by = $y - $ly;
                     $coord = $wx . ':' . $y . ':' . $wz;
                     $bcoord = $bx . ':' . $by . ':' . $bz;
-                    if (isset($this->random_blocks[$coord])) {
+                    if (isset($this->random_blocks[$coord]) and ($this->randoms[$this->random_blocks[$coord]]->getAllElements()) > 1) {
                         $id = $this->random_blocks[$coord];
                         if (($r = $this->getRandomById($this->random_blocks[$coord])) === null) continue;
                         if (!$r->isValid()) continue;
@@ -399,13 +439,13 @@ class TemplateIsland {
                         else $id = $usedrandoms[$i];
                         $data['structure'][$bcoord] = '1:' . $id;
                     } else {
-                        $data['structure'][$bcoord] = '0:' . $id;
+                        $data['structure'][$bcoord] = '0:' . (isset($this->random_blocks[$coord]) ? array_keys($this->randoms[$this->random_blocks[$coord]]->getAllElements())[0] : $id);
                         $meta = $chunk->getBlockData($x & 0x0f, $y, $z & 0x0f);
-                        if ($meta !== Item::AIR) $data['structure'][$bcoord] .= $meta;
+                        if ($meta !== Item::AIR) $data['structure'][$bcoord] .= ':' . $meta; // Lmao I didn't found this error for like 7 versions
                     }
                 }
             }
-            unset($chunks[$hash]);
+            unset($chunks[$hash], $wx, $wz, $x, $y, $z);
 		}
 
 		if (!empty($usedrandoms ?? [])) foreach ($this->randoms as $id => $random) if (in_array($id, $usedrandoms)) {

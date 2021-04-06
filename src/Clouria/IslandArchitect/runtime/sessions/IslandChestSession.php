@@ -20,13 +20,12 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime\sessions;
 
 
-use pocketmine\{
-    Player,
-    item\Item
-};
-
-use muqsit\invmenu\InvMenu;
-use room17\SkyBlock\SkyBlock;
+use room17\SkyBlock\{
+    SkyBlock};
+use muqsit\invmenu\{
+    InvMenu,
+    transaction\InvMenuTransaction,
+    transaction\InvMenuTransactionResult};
 
 class IslandChestSession {
 
@@ -38,6 +37,14 @@ class IslandChestSession {
      * @var InvMenu
      */
     private $menu;
+    /**
+     * @var \Closure|null
+     */
+    private $callback;
+    /**
+     * @var bool
+     */
+    private $changed = false;
 
     /**
      * IslandChestSession constructor.
@@ -45,38 +52,24 @@ class IslandChestSession {
      * @param \Closure|null $callback
      */
     public function __construct(PlayerSession $session, ?\Closure $callback = null) {
-        return; // TODO: Keep working on in 1.2.2 or futher versions
+        return; // TODO: Wait until the rich customization release
         if ($session->getIsland() === null) throw new \RuntimeException('Target session hasn\'t check out an island');
-		$this->session = $session;
-		$this->callback = $callback;
-        if (self::errorInvMenuNotInstalled($session->getPlayer())) return;
+        $this->session = $session;
+        $this->callback = $callback;
 
-		if (!isset($this->menu)) $this->menu = InvMenu::create(InvMenu::TYPE_CHEST);
-		$this->menu->setInventoryCloseListener(\Closure::fromCallable([$this, 'closeCallback']));
-		$this->putDefaultItems();
-		$this->menu->send($session->getPlayer());
-		$this->menu->getInventory()->sendContents($session->getPlayer());
+        if (!isset($this->menu)) $this->menu = InvMenu::create(InvMenu::TYPE_CHEST);
+        $this->menu->setListener(function(InvMenuTransaction $transaction) : InvMenuTransactionResult {
+            $this->changed = true;
+            return $transaction->continue();
+        });
+        $this->menu->setInventoryCloseListener(\Closure::fromCallable([$this, 'closeCallback']));
+        $this->putDefaultItems();
+        $this->menu->send($session->getPlayer());
+        $this->menu->getInventory()->sendContents($session->getPlayer());
     }
 
     protected function putDefaultItems() : void {
         foreach (SkyBlock::getInstance()->getSettings()->getChestContentByGenerator($this->getSession()->getIsland()->getName()) as $slot => $item) $this->menu->getInventory()->setItem($slot, $item, false);
-    }
-
-    protected function closeCallback() : void {
-        $slottrack = 1;
-        foreach ($this->menu->getInventory()->getContents(true) as $slot => $item) {
-            for ($i=$slottrack; $i < $slot; $i++) $contents[] = (string)Item::AIR;
-            $contents[] = $item->getId() . ', ' . $item->getDamage() . ', ' . $item->getCount();
-            $slottrack++;
-        }
-        $reflect = new \ReflectionProperty($class = SkyBlock::getInstance()->getSettings(), 'generatorChestContent');
-        $reflect->setAccessible(true);
-        $map = $reflect->getValue($class);
-        $map[$this->getSession()->getIsland()->getName()] = $contents;
-        $reflect->setValue($class, $map);
-
-        $reflect = new \ReflectionProperty($class, 'config');
-        $reflect->getValue($class)->save();
     }
 
     /**
@@ -86,7 +79,27 @@ class IslandChestSession {
         return $this->session;
     }
 
-    public static function errorInvMenuNotInstalled(Player $player) : bool {
-        return InvMenuSession::errorInvMenuNotInstalled($player);
+    /**
+     * @return InvMenu
+     */
+    public function getMenu() : InvMenu {
+        return $this->menu;
+    }
+
+    /**
+     * @return \Closure|null
+     */
+    public function getCallback() : ?\Closure {
+        return $this->callback;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isChanged() : bool {
+        return $this->changed;
+    }
+
+    protected function closeCallback() : void {
     }
 }

@@ -27,8 +27,8 @@ use pocketmine\{
     math\Vector3,
     scheduler\Task,
     math\AxisAlignedBB,
-    utils\TextFormat as TF,
-    level\particle\RedstoneParticle};
+    utils\TextFormat as TF
+};
 
 class IslandArchitectPluginTickTask extends Task {
     use CustomizableClassTrait;
@@ -68,39 +68,23 @@ class IslandArchitectPluginTickTask extends Task {
             ) $s->hideFloatingText($s::FLOATINGTEXT_SPAWN);
             else $s->showFloatingText($s::FLOATINGTEXT_SPAWN);
 
-            // Draw island area outline
+            // Island start coord floating text
             if (
-                $sc !== null and
-                $ec !== null and
-                $s->getPlayer()->getLevel()->getFolderName() === $is->getLevel() and
-                (bool)IslandArchitect::getInstance()->getConfig()->get('enable-particles')
-            ) {
-                $bb = new AxisAlignedBB(
-                    min($sc->getFloorX(), $ec->getFloorX()),
-                    min($sc->getFloorY(), $ec->getFloorY()),
-                    min($sc->getFloorZ(), $ec->getFloorZ()),
-                    max($sc->getFloorX(), $ec->getFloorX()),
-                    max($sc->getFloorY(), $ec->getFloorY()),
-                    max($sc->getFloorZ(), $ec->getFloorZ())
-                );
-                $bb->offset(0.5, 0.5, 0.5);
-                $bb->expand(0.5, 0.5, 0.5);
-                for ($x = $bb->minX; $x <= $bb->maxX; ++$x)
-                for ($y = $bb->minY; $y <= $bb->maxY; ++$y)
-                for ($z = $bb->minZ; $z <= $bb->maxZ; ++$z) {
-                    if (!$dbb->isVectorInside(new Vector3((int)$x >> 4, (int)$y >> 4, (int)$z >> 4))) continue;
-                    if (
-                        $x !== $bb->minX and
-                        $y !== $bb->minY and
-                        $z !== $bb->minZ and
-                        $x !== $bb->maxX and
-                        $y !== $bb->maxY and
-                        $z !== $bb->maxZ
-                    ) continue;
-                    $s->getPlayer()->getLevel()->addParticle(new RedstoneParticle(new Vector3($x, $y, $z), 10),
-                        [$s->getPlayer()]);
-                }
-            }
+                $sc === null or $is->getLevel() !== $s->getPlayer()->getLevel()->getFolderName() or
+                !$dbb->isVectorInside(new Vector3((int)$sc->getFloorX() >> 4, (int)$sc->getFloorY() >> 4, (int)
+                    $sc->getFloorZ() >>
+                    4))
+            ) $s->hideFloatingText($s::FLOATINGTEXT_STARTCOORD);
+            else $s->showFloatingText($s::FLOATINGTEXT_STARTCOORD);
+
+            // Island end coord floating text
+            if (
+                $ec === null or $is->getLevel() !== $s->getPlayer()->getLevel()->getFolderName() or
+                !$dbb->isVectorInside(new Vector3((int)$ec->getFloorX() >> 4, (int)$ec->getFloorY() >> 4, (int)
+                    $ec->getFloorZ() >>
+                    4))
+            ) $s->hideFloatingText($s::FLOATINGTEXT_ENDCOORD);
+            else $s->showFloatingText($s::FLOATINGTEXT_ENDCOORD);
         }
     }
 
