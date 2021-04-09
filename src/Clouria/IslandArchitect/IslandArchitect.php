@@ -32,7 +32,6 @@ use pocketmine\{
 use Clouria\IslandArchitect\{
     events\TickTaskRegisterEvent,
     runtime\sessions\PlayerSession,
-    runtime\TemplateIslandGenerator,
     worldedit\buildertools\CustomPrinter,
     customized\skyblock\CustomSkyBlockCreateCommand
 };
@@ -172,22 +171,18 @@ class IslandArchitect extends PluginBase {
 	}
 
 	public function onEnable() : void {
-		$this->initConfig();
-		if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
-		$class = EventListener::getClass();
-		$this->getServer()->getPluginManager()->registerEvents(new $class, $this);
+        $this->initConfig();
+        if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
+        $this->getServer()->getPluginManager()->registerEvents(new EventListener, $this);
 
-		$class = IslandArchitectCommand::getClass();
-		$this->getServer()->getCommandMap()->register($this->getName(), new $class);
+        $this->getServer()->getCommandMap()->register($this->getName(), new IslandArchitectCommand);
 
-		if (class_exists(SkyBlock::class) and SkyBlock::getInstance()->isEnabled()) $this->initDependency(SkyBlock::getInstance());
-		if (class_exists(BuilderTools::class) and BuilderTools::getInstance()->isEnabled()) $this->initDependency(BuilderTools::getInstance());
+        if (class_exists(SkyBlock::class) and SkyBlock::getInstance()->isEnabled()) $this->initDependency(SkyBlock::getInstance());
+        if (class_exists(BuilderTools::class) and BuilderTools::getInstance()->isEnabled()) $this->initDependency(BuilderTools::getInstance());
 
-		$task = IslandArchitectPluginTickTask::getClass();
-		if (is_a($task, IslandArchitectPluginTickTask::class, true)) $task = new $task;
-		$ev = new TickTaskRegisterEvent($task, 10);
-		$this->getScheduler()->scheduleRepeatingTask($ev->getTask(), $ev->getPeriod());
-	}
+        $ev = new TickTaskRegisterEvent(new IslandArchitectPluginTickTask, 10);
+        $this->getScheduler()->scheduleRepeatingTask($ev->getTask(), $ev->getPeriod());
+    }
 
     /**
      * @param Plugin $pl
@@ -196,13 +191,10 @@ class IslandArchitect extends PluginBase {
 	public function initDependency(Plugin $pl) : void {
 	    switch (true) {
             case class_exists(BuilderTools::class) and $pl instanceof BuilderTools:
-                $class = CustomPrinter::getClass();
-                assert(is_a($class, CustomPrinter::class, true));
-
                 $reflect = new \ReflectionProperty(BuilderTools::class, 'editors');
                 $reflect->setAccessible(true);
                 $editors = $reflect->getValue(BuilderTools::class);
-                $editors['Printer'] = new $class;
+                $editors['Printer'] = new CustomPrinter;
                 $reflect->setValue(BuilderTools::class, $editors);
                 break;
 
@@ -210,12 +202,9 @@ class IslandArchitect extends PluginBase {
                 $map = $pl->getCommandMap();
                 $cmd = $map->getCommand('create');
                 if ($cmd !== null) $pl->getCommandMap()->unregisterCommand($cmd->getName());
-                $class = CustomSkyBlockCreateCommand::getClass();
-                $map->registerCommand(new $class($map));
+                $map->registerCommand(new CustomSkyBlockCreateCommand($map));
 
-                $class = TemplateIslandGenerator::getClass();
-                assert(is_a($class, TemplateIslandGenerator::class, true));
-                $pl->getGeneratorManager()->registerGenerator($class::GENERATOR_NAME, TemplateIslandGenerator::getClass());
+                $pl->getGeneratorManager()->registerGenerator(ApiMap::getInstance()->getTemplateIslandGeneratorClass()::GENERATOR_NAME, ApiMap::getInstance()->getTemplateIslandGeneratorClass());
                 break;
         }
     }
@@ -253,7 +242,7 @@ class IslandArchitect extends PluginBase {
 	    if (
             !(file_exists($type = Utils::cleanPath($type))) and
             !file_exists($type = Utils::cleanPath(
-                (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/') .
+                ($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/') .
                 $type . (strtolower(substr($type, -5)) === '.json' ? '' : '.json')
             ))) $type = null;
 	    return $type;

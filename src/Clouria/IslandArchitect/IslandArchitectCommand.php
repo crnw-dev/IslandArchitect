@@ -34,14 +34,12 @@ use Clouria\IslandArchitect\{
     runtime\RandomGeneration,
     conversion\IslandDataLoadTask,
     runtime\sessions\PlayerSession,
-    customized\CustomizableClassTrait,
     events\TemplateIslandCheckOutEvent
 };
 use function strtolower;
 use function class_exists;
 
 class IslandArchitectCommand extends Command {
-    use CustomizableClassTrait;
 
     public function __construct() {
         parent::__construct('island-architect', 'Command of the IslandArchitect plugin', '/island-architect help', ['ia', 'isarch']);
@@ -214,13 +212,20 @@ class IslandArchitectCommand extends Command {
                     $sender->sendMessage(TF::BOLD . TF::RED . 'Please enter a valid level name as argument or teleport to another world before running this command!');
                     break;
                 }
-                // TODO: Add confirmation form
-                $is->setLevel($level);
-                $is->setStartCoord(null);
-                $is->setEndCoord(null);
-                $is->setSpawn(null);
-                $is->setYOffset(null);
-                $sender->sendMessage(TF::YELLOW . 'Island level set to ' . TF::GOLD . '"' . $level . '"');
+                $form = new ModalForm(function(Player $p, bool $d) use ($is, $level, $sender) : void {
+                    if (!$d) return;
+                    $is->setLevel($level);
+                    $is->setStartCoord(null);
+                    $is->setEndCoord(null);
+                    $is->setSpawn(null);
+                    $is->setYOffset(null);
+                    $sender->sendMessage(TF::YELLOW . 'Island level set to ' . TF::GOLD . '"' . $level . '"');
+                });
+                $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Change Confirmation');
+                $form->setContent(TF::YELLOW . 'All the other settings of the template island will be ' . TF::BOLD . TF::RED . 'reset' . TF::RESET . TF::YELLOW . ' after changing island level, are you sure to proceed?');
+                $form->setButton1('gui.yes');
+                $form->setButton2('gui.no');
+                $sender->sendForm($form);
                 break;
 
             case 'yoffset':

@@ -386,7 +386,7 @@ class PlayerSession {
             $item = Item::get((int)$element[0], (int)$element[1]);
             $form->addButton(TF::DARK_BLUE . $item->getVanillaName() . ' (' . $element[0] . ':' . $element[1] . ') ' . "\n" . TF::BLUE . ' Chance: ' . $chance . ' (' .
 
-            $chance . ' / ' . ($totalchanceNonZero = $totalchance == 0 ? (int)$chance : $totalchance) . ', ' . round((int)$chance / $totalchanceNonZero * 100, 2) . '%%)');
+                $chance . ' / ' . ($totalchanceNonZero = $totalchance == 0 ? $chance : $totalchance) . ', ' . round($chance / $totalchanceNonZero * 100, 2) . '%%)');
         }
         $form->addButton(TF::BOLD . TF::DARK_GREEN . 'Add Element');
         $this->getPlayer()->sendForm($form);
@@ -403,11 +403,11 @@ class PlayerSession {
             $meta = (int)$d[1];
             $chance = (int)$d[class_exists(InvMenu::class) ? 3 : 2];
             $regex->setElementChance($id, $meta, $chance < 1 ? 0 : $chance);
-            if (class_exists(InvMenu::class) and (bool)$d[2]) {
+            if (class_exists(InvMenu::class) and $d[2]) {
                 new SubmitBlockSession($this, function(Item $item) use ($regex, $id, $meta) : void {
                     if ($item->getId() !== Item::AIR) {
                         if ($item->getBlock()->getId() === Item::AIR) {
-                            $this->errorInvalidBlock(function(Player $p, bool $d) use ($regex, $id, $meta)  : void {
+                            $this->errorInvalidBlock(function(Player $p, bool $d) use ($regex, $id, $meta) : void {
                                 $this->editRandomElement($regex, $id, $meta);
                             });
                             return;
@@ -419,7 +419,7 @@ class PlayerSession {
                         $regex->setElementChance($id, $meta, $chance);
                     }
                     $this->editRandomElement($regex, $id, $meta);
-                }, Item::get($id, $meta, min(max(1, (int)$chance), 64)));
+                }, Item::get($id, $meta, min(max(1, $chance), 64)));
             } else $this->editRandomElement($regex, $id, $meta);
         });
         $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Edit Element');
@@ -427,10 +427,10 @@ class PlayerSession {
         $form->addInput(TF::AQUA . 'Meta', (string)$meta, (string)$meta);
         if (class_exists(InvMenu::class)) $form->addToggle(TF::GREEN . 'Open submit block panel');
         $chance = $regex->getElementChance($id, $meta);
-        $form->addInput(TF::BOLD . TF::GOLD . 'Chance' . ((int)$chance > 0 ? TF::YELLOW . TF::ITALIC . ' (' .
+        $form->addInput(TF::BOLD . TF::GOLD . 'Chance' . ($chance > 0 ? TF::YELLOW . TF::ITALIC . ' (' .
 
-            $chance . ' / ' . ($totalchanceNonZero = ($totalchance = $regex->getTotalChance()) == 0 ? (int)$chance : $totalchance) . ', ' . round((int)$chance / $totalchanceNonZero * 100, 2) . '%%)' :
-            TF::RED . TF::ITALIC . ' (ELEMENT REMOVED, make the chance higher than 0 to keep this element)'
+                $chance . ' / ' . ($totalchanceNonZero = ($totalchance = $regex->getTotalChance()) == 0 ? $chance : $totalchance) . ', ' . round($chance / $totalchanceNonZero * 100, 2) . '%%)' :
+                TF::RED . TF::ITALIC . ' (ELEMENT REMOVED, make the chance higher than 0 to keep this element)'
             ),
 
             (string)$chance, (string)$chance);

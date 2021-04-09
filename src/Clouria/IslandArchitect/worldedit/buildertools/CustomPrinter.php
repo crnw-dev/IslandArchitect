@@ -20,53 +20,52 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\worldedit\buildertools;
 
+use czechpmdevs\buildertools\{
+    utils\Math,
+    editors\Printer
+};
 use pocketmine\{
-    block\Block,
-    level\Position,
-    math\Vector3,
-    nbt\tag\CompoundTag,
-    nbt\tag\IntTag,
-    nbt\tag\ListTag,
     Player,
+    block\Block,
+    math\Vector3,
+    nbt\tag\IntTag,
+    level\Position,
+    nbt\tag\ListTag,
+    nbt\tag\CompoundTag,
     utils\TextFormat as TF
 };
-
-use czechpmdevs\buildertools\{
-    editors\Printer,
-    utils\Math};
-
 use Clouria\IslandArchitect\{
-    customized\CustomizableClassTrait,
-    customized\GetPrivateMethodClosureTrait,
-    events\RandomGenerationBlockPaintEvent,
     IslandArchitect,
     runtime\RandomGeneration,
-    runtime\sessions\PlayerSession};
+    runtime\sessions\PlayerSession,
+    events\RandomGenerationBlockPaintEvent,
+    customized\GetPrivateMethodClosureTrait
+};
 
 class CustomPrinter extends Printer {
-    use CustomizableClassTrait, GetPrivateMethodClosureTrait;
+    use GetPrivateMethodClosureTrait;
 
     public function draw(Player $player, Position $center, Block $block, int $brush = 4, int $mode = 0x00, bool $fall = false) {
         $item = $player->getInventory()->getItemInHand();
-		if (
-		    !($nbt = $item->getNamedTagEntry('IslandArchitect')) instanceof CompoundTag or
+        if (
+            !($nbt = $item->getNamedTagEntry('IslandArchitect')) instanceof CompoundTag or
             !($nbt = $nbt->getTag('random-generation', CompoundTag::class)) instanceof CompoundTag or
             !($regex = $nbt->getTag('regex', ListTag::class)) instanceof ListTag
         ) {
-		    parent::draw($player, $center, $block, $brush, $mode, $fall);
-		    return;
+            parent::draw($player, $center, $block, $brush, $mode, $fall);
+            return;
         }
-		$s = IslandArchitect::getInstance()->getSession($player);
+        $s = IslandArchitect::getInstance()->getSession($player);
         if (PlayerSession::errorCheckOutRequired($player, $s)) return;
         if ($s->getIsland()->getLevel() !== $player->getLevel()->getFolderName()) {
             $player->sendMessage(TF::BOLD . TF::RED . 'You can only place random generation blocks in the same world as the island: ' . $s->getIsland()->getLevel());
             return;
         } else $s->getIsland()->setLevel($player->getLevel()->getFolderName());
 
-		parent::draw($player, $center, $block, $brush, $mode, $fall);
+        parent::draw($player, $center, $block, $brush, $mode, $fall);
 
-		$s = IslandArchitect::getInstance()->getSession($player);
-		$regex = RandomGeneration::fromNBT($regex);
+        $s = IslandArchitect::getInstance()->getSession($player);
+        $regex = RandomGeneration::fromNBT($regex);
 
         // TODO: Allow removing random generation blocks with the undo command
         // $undoList = new BlockList;
@@ -76,19 +75,19 @@ class CustomPrinter extends Printer {
         $center = Math::roundPosition($center);
         switch ($mode) {
             case self::CUBE:
-                for ($x = $center->getX()-$brush; $x <= $center->getX()+$brush; $x++)
-                for ($y = $center->getY()-$brush; $y <= $center->getY()+$brush; $y++)
-                for ($z = $center->getZ()-$brush; $z <= $center->getZ()+$brush; $z++) {
-                    if(!$fall) {
-                        if($y > 0) {
-                            $array[] = new Vector3($x, $y, $z);
-                            // $undoList->addBlock(new Vector3($x, $y, $z), $block);
-                        }
-                    }/* else {
+                for ($x = $center->getX() - $brush; $x <= $center->getX() + $brush; $x++)
+                    for ($y = $center->getY() - $brush; $y <= $center->getY() + $brush; $y++)
+                        for ($z = $center->getZ() - $brush; $z <= $center->getZ() + $brush; $z++) {
+                            if (!$fall) {
+                                if ($y > 0) {
+                                    $array[] = new Vector3($x, $y, $z);
+                                    // $undoList->addBlock(new Vector3($x, $y, $z), $block);
+                                }
+                            }/* else {
                         $finalPos = $this->throwBlock(new Position($x, $y, $z, $center->getLevel()), $block);
                         $undoList->addBlock($finalPos, $block);
                     }*/
-                }
+                        }
                 break;
 
             case self::SPHERE:
@@ -116,13 +115,13 @@ class CustomPrinter extends Printer {
         }
 
         $e = new RandomGenerationBlockPaintEvent($s, $regex, $array ?? [], $item);
-		$e->call();
-		if ($e->isCancelled()) return;
-		if (!($regexid = $nbt->getTag('regexid', IntTag::class)) instanceof IntTag) {
-		    foreach ($s->getIsland()->getRandoms() as $i => $sr) if ($sr->equals($regex)) $regexid = $i;
-		    if ($regexid === null) $regexid = $s->getIsland()->addRandom($regex);
+        $e->call();
+        if ($e->isCancelled()) return;
+        if (!($regexid = $nbt->getTag('regexid', IntTag::class)) instanceof IntTag) {
+            foreach ($s->getIsland()->getRandoms() as $i => $sr) if ($sr->equals($regex)) $regexid = $i;
+            if ($regexid === null) $regexid = $s->getIsland()->addRandom($regex);
         }
-		foreach ($e->getBlocks() as $vec) $s->getIsland()->setBlockRandom($vec, $regexid);
+        foreach ($e->getBlocks() as $vec) $s->getIsland()->setBlockRandom($vec, $regexid);
     }
 
 }

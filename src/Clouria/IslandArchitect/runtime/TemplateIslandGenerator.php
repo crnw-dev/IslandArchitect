@@ -25,11 +25,9 @@ use pocketmine\{
     item\Item,
     level\Level,
     math\Vector3};
-use Clouria\IslandArchitect\customized\CustomizableClassTrait;
 use function unserialize;
 
 class TemplateIslandGenerator extends IslandGenerator {
-    use CustomizableClassTrait;
 
     public const GENERATOR_NAME = 'templateislandgenerator';
 

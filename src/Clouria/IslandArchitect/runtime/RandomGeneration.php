@@ -20,21 +20,19 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\runtime;
 
 use pocketmine\{
-	item\Item,
-	utils\Random,
-	utils\TextFormat as TF
+    item\Item,
+    utils\Random,
+    utils\TextFormat as TF
 };
 use pocketmine\nbt\tag\{
-	ListTag,
-	ShortTag,
-	ByteTag,
-	CompoundTag
+    ListTag,
+    ByteTag,
+    ShortTag,
+    CompoundTag
 };
-
-use function explode;
 use function asort;
+use function explode;
 use function array_values;
-
 use const SORT_NUMERIC;
 
 class RandomGeneration {
@@ -148,15 +146,15 @@ class RandomGeneration {
 	public function getRandomGenerationItem(Item $item, ?int $regexid = null) : Item {
 		$totalchance = $this->getTotalChance();
 		foreach ($this->getAllElements() as $block => $chance) {
-			$block = explode(':', $block);
-			$regex[] = new CompoundTag('', [
-				new ShortTag('id', (int)$block[0]),
-				new ByteTag('meta', (int)($block[1] ?? 0)),
-				new ShortTag('chance', (int)$chance)
-			]);
-			$bi = Item::get((int)$block[0], (int)($block[1] ?? 0));
-			$blockslore[] = $bi->getName() . ' (' . $bi->getId() . ':' . $bi->getDamage() . '): ' . TF::BOLD . TF::GREEN . $chance . TF::ITALIC . ' (' . round((int)$chance / ($totalchance ?? (int)$chance) * 100, 2) . '%%)';
-		}
+            $block = explode(':', $block);
+            $regex[] = new CompoundTag('', [
+                new ShortTag('id', (int)$block[0]),
+                new ByteTag('meta', (int)($block[1] ?? 0)),
+                new ShortTag('chance', $chance)
+            ]);
+            $bi = Item::get((int)$block[0], (int)($block[1] ?? 0));
+            $blockslore[] = $bi->getName() . ' (' . $bi->getId() . ':' . $bi->getDamage() . '): ' . TF::BOLD . TF::GREEN . $chance . TF::ITALIC . ' (' . round($chance / ($totalchance ?? $chance) * 100, 2) . '%%)';
+        }
 		$i = $item;
 		$i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . 'Random generation' . (!empty($blockslore ?? []) ? ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $blockslore ?? []) : ''));
 		$tag = new CompoundTag('IslandArchitect', [new CompoundTag('random-generation', [

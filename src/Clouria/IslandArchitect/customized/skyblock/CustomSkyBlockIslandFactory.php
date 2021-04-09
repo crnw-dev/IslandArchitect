@@ -28,20 +28,20 @@ use room17\SkyBlock\{
     island\RankIds,
     session\Session,
     island\IslandFactory,
-    event\island\IslandCreateEvent};
+    event\island\IslandCreateEvent
+};
 use Clouria\IslandArchitect\{
+    ApiMap,
     IslandArchitect,
     runtime\TemplateIsland,
     conversion\IslandDataLoadTask,
-    runtime\TemplateIslandGenerator,
-    events\IslandWorldPreCreateEvent,
-    customized\CustomizableClassTrait};
+    events\IslandWorldPreCreateEvent
+};
 use function uniqid;
 use function microtime;
 use function serialize;
 
 class CustomSkyBlockIslandFactory extends IslandFactory {
-    use CustomizableClassTrait; // TODO: Deprecate the current way of customizable class, register the classes and use event instead
 
     public static function createIslandFor(Session $session, string $type): void {
         $mapped = IslandArchitect::getInstance()->mapGeneratorType($type);
@@ -59,10 +59,8 @@ class CustomSkyBlockIslandFactory extends IslandFactory {
         static::createTemplateIslandWorldAsync($identifier, $type, function(Level $w) use
         ($session, $islandManager, $identifier) : void {
             if (!$session->getPlayer()->isOnline()) return;
-            $class = TemplateIslandGenerator::getClass();
-            assert(is_a($class, TemplateIslandGenerator::class, true));
-            $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, $class::GENERATOR_NAME,
-            $w, 0);
+            $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, ApiMap::getInstance()->getTemplateIslandGeneratorClass()::GENERATOR_NAME,
+                $w, 0);
 
             $session->setIsland($island = $islandManager->getIsland($identifier));
             $session->setRank(RankIds::FOUNDER);
@@ -86,7 +84,7 @@ class CustomSkyBlockIslandFactory extends IslandFactory {
         ($identifier, $callback) : void {
             $settings = ['preset' => serialize([$is->exportRaw()])];
             Server::getInstance()->generateLevel($identifier,
-null, TemplateIslandGenerator::getClass(), $settings ?? []);
+                null, ApiMap::getInstance()->getTemplateIslandGeneratorClass()::class, $settings ?? []);
             Server::getInstance()->loadLevel($identifier);
             $level = Server::getInstance()->getLevelByName($identifier);
 

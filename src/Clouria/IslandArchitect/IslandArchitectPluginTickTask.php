@@ -21,7 +21,6 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect;
 
 
-use Clouria\IslandArchitect\customized\CustomizableClassTrait;
 use pocketmine\{
     level\Level,
     math\Vector3,
@@ -31,9 +30,8 @@ use pocketmine\{
 };
 
 class IslandArchitectPluginTickTask extends Task {
-    use CustomizableClassTrait;
 
-    public function onRun(int $ct) : void {
+    public function onRun(int $currentTick) : void {
         foreach (IslandArchitect::getInstance()->getSessions() as $s) if (($is = $s->getIsland()) !== null) {
             $sb = $s->getPlayer()->getTargetBlock(12);
             $sc = $is->getStartCoord();
@@ -58,8 +56,7 @@ class IslandArchitectPluginTickTask extends Task {
             $spawn = $is->getSpawn();
             if (
                 $spawn === null or $is->getLevel() !== $s->getPlayer()->getLevel()->getFolderName() or
-                !$dbb->isVectorInside(new Vector3((int)$spawn->getFloorX() >> 4, (int)$spawn->getFloorY() >> 4, (int)
-                    $spawn->getFloorZ() >>
+                !$dbb->isVectorInside(new Vector3($spawn->getFloorX() >> 4, $spawn->getFloorY() >> 4, $spawn->getFloorZ() >>
                     4))
             ) $s->hideFloatingText($s::FLOATINGTEXT_SPAWN);
             else $s->showFloatingText($s::FLOATINGTEXT_SPAWN);
@@ -67,8 +64,7 @@ class IslandArchitectPluginTickTask extends Task {
             // Island start coord floating text
             if (
                 $sc === null or $is->getLevel() !== $s->getPlayer()->getLevel()->getFolderName() or
-                !$dbb->isVectorInside(new Vector3((int)$sc->getFloorX() >> 4, (int)$sc->getFloorY() >> 4, (int)
-                    $sc->getFloorZ() >>
+                !$dbb->isVectorInside(new Vector3($sc->getFloorX() >> 4, $sc->getFloorY() >> 4, $sc->getFloorZ() >>
                     4))
             ) $s->hideFloatingText($s::FLOATINGTEXT_STARTCOORD);
             else $s->showFloatingText($s::FLOATINGTEXT_STARTCOORD);
@@ -76,8 +72,7 @@ class IslandArchitectPluginTickTask extends Task {
             // Island end coord floating text
             if (
                 $ec === null or $is->getLevel() !== $s->getPlayer()->getLevel()->getFolderName() or
-                !$dbb->isVectorInside(new Vector3((int)$ec->getFloorX() >> 4, (int)$ec->getFloorY() >> 4, (int)
-                    $ec->getFloorZ() >>
+                !$dbb->isVectorInside(new Vector3($ec->getFloorX() >> 4, $ec->getFloorY() >> 4, $ec->getFloorZ() >>
                     4))
             ) $s->hideFloatingText($s::FLOATINGTEXT_ENDCOORD);
             else $s->showFloatingText($s::FLOATINGTEXT_ENDCOORD);

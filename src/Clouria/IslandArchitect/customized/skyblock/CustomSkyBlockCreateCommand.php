@@ -19,34 +19,31 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\customized\skyblock;
 
+use Clouria\IslandArchitect\{
+    ApiMap,
+    IslandArchitect,
+    customized\GetPrivateMethodClosureTrait
+};
 use room17\SkyBlock\{
-    command\presets\CreateCommand,
-    session\Session,
     SkyBlock,
+    session\Session,
+    command\presets\CreateCommand,
     utils\message\MessageContainer
 };
-
-use Clouria\IslandArchitect\{
-    customized\GetPrivateMethodClosureTrait,
-    IslandArchitect,
-    customized\CustomizableClassTrait};
-
-use function is_a;
 use function strtolower;
 
 class CustomSkyBlockCreateCommand extends CreateCommand {
-    use CustomizableClassTrait, GetPrivateMethodClosureTrait;
+    use GetPrivateMethodClosureTrait;
 
     /**
      * @throws \ReflectionException
      */
-    public function onCommand(Session $session, array $args): void {
-        if($this->getPrivateMethodClosure('checkIslandAvailability')($session) or $this->getPrivateMethodClosure('checkIslandCreationCooldown')($session)) return;
+    public function onCommand(Session $session, array $args) : void {
+        if ($this->getPrivateMethodClosure('checkIslandAvailability')($session) or $this->getPrivateMethodClosure('checkIslandCreationCooldown')($session)) return;
 
         $generator = strtolower($args[0] ?? "Shelly");
-        if((SkyBlock::getInstance()->getGeneratorManager()->isGenerator($generator) or IslandArchitect::getInstance()->mapGeneratorType($generator) !== null) and $this->getPrivateMethodClosure('hasPermission')($session, $generator)) {
-            $class = CustomSkyBlockIslandFactory::getClass();
-            if (is_a($class, CustomSkyBlockIslandFactory::class, true)) $class::createIslandFor($session, $generator);
+        if ((SkyBlock::getInstance()->getGeneratorManager()->isGenerator($generator) or IslandArchitect::getInstance()->mapGeneratorType($generator) !== null) and $this->getPrivateMethodClosure('hasPermission')($session, $generator)) {
+            ApiMap::getInstance()->getCustomIslandFactoryInstance()->createIslandFor($session, $generator);
             $session->sendTranslatedMessage(new MessageContainer("SUCCESSFULLY_CREATED_A_ISLAND"));
         } else $session->sendTranslatedMessage(new MessageContainer("NOT_VALID_GENERATOR", ["name" => $generator]));
     }
