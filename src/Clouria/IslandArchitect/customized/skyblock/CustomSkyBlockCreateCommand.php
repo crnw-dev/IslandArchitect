@@ -19,28 +19,35 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\customized\skyblock;
 
+use pocketmine\Server;
+use ReflectionException;
+use pocketmine\level\Level;
+use pocketmine\level\Position;
 use Clouria\IslandArchitect\{
-    IslandArchitect
+    IslandArchitect,
+    runtime\TemplateIsland,
+    conversion\IslandDataLoadTask,
+    events\IslandWorldPreCreateEvent
 };
 use room17\SkyBlock\{
     SkyBlock,
+    island\RankIds,
     session\Session,
+    island\IslandFactory,
     command\presets\CreateCommand,
+    event\island\IslandCreateEvent,
     utils\message\MessageContainer
 };
 use function strtolower;
 
 class CustomSkyBlockCreateCommand extends CreateCommand {
 
-    /**
-     * @throws \ReflectionException
-     */
     public function onCommand(Session $session, array $args) : void {
         if ($this->checkIslandAvailability($session) or $this->checkIslandCreationCooldown($session)) return;
 
         $generator = strtolower($args[0] ?? "Shelly");
         if ((SkyBlock::getInstance()->getGeneratorManager()->isGenerator($generator) or IslandArchitect::getInstance()->mapGeneratorType($generator) !== null) and $this->hasPermission($session, $generator)) {
-            CustomSkyBlockIslandFactory::createIslandFor($session, $generator); // TODO: Deprecate the customized island factor class
+            static::createIslandFor($session, $generator);
             $session->sendTranslatedMessage(new MessageContainer("SUCCESSFULLY_CREATED_A_ISLAND"));
         } else $session->sendTranslatedMessage(new MessageContainer("NOT_VALID_GENERATOR", ["name" => $generator]));
     }
@@ -70,6 +77,66 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
             return true;
         }
         return false;
+    }
+
+    public static function createIslandFor(Session $session, string $type) : void {
+        $mapped = IslandArchitect::getInstance()->mapGeneratorType($type);
+        if ($mapped === null) {
+            try {
+                IslandFactory::createIslandFor($session, $type);
+            } catch (ReflectionException $e) {
+            }
+            return;
+        }
+
+        $ev = new IslandWorldPreCreateEvent($session, static::createIslandIdentifier(), $mapped);
+        $ev->call();
+        $identifier = $ev->getIdentifier();
+        $type = $ev->getType();
+        $islandManager = SkyBlock::getInstance()->getIslandManager();
+
+        static::createTemplateIslandWorldAsync($identifier, $type, function(Level $w) use ($session, $islandManager, $identifier) : void {
+            if (!$session->getPlayer()->isOnline()) return;
+            $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, IslandArchitect::getInstance()->getTemplateIslandGenerator()::GENERATOR_NAME,
+                $w, 0);
+
+            $session->setIsland($island = $islandManager->getIsland($identifier));
+            $session->setRank(RankIds::FOUNDER);
+            $session->setLastIslandCreationTime(microtime(true));
+            $session->getPlayer()->teleport($island->getSpawnLocation());
+
+            $session->save();
+            $island->save();
+
+            (new IslandCreateEvent($island))->call();
+        });
+    }
+
+    /**
+     * @param string $identifier
+     * @param string $type
+     * @param \Closure $callback Should compatible with <code>function(<@link Level> $level) {}</code>
+     */
+    public static function createTemplateIslandWorldAsync(string $identifier, string $type, \Closure $callback) : void {
+        $task = new IslandDataLoadTask($type, function(TemplateIsland $is, string $file) use ($identifier, $callback) : void {
+            $settings = ['preset' => serialize([$is->exportRaw()])];
+            Server::getInstance()->generateLevel($identifier,
+                null, IslandArchitect::getInstance()->getTemplateIslandGenerator(), $settings ?? []);
+            Server::getInstance()->loadLevel($identifier);
+            $level = Server::getInstance()->getLevelByName($identifier);
+
+            if ($is->getSpawn() !== null) {
+                $spawn = $is->getSpawn();
+                $spawn->setComponents($spawn->getX(), $spawn->getY() + $is->getYOffset(), $spawn->getZ());
+            } else $spawn = new Position(0, 0, 0, $level);
+            $level->setSpawnLocation($spawn);
+            $callback($level);
+        });
+        Server::getInstance()->getAsyncPool()->submitTask($task);
+    }
+
+    protected static function createIslandIdentifier() : string {
+        return uniqid("sb-");
     }
 
 }
