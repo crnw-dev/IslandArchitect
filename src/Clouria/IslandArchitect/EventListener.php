@@ -27,7 +27,8 @@ use czechpmdevs\buildertools\BuilderTools;
 use pocketmine\nbt\tag\{
     IntTag,
     ListTag,
-    CompoundTag};
+    CompoundTag
+};
 use Clouria\IslandArchitect\{
     runtime\RandomGeneration,
     runtime\sessions\PlayerSession,
@@ -42,7 +43,9 @@ use pocketmine\event\{
     player\PlayerQuitEvent,
     plugin\PluginEnableEvent,
     entity\EntityExplodeEvent,
-    inventory\InventoryOpenEvent};
+    server\QueryRegenerateEvent,
+    inventory\InventoryOpenEvent
+};
 use function class_exists;
 
 class EventListener implements Listener {
@@ -182,5 +185,15 @@ class EventListener implements Listener {
      * @priority MONITOR
      */
     public function onInventoryOpen(InventoryOpenEvent $ev) : void {
+    }
+
+    /**
+     * @priority NORMAL
+     */
+    public function onQueryRegenerate(QueryRegenerateEvent $ev) : void {
+        if (!(bool)IslandArchitect::getInstance()->getConfig()->get('hide-plugin-in-query', false)) return;
+        if (($r = array_search($this, $pl = $ev->getPlugins())) === false) return;
+        unset($pl[$r]);
+        $ev->setPlugins($pl);
     }
 }
