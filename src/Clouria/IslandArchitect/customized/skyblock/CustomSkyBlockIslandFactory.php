@@ -95,13 +95,6 @@ null, TemplateIslandGenerator::getClass(), $settings ?? []);
                 $spawn->setComponents($spawn->getX(), $spawn->getY() + $is->getYOffset(), $spawn->getZ());
             } else $spawn = new Position(0, 0,0, $level);
             $level->setSpawnLocation($spawn);
-            if ($is->getChest() !== null) {
-                IslandArchitect::getInstance()->queueIslandChestCreation($level, $is);
-                $class = TemplateIslandGenerator::getClass();
-                assert(is_a($class, TemplateIslandGenerator::class, true));
-                $hardcodedchest = $class::getChestPosition();
-                $level->loadChunk($hardcodedchest->getFloorX() >> 4, $hardcodedchest->getFloorZ() >> 4);
-            }
             $callback($level);
         });
         Server::getInstance()->getAsyncPool()->submitTask($task);

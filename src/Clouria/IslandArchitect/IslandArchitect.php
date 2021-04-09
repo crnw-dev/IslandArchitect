@@ -25,20 +25,17 @@ use czechpmdevs\buildertools\BuilderTools;
 use pocketmine\{
     Player,
     item\Item,
-    tile\Tile,
-    tile\Chest,
-    level\Level,
     utils\Utils,
     plugin\Plugin,
-    plugin\PluginBase,
-    level\format\Chunk};
+    plugin\PluginBase
+};
 use Clouria\IslandArchitect\{
-    runtime\TemplateIsland,
     events\TickTaskRegisterEvent,
     runtime\sessions\PlayerSession,
     runtime\TemplateIslandGenerator,
     worldedit\buildertools\CustomPrinter,
-    customized\skyblock\CustomSkyBlockCreateCommand};
+    customized\skyblock\CustomSkyBlockCreateCommand
+};
 use function substr;
 use function strtolower;
 use function file_exists;
@@ -277,31 +274,6 @@ class IslandArchitect extends PluginBase {
         if (($r = array_search($session, $this->sessions, true)) === false) return false;
         if ($this->sessions[$r]->getIsland()) $this->sessions[$r]->saveIsland();
         unset($this->sessions[$r]);
-        return true;
-    }
-
-    /**
-     * @var array<int, TemplateIsland>
-     */
-    private $chestqueue = [];
-
-    public function queueIslandChestCreation(Level $level, TemplateIsland $island) : bool {
-        if (($this->chestqueue[$level->getId()] ?? null) !== null) return false;
-        $this->chestqueue[$level->getId()] = $island;
-        return true;
-    }
-
-    public function createIslandChest(Level $level, Chunk $chunk) : bool {
-        $is = $this->chestqueue[$level->getId()] ?? null;
-        if ($is === null) return false;
-        unset($this->chestqueue[$level->getId()]);
-        $pos = $is->getChest();
-        $pos = $pos->add(0, $is->getYOffset());
-        if ($chunk->getX() !== ($pos->getFloorX() >> 4) or $chunk->getZ() !== ($pos->getFloorZ() >> 4)) return false;
-
-        $chest = Tile::createTile(Tile::CHEST, $level, Chest::createNBT($pos));
-        if (!$chest instanceof Chest) return false;
-        foreach (SkyBlock::getInstance()->getSettings()->getChestContentByGenerator($is->getName()) as $item) $chest->getInventory()->addItem($item);
         return true;
     }
 

@@ -44,10 +44,6 @@ class IslandArchitectPluginTickTask extends Task {
             if ($r !== null) $s->getPlayer()->sendPopup(TF::YELLOW . 'Random generation block: ' . TF::BOLD .
                 TF::GOLD . $is->getRandomLabel($r));
 
-            // Island chest coord popup
-            $chest = $is->getChest();
-            if ($chest !== null and $chest->asVector3()->equals($sb->asVector3())) $s->getPlayer()->sendPopup(TF::YELLOW . 'Island chest block'/* . "\n" . TF::ITALIC . TF::GRAY . '(Click to view or edit contents)'*/);
-
             $distance = $s->getPlayer()->getViewDistance();
             $dbb = (new AxisAlignedBB(
                 ($s->getPlayer()->getFloorX() >> 4) - $distance,

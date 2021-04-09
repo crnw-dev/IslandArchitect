@@ -106,21 +106,6 @@ class TemplateIsland {
 	}
 
 	/**
-	 * @var Vector3|null
-	 */
-	protected $chest = null;
-
-	public function getChest() : ?Vector3 {
-		return $this->chest;
-	}
-
-	public function setChest(?Vector3 $pos) : void {
-		if (isset($pos)) $this->chest = $pos->asVector3();
-		else $this->chest = null;
-		$this->changed = true;
-	}
-
-	/**
 	 * @var string|null
 	 */
 	protected $level = null;
@@ -342,16 +327,6 @@ class TemplateIsland {
 	public function getProcessedBlock(int $x, int $y, int $z, Random $random) : ?array {
 	    $y -= $this->getYOffset();
         $block = $this->structure[$x . ':' . $y . ':' . $z] ?? null;
-        $chestcoord = $this->getChest();
-        if (!isset($block)) {
-            if (
-                $chestcoord !== null and
-                $chestcoord->getFloorX() === $x and
-                $chestcoord->getFloorZ() === $z and
-                $chestcoord->getFloorY() === $y
-            ) return [Item::CHEST, 0];
-            else return null;
-        }
         $block = explode(':', $block);
         if (!isset($block[1])) return null;
         switch ((int)$block[0]) {
@@ -359,51 +334,41 @@ class TemplateIsland {
                 $block = $this->getRandomById((int)$block[1])->randomElementArray($random);
                 if ($block[0] === Item::AIR) return null;
                 else return $block;
-
-            default:
-                if (
-                    $chestcoord !== null and
-                    $chestcoord->getFloorX() === $x and
-                    $chestcoord->getFloorZ() === $z and
-                    $chestcoord->getFloorY() === $y
-                ) return [Item::CHEST, 0];
-                return [$block[1], $block[2] ?? 0];
         }
+        return null;
     }
 
-	public const VERSION = '1.3';
+    public const VERSION = '1.3'; // TODO: Bump version
 
-	public function save() : string {
-		$data['level'] = $this->getLevel();
-		$data['startcoord'] = $this->getStartCoord() === null ? null : $this->getStartCoord()->floor();
-		$data['endcoord'] = $this->getEndCoord() === null ? null : $this->getEndCoord()->floor();
-		$data['y_offset'] = $this->getYOffset();
-		if (($vec = $this->getSpawn()) !== null) $data['spawn'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
-		else $data['spawn'] = null;
-		if (($vec = $this->getChest()) !== null) $data['chest'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
-		else $data['chest'] = null;
-		$data['random_blocks'] = $this->random_blocks;
-		$data['random_labels'] = $this->random_labels;
-		$data['symbolic'] = [];
-		foreach ($this->symbolic as $regexid => $symbolic) {
-			$symbolic = $symbolic[0] . (isset($symbolic[1]) ? ':' . $symbolic[1] : '');
-			$data['symbolic'][$regexid] = $symbolic;
-		}
-		$data['randoms'] = [];
-		foreach ($this->randoms as $regexid => $random) {
-			$elements = $random->getAllElements();
-			if (empty($elements)) $data['randoms'][$regexid] = ['blockid:meta' => 'chance'];
-			else $data['randoms'][$regexid] = $elements;
-		}
+    public function save() : string {
+        $data['level'] = $this->getLevel();
+        $data['startcoord'] = $this->getStartCoord() === null ? null : $this->getStartCoord()->floor();
+        $data['endcoord'] = $this->getEndCoord() === null ? null : $this->getEndCoord()->floor();
+        $data['y_offset'] = $this->getYOffset();
+        if (($vec = $this->getSpawn()) !== null) $data['spawn'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
+        else $data['spawn'] = null;
+        $data['random_blocks'] = $this->random_blocks;
+        $data['random_labels'] = $this->random_labels;
+        $data['symbolic'] = [];
+        foreach ($this->symbolic as $regexid => $symbolic) {
+            $symbolic = $symbolic[0] . (isset($symbolic[1]) ? ':' . $symbolic[1] : '');
+            $data['symbolic'][$regexid] = $symbolic;
+        }
+        $data['randoms'] = [];
+        foreach ($this->randoms as $regexid => $random) {
+            $elements = $random->getAllElements();
+            if (empty($elements)) $data['randoms'][$regexid] = ['blockid:meta' => 'chance'];
+            else $data['randoms'][$regexid] = $elements;
+        }
 
-		return $this->encode($data);
-	}
+        return $this->encode($data);
+    }
 
     /**
      * @param array $chunks
      * @return string JSON encoded template island data
      */
-	public function export(array $chunks) : string {
+    public function export(array $chunks) : string {
 		$sc = $this->getStartCoord()->floor();
 		$ec = $this->getEndCoord()->floor();
         $ux = max($sc->getFloorX(), $ec->getFloorX());
@@ -460,12 +425,6 @@ class TemplateIsland {
 		    $data['spawn'] = $coord;
         }
 
-		if (($vec = $this->getChest()) !== null) {
-            $vec = $vec->subtract($lx, $ly, $lz);
-            $coord = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
-		    $data['chest'] = $coord;
-        }
-
         if ($this->yoffset + max($this->getStartCoord()->getFloorY(), $this->getEndCoord()->getFloorY()) > Level::Y_MAX) $this->yoffset = 0;
 		if (($yoffset = $this->getYOffset()) > 0) $data['y_offset'] = $yoffset;
 
@@ -476,7 +435,6 @@ class TemplateIsland {
         $data['structure'] = $this->structure;
         foreach ($this->randoms as $random) $data['randoms'][] = $random->getAllElements();
         if (isset($this->spawn)) $data['spawn'] = $this->spawn->getFloorX() . ':' . $this->spawn->getFloorY() . ':' . $this->spawn->getFloorZ();
-        if (isset($this->chest)) $data['chest'] = $this->chest->getFloorX() . ':' . $this->chest->getFloorY() . ':' . $this->chest->getFloorZ();
         if ($this->yoffset > 0) $data['y_offset'] = $this->yoffset;
         return $this->encode($data ?? []);
     }
@@ -520,11 +478,6 @@ class TemplateIsland {
 		    if (!is_array($data['spawn'])) $coord = explode(':', $data['spawn']);
 			else $coord = $data['spawn'];
 			$self->spawn = new Vector3((int)($coord['x'] ?? $coord[0]), (int)($coord['y'] ?? $coord[1]), (int)($coord['z'] ?? $coord[2]));
-		}
-		if (isset($data['chest'])) {
-		    if (!is_array($data['chest'])) $coord = explode(':', $data['chest']);
-			else $coord = $data['chest'];
-			$self->chest = new Vector3((int)($coord['x'] ?? $coord[0]), (int)($coord['y'] ?? $coord[1]), (int)($coord['z'] ?? $coord[2]));
 		}
 		if (isset($data['y_offset']) or isset($data['yoffset'])) $self->yoffset = $data['y_offset'] ?? $data['yoffset'];
 		if (isset($data['random_blocks'])) $self->random_blocks = $data['random_blocks'];

@@ -20,21 +20,23 @@ namespace Clouria\IslandArchitect;
 
 use jojoe77777\FormAPI\ModalForm;
 use pocketmine\{
-    level\Level,
     Player,
     Server,
+    level\Level,
     utils\Utils,
     level\Position,
     command\Command,
     utils\TextFormat as TF,
-    command\CommandSender};
+    command\CommandSender
+};
 use Clouria\IslandArchitect\{
-    runtime\RandomGeneration,
     runtime\TemplateIsland,
+    runtime\RandomGeneration,
     conversion\IslandDataLoadTask,
     runtime\sessions\PlayerSession,
     customized\CustomizableClassTrait,
-    events\TemplateIslandCheckOutEvent};
+    events\TemplateIslandCheckOutEvent
+};
 use function strtolower;
 use function class_exists;
 
@@ -193,20 +195,6 @@ class IslandArchitectCommand extends Command {
                 $ft->setText(TF::BOLD . TF::GOLD . 'Island spawn' . "\n" . TF::RESET . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ());
 				break;
 
-			case 'setchest':
-			case 'chest':
-			case 'c':
-				if (PlayerSession::errorCheckOutRequired($sender, $s = IslandArchitect::getInstance()->getSession($sender))) break;
-				if (isset($args[1]) and isset($args[2]) and isset($args[3])) $vec = new Position((int)$args[1], (int)$args[2], (int)$args[3], $sender->getLevel());
-				$vec = $vec ?? $sender->asPosition();
-				if (($w = $s->getIsland()->getLevel()) !== null) if ($w !== $vec->getLevel()->getFolderName()) {
-					$sender->sendMessage(TF::BOLD . TF::RED . 'You can only run this command in the same world as the island: ' . $w);
-					break;
-				} else $s->getIsland()->setLevel($vec->getLevel()->getFolderName());
-				$sender->sendMessage(TF::YELLOW . 'Island chest position set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
-				$s->getIsland()->setChest($vec);
-				break;
-
             case 'level':
             case 'world':
             case 'l':
@@ -226,11 +214,11 @@ class IslandArchitectCommand extends Command {
                     $sender->sendMessage(TF::BOLD . TF::RED . 'Please enter a valid level name as argument or teleport to another world before running this command!');
                     break;
                 }
+                // TODO: Add confirmation form
                 $is->setLevel($level);
                 $is->setStartCoord(null);
                 $is->setEndCoord(null);
                 $is->setSpawn(null);
-                $is->setChest(null);
                 $is->setYOffset(null);
                 $sender->sendMessage(TF::YELLOW . 'Island level set to ' . TF::GOLD . '"' . $level . '"');
                 break;
@@ -259,7 +247,6 @@ class IslandArchitectCommand extends Command {
                 $cmds[] = 'export ' . TF::ITALIC . TF::GRAY . '(Export the checked out island into template island data file)';
                 $cmds[] = 'random [Random regex ID: int] ' . TF::ITALIC . TF::GRAY . '(Setup random blocks generation)';
                 $cmds[] = 'setspawn ' . TF::ITALIC . TF::GRAY . '(Set the island world spawn)';
-                $cmds[] = 'setchest ' . TF::ITALIC . TF::GRAY . '(Set the island chest position)';
                 $cmds[] = 'level [Level folder name] ' . TF::ITALIC . TF::GRAY . '(Update the level of the island)';
                 $cmds[] = 'yoffset <Offset value> ' . TF::ITALIC . TF::GRAY . '(Update the level of the island)';
 				$sender->sendMessage(TF::BOLD . TF::GOLD . 'Available subcommands: ' . ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $cmds ?? ['help']));

@@ -26,26 +26,22 @@ use pocketmine\nbt\tag\{
     ListTag,
     CompoundTag};
 use pocketmine\{
-    level\Position,
     utils\TextFormat as TF,
     inventory\ChestInventory};
 use Clouria\IslandArchitect\{
     runtime\RandomGeneration,
     runtime\sessions\PlayerSession,
     customized\CustomizableClassTrait,
-    runtime\sessions\IslandChestSession,
     events\RandomGenerationBlockPlaceEvent};
 use pocketmine\event\{
     Listener,
     level\LevelSaveEvent,
-    level\ChunkLoadEvent,
     block\BlockPlaceEvent,
     block\BlockBreakEvent,
     player\PlayerQuitEvent,
     plugin\PluginEnableEvent,
     entity\EntityExplodeEvent,
     inventory\InventoryOpenEvent};
-use function assert;
 use function class_exists;
 
 class EventListener implements Listener {
@@ -92,31 +88,31 @@ class EventListener implements Listener {
 		$item = $ev->getItem();
 		if (!($nbt = $item->getNamedTagEntry('IslandArchitect')) instanceof CompoundTag) return;
 		if (!($nbt = $nbt->getTag('random-generation', CompoundTag::class)) instanceof CompoundTag) return;
-		if (!($regex = $nbt->getTag('regex', ListTag::class)) instanceof ListTag) return;
-		if (PlayerSession::errorCheckOutRequired($ev->getPlayer(), $s)) return;
-		$regex = RandomGeneration::fromNBT($regex);
-		$e = new RandomGenerationBlockPlaceEvent($s, $regex, $ev->getBlock()->asPosition(), $item);
-		$e->call();
-		if ($e->isCancelled()) return;
-		if (!($regexid = $nbt->getTag('regexid', IntTag::class)) instanceof IntTag) {
-		    foreach ($s->getIsland()->getRandoms() as $i => $sr) if ($sr->equals($regex)) $regexid = $i;
-		    if ($regexid === null) $regexid = $s->getIsland()->addRandom($regex);
+        if (!($regex = $nbt->getTag('regex', ListTag::class)) instanceof ListTag) return;
+        if (PlayerSession::errorCheckOutRequired($ev->getPlayer(), $s)) return;
+        $regex = RandomGeneration::fromNBT($regex);
+        $e = new RandomGenerationBlockPlaceEvent($s, $regex, $ev->getBlock()->asPosition(), $item);
+        $e->call();
+        if ($e->isCancelled()) return;
+        if (!($regexid = $nbt->getTag('regexid', IntTag::class)) instanceof IntTag) {
+            foreach ($s->getIsland()->getRandoms() as $i => $sr) if ($sr->equals($regex)) $regexid = $i;
+            if ($regexid === null) $regexid = $s->getIsland()->addRandom($regex);
         }
-		if (
-		    $regexid instanceof IntTag and
-			(($r = $s->getIsland()->getRandomById($regexid = $regexid->getValue())) === null or
-			!$r->equals($regex))
-		) $regexid = $s->getIsland()->addRandom($r = $regex);
-		$s->getIsland()->setBlockRandom($ev->getBlock()->asVector3(), $regexid, $e);
-		$symbolic = $s->getIsland()->getRandomSymbolicItem($regexid);
-		$item = clone $item;
-		if (!$item->equals($symbolic, true, false)) {
-			$nbt = $item->getNamedTag();
-			$item = $symbolic;
-			foreach ($nbt as $tag) $item->setNamedTagEntry($tag);
-			$ev->setCancelled();
-			$ev->getBlock()->getLevel()->setBlock($ev->getBlock()->asVector3(), $item->getBlock());
-		}
+        if (
+            $regexid instanceof IntTag and
+            (($r = $s->getIsland()->getRandomById($regexid = $regexid->getValue())) === null or
+                !$r->equals($regex))
+        ) $regexid = $s->getIsland()->addRandom($regex);
+        $s->getIsland()->setBlockRandom($ev->getBlock()->asVector3(), $regexid, $e);
+        $symbolic = $s->getIsland()->getRandomSymbolicItem($regexid);
+        $item = clone $item;
+        if (!$item->equals($symbolic, true, false)) {
+            $nbt = $item->getNamedTag();
+            $item = $symbolic;
+            foreach ($nbt as $tag) $item->setNamedTagEntry($tag);
+            $ev->setCancelled();
+            $ev->getBlock()->getLevel()->setBlock($ev->getBlock()->asVector3(), $item->getBlock());
+        }
 		$item->setCount(64);
 		$s->getPlayer()->getInventory()->setItemInHand($item);
 	}
@@ -136,7 +132,7 @@ class EventListener implements Listener {
 	        $island = $s->getIsland();
 	        if ($island === null) continue;
 	        $affected = 0;
-            foreach ($ev->getBlockList() as $block) if (($r = $island->getRandomByVector3($block->asVector3())) !== null) {
+            foreach ($ev->getBlockList() as $block) if ($island->getRandomByVector3($block->asVector3()) !== null) {
                 $affected++;
                 $s->getIsland()->setBlockRandom($block->asVector3(), null);
             }
@@ -157,27 +153,7 @@ class EventListener implements Listener {
     /**
      * @priority MONITOR
      */
-    public function onChunkLoad(ChunkLoadEvent $ev) : void {
-	    if ($ev->isNewChunk()) IslandArchitect::getInstance()->createIslandChest($ev->getLevel(), $ev->getChunk());
-    }
-
-    /**
-     * @priority MONITOR
-     */
     public function onInventoryOpen(InventoryOpenEvent $ev) : void {
         if (!$ev->getInventory() instanceof ChestInventory) return;
-        $pos = $ev->getInventory()->getHolder()->asPosition();
-        assert($pos instanceof Position);
-        foreach (IslandArchitect::getInstance()->getSessions() as $s) {
-            $is = $s->getIsland();
-            if (
-                $is === null or
-                $is->getLevel() !== $pos->getLevel()->getFolderName() or
-                $is->getChest() === null or
-                !$is->getChest()->equals($pos->asVector3())
-            ) return;
-            new IslandChestSession($s);
-            $ev->setCancelled();
-        }
     }
 }
