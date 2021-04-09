@@ -17,6 +17,7 @@
 														*/
 
 declare(strict_types=1);
+
 namespace Clouria\IslandArchitect;
 
 use room17\SkyBlock\SkyBlock;
@@ -30,7 +31,6 @@ use pocketmine\{
     plugin\PluginBase
 };
 use Clouria\IslandArchitect\{
-    events\TickTaskRegisterEvent,
     runtime\sessions\PlayerSession,
     runtime\TemplateIslandGenerator,
     worldedit\buildertools\CustomPrinter,
@@ -173,10 +173,6 @@ class IslandArchitect extends PluginBase {
      */
     private $generator_class = TemplateIslandGenerator::class;
 
-    public static function getInstance() : ?self {
-        return self::$instance;
-    }
-
     public function onLoad() : void {
         self::$instance = $this;
     }
@@ -184,15 +180,14 @@ class IslandArchitect extends PluginBase {
     public function onEnable() : void {
         $this->initConfig();
         if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
-        $this->getServer()->getPluginManager()->registerEvents(new EventListener, $this);
+        $this->getServer()->getPluginManager()->registerEvents(EventListener::getInstance(), $this);
 
         $this->getServer()->getCommandMap()->register($this->getName(), new IslandArchitectCommand);
 
         if (class_exists(SkyBlock::class) and SkyBlock::getInstance()->isEnabled()) $this->initDependency(SkyBlock::getInstance());
         if (class_exists(BuilderTools::class) and BuilderTools::getInstance()->isEnabled()) $this->initDependency(BuilderTools::getInstance());
 
-        $ev = new TickTaskRegisterEvent(new IslandArchitectPluginTickTask, 10);
-        $this->getScheduler()->scheduleRepeatingTask($ev->getTask(), $ev->getPeriod());
+        $this->getScheduler()->scheduleRepeatingTask(IslandArchitectPluginTickTask::getInstance(), IslandArchitectPluginTickTask::PERIOD);
     }
 
     private function initConfig() : void {
@@ -242,33 +237,45 @@ class IslandArchitect extends PluginBase {
         }
     }
 
-    public function getSession(Player $player, bool $nonnull = false) : ?PlayerSession {
-		if (($this->sessions[$player->getName()] ?? null) !== null) $s = $this->sessions[$player->getName()];
-		elseif ($nonnull) $s = ($this->sessions[$player->getName()] = new PlayerSession($player));
-		return $s ?? null;
-	}
+    /**
+     * @return class-string<TemplateIslandGenerator>
+     */
+    public function getTemplateIslandGenerator() {
+        if (is_a($this->generator_class, TemplateIslandGenerator::class, true)) return $this->generator_class;
+        return TemplateIslandGenerator::class;
+    }
 
-	public function mapGeneratorType(string $type) : ?string {
-	    foreach ($this->getConfig()->get('island-creation-command-mapping', []) as $st => $file) if (strtolower($st) === strtolower($type)) {
-	        $sf = $file;
-	        break;
+    public static function getInstance() : ?self {
+        return self::$instance;
+    }
+
+    public function getSession(Player $player, bool $nonnull = false) : ?PlayerSession {
+        if (($this->sessions[$player->getName()] ?? null) !== null) $s = $this->sessions[$player->getName()];
+        elseif ($nonnull) $s = ($this->sessions[$player->getName()] = new PlayerSession($player));
+        return $s ?? null;
+    }
+
+    public function mapGeneratorType(string $type) : ?string {
+        foreach ($this->getConfig()->get('island-creation-command-mapping', []) as $st => $file) if (strtolower($st) === strtolower($type)) {
+            $sf = $file;
+            break;
         }
-	    if (!isset($sf)) return null;
-	    $type = $sf;
-	    if (
+        if (!isset($sf)) return null;
+        $type = $sf;
+        if (
             !(file_exists($type = Utils::cleanPath($type))) and
             !file_exists($type = Utils::cleanPath(
                 ($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/') .
                 $type . (strtolower(substr($type, -5)) === '.json' ? '' : '.json')
             ))) $type = null;
-	    return $type;
+        return $type;
     }
 
     /**
      * @return PlayerSession[]
-         */
-	public function getSessions() : array {
-	    return $this->sessions;
+     */
+    public function getSessions() : array {
+        return $this->sessions;
     }
 
     /**
@@ -280,14 +287,6 @@ class IslandArchitect extends PluginBase {
         if ($this->sessions[$r]->getIsland()) $this->sessions[$r]->saveIsland();
         unset($this->sessions[$r]);
         return true;
-    }
-
-    /**
-     * @return class-string<TemplateIslandGenerator>
-     */
-    public function getTemplateIslandGenerator() {
-        if (is_a($this->generator_class, TemplateIslandGenerator::class, true)) return $this->generator_class;
-        return TemplateIslandGenerator::class;
     }
 
     /**

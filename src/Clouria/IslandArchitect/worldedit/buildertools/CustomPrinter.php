@@ -38,12 +38,10 @@ use Clouria\IslandArchitect\{
     IslandArchitect,
     runtime\RandomGeneration,
     runtime\sessions\PlayerSession,
-    events\RandomGenerationBlockPaintEvent,
-    customized\GetPrivateMethodClosureTrait
+    events\RandomGenerationBlockPaintEvent
 };
 
 class CustomPrinter extends Printer {
-    use GetPrivateMethodClosureTrait;
 
     public function draw(Player $player, Position $center, Block $block, int $brush = 4, int $mode = 0x00, bool $fall = false) {
         $item = $player->getInventory()->getItemInHand();

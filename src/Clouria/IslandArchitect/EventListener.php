@@ -19,15 +19,16 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect;
 
-use pocketmine\{
-    utils\TextFormat as TF
-};
 use room17\SkyBlock\SkyBlock;
 use czechpmdevs\buildertools\BuilderTools;
 use pocketmine\nbt\tag\{
     IntTag,
     ListTag,
     CompoundTag
+};
+use pocketmine\{
+    utils\SingletonTrait,
+    utils\TextFormat as TF
 };
 use Clouria\IslandArchitect\{
     runtime\RandomGeneration,
@@ -49,6 +50,7 @@ use pocketmine\event\{
 use function class_exists;
 
 class EventListener implements Listener {
+    use SingletonTrait;
 
     /**
      * @var bool
@@ -166,8 +168,9 @@ class EventListener implements Listener {
                 $s->getIsland()->setBlockRandom($block->asVector3(), null);
             }
             $pos = $ev->getPosition();
-            if ($affected > 0) $s->getPlayer()
-                                 ->sendMessage(TF::YELLOW . 'An explosion has destroyed ' . TF::BOLD . TF::GOLD . $affected . TF::RESET . TF::YELLOW . ' random generation blocks at ' . TF::BOLD . TF::GREEN . $pos->getFloorX() . ', ' . $pos->getFloorY() . ', ' . $pos->getFloorZ());
+            if ($affected > 0) $s->getPlayer()->sendMessage(TF::YELLOW . 'An explosion has destroyed ' . TF::BOLD . TF::GOLD . $affected . TF::RESET . TF::YELLOW . ' random generation blocks at ' .
+                TF::BOLD . TF::GREEN . $pos->getFloorX() . ', ' . $pos->getFloorY() . ', ' . $pos->getFloorZ()
+            );
         }
     }
 

@@ -26,10 +26,14 @@ use pocketmine\{
     math\Vector3,
     scheduler\Task,
     math\AxisAlignedBB,
+    utils\SingletonTrait,
     utils\TextFormat as TF
 };
 
 class IslandArchitectPluginTickTask extends Task {
+    use SingletonTrait;
+
+    public const PERIOD = 10;
 
     public function onRun(int $currentTick) : void {
         foreach (IslandArchitect::getInstance()->getSessions() as $s) if (($is = $s->getIsland()) !== null) {
