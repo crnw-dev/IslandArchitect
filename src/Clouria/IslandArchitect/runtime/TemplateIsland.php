@@ -32,6 +32,7 @@ use Clouria\IslandArchitect\{
     events\RandomGenerationBlockUpdateEvent};
 use function max;
 use function min;
+use function count;
 use function explode;
 use function is_array;
 use function in_array;
@@ -398,10 +399,10 @@ class TemplateIsland {
 		return $this->encode($data);
 	}
 
-	/**
-	 * @param mixed[] $chunks
-	 * @return string JSON encoded template island data
-	 */
+    /**
+     * @param array $chunks
+     * @return string JSON encoded template island data
+     */
 	public function export(array $chunks) : string {
 		$sc = $this->getStartCoord()->floor();
 		$ec = $this->getEndCoord()->floor();
@@ -431,7 +432,7 @@ class TemplateIsland {
                     $by = $y - $ly;
                     $coord = $wx . ':' . $y . ':' . $wz;
                     $bcoord = $bx . ':' . $by . ':' . $bz;
-                    if (isset($this->random_blocks[$coord]) and ($this->randoms[$this->random_blocks[$coord]]->getAllElements()) > 1) {
+                    if (isset($this->random_blocks[$coord]) and count($this->randoms[$this->random_blocks[$coord]]->getAllElements()) > 1) {
                         $id = $this->random_blocks[$coord];
                         if (($r = $this->getRandomById($this->random_blocks[$coord])) === null) continue;
                         if (!$r->isValid()) continue;
@@ -472,12 +473,12 @@ class TemplateIsland {
 	}
 
 	public function exportRaw() : string {
-	    $data['structure'] = $this->structure;
-		foreach ($this->randoms as $id => $random) $data['randoms'][] = $random->getAllElements();
-		if (isset($this->spawn)) $data['spawn'] = $this->spawn->getFloorX() . ':' . $this->spawn->getFloorY() . ':' . $this->spawn->getFloorZ();
-		if (isset($this->chest)) $data['chest'] = $this->chest->getFloorX() . ':' . $this->chest->getFloorY() . ':' . $this->chest->getFloorZ();
-		if ($this->yoffset > 0) $data['y_offset'] = $this->yoffset;
-	    return $this->encode($data ?? []);
+        $data['structure'] = $this->structure;
+        foreach ($this->randoms as $random) $data['randoms'][] = $random->getAllElements();
+        if (isset($this->spawn)) $data['spawn'] = $this->spawn->getFloorX() . ':' . $this->spawn->getFloorY() . ':' . $this->spawn->getFloorZ();
+        if (isset($this->chest)) $data['chest'] = $this->chest->getFloorX() . ':' . $this->chest->getFloorY() . ':' . $this->chest->getFloorZ();
+        if ($this->yoffset > 0) $data['y_offset'] = $this->yoffset;
+        return $this->encode($data ?? []);
     }
 
 	protected function encode(array $data) : string {
