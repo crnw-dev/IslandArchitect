@@ -23,6 +23,8 @@ namespace Clouria\IslandArchitect;
 use room17\SkyBlock\SkyBlock;
 use muqsit\invmenu\InvMenuHandler;
 use czechpmdevs\buildertools\BuilderTools;
+use czechpmdevs\buildertools\editors\Printer;
+use room17\SkyBlock\command\presets\CreateCommand;
 use pocketmine\{
     Player,
     item\Item,
@@ -38,6 +40,7 @@ use Clouria\IslandArchitect\{
 };
 use function is_a;
 use function substr;
+use function get_class;
 use function strtolower;
 use function file_exists;
 use function array_search;
@@ -219,20 +222,58 @@ class IslandArchitect extends PluginBase {
     public function initDependency(Plugin $pl) : void {
         switch (true) {
             case class_exists(BuilderTools::class) and $pl instanceof BuilderTools:
-                $reflect = new \ReflectionProperty(BuilderTools::class, 'editors');
-                $reflect->setAccessible(true);
-                $editors = $reflect->getValue(BuilderTools::class);
-                $editors['Printer'] = new CustomPrinter;
-                $reflect->setValue(BuilderTools::class, $editors);
+                switch (true) {
+                    default:
+                        // TODO: Handle reflection exception
+                        $reflect = new \ReflectionProperty(BuilderTools::class, 'editors');
+                        $reflect->setAccessible(true);
+                        $editors = $reflect->getValue(BuilderTools::class);
+                        /**
+                         * @var array<string, \czechpmdevs\buildertools\editors\Editor>
+                         */
+                        if (
+                            isset($editors['Printer']) and
+                            get_class($editors['Printer']) !== Printer::class and
+                            !$editors['Printer'] instanceof CustomPrinter
+                        ) {
+                            $this->getLogger()->error('Some plugins do not compatible with IslandArchitect, IslandArchitect cannot re-register the custom printer for BuilderTools');
+                            $this->getLogger()->debug('(One of the plugin has already re-registered the printer with a class that does not extends ' . CustomPrinter::class . ')');
+                            break;
+                        }
+                        $editors['Printer'] = new CustomPrinter;
+                        $reflect->setValue(BuilderTools::class, $editors);
+                        break;
+                }
                 break;
 
             case class_exists(SkyBlock::class) and $pl instanceof SkyBlock:
-                $map = $pl->getCommandMap();
-                $cmd = $map->getCommand('create');
-                if ($cmd !== null) $pl->getCommandMap()->unregisterCommand($cmd->getName());
-                $map->registerCommand(new CustomSkyBlockCreateCommand($map));
-
-                $pl->getGeneratorManager()->registerGenerator(IslandArchitect::getInstance()->getTemplateIslandGenerator()::GENERATOR_NAME, IslandArchitect::getInstance()->getTemplateIslandGenerator());
+                switch (true) { // So I don't have to do all the if checks again at the register command statement
+                    default:
+                        $map = $pl->getCommandMap();
+                        $cmd = $map->getCommand('create');
+                        if ($cmd !== null) {
+                            if (get_class($cmd) !== CreateCommand::class and !$cmd instanceof CustomSkyBlockCreateCommand) {
+                                $this->getLogger()->error('Some plugins do not compatible with IslandArchitect, IslandArchitect cannot re-register the SkyBlock "create" subcommand!');
+                                $this->getLogger()->debug('(One of the plugin has already re-registered the command with a class that does not extends ' . CustomSkyBlockCreateCommand::class . ')');
+                                break;
+                            }
+                            $pl->getCommandMap()->unregisterCommand($cmd->getName());
+                        }
+                        $map->registerCommand(new CustomSkyBlockCreateCommand($map));
+                        break;
+                }
+                switch (true) {
+                    default:
+                        if ($pl->getGeneratorManager()->getGenerator($this->getTemplateIslandGenerator()::GENERATOR_NAME) !== null) {
+                            $this->getLogger()->error('Some plugins do not compatible with IslandArchitect, IslandArchitect cannot register the template island generator!');
+                            $this->getLogger()->debug('(One of the plugin has already registered a generator with the same name as template island generator ("' . $this->getTemplateIslandGenerator()::GENERATOR_NAME . '")' .
+                                CustomSkyBlockCreateCommand::class
+                                . ')');
+                            break;
+                        }
+                        $pl->getGeneratorManager()->registerGenerator($this->getTemplateIslandGenerator()::GENERATOR_NAME, $this->getTemplateIslandGenerator());
+                        break;
+                }
                 break;
         }
     }
