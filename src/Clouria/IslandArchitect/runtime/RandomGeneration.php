@@ -114,21 +114,21 @@ class RandomGeneration {
      * @return int[]
      */
 	public function randomElementArray(Random $random) : array {
-		$blocks = $this->getAllElements();
+        $blocks = $this->getAllElements();
 
-		// Random crap "proportional random algorithm" code copied from my old plugin
-		$upperl = -1;
-		foreach ($blocks as $block => $chance) $upperl += $chance;
-		if ($upperl < 0) return [Item::AIR, 0];
-		$rand = $random->nextRange(0, $upperl);
+        // Random crap "proportional random algorithm" code copied from my old plugin
+        $upperl = -1;
+        foreach ($blocks as $chance) $upperl += $chance;
+        if ($upperl < 0) return [Item::AIR, 0];
+        $rand = $random->nextRange(0, $upperl);
 
-		$upperl = -1;
-		foreach ($blocks as $block => $chance) {
-			$upperl += $chance;
-			if (($upperl >= $rand) and ($upperl < ($rand + $chance))) {
-				$block = explode(':', $block);
-				return [(int)($block[0]) & 0xff, (int)($block[1]) & 0xff];
-			}
+        $upperl = -1;
+        foreach ($blocks as $block => $chance) {
+            $upperl += $chance;
+            if (($upperl >= $rand) and ($upperl < ($rand + $chance))) {
+                $block = explode(':', $block);
+                return [(int)($block[0]) & 0xff, (int)($block[1]) & 0xff];
+            }
 		}
 		return [Item::AIR, 0];
 	}

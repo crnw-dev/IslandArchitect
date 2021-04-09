@@ -20,7 +20,6 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\customized\skyblock;
 
 use Clouria\IslandArchitect\{
-    ApiMap,
     IslandArchitect,
     customized\GetPrivateMethodClosureTrait
 };
@@ -43,7 +42,7 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
 
         $generator = strtolower($args[0] ?? "Shelly");
         if ((SkyBlock::getInstance()->getGeneratorManager()->isGenerator($generator) or IslandArchitect::getInstance()->mapGeneratorType($generator) !== null) and $this->getPrivateMethodClosure('hasPermission')($session, $generator)) {
-            ApiMap::getInstance()->getCustomIslandFactoryInstance()->createIslandFor($session, $generator);
+            CustomSkyBlockIslandFactory::createIslandFor($session, $generator); // TODO: Deprecate the customized island factor class
             $session->sendTranslatedMessage(new MessageContainer("SUCCESSFULLY_CREATED_A_ISLAND"));
         } else $session->sendTranslatedMessage(new MessageContainer("NOT_VALID_GENERATOR", ["name" => $generator]));
     }

@@ -32,9 +32,11 @@ use pocketmine\{
 use Clouria\IslandArchitect\{
     events\TickTaskRegisterEvent,
     runtime\sessions\PlayerSession,
+    runtime\TemplateIslandGenerator,
     worldedit\buildertools\CustomPrinter,
     customized\skyblock\CustomSkyBlockCreateCommand
 };
+use function is_a;
 use function substr;
 use function strtolower;
 use function file_exists;
@@ -161,16 +163,25 @@ class IslandArchitect extends PluginBase {
 
     private static $instance = null;
 
-	/**
-	 * @var PlayerSession[]
-	 */
-	private $sessions = [];
+    /**
+     * @var PlayerSession[]
+     */
+    private $sessions = [];
+
+    /**
+     * @var string
+     */
+    private $generator_class = TemplateIslandGenerator::class;
+
+    public static function getInstance() : ?self {
+        return self::$instance;
+    }
 
     public function onLoad() : void {
-		self::$instance = $this;
-	}
+        self::$instance = $this;
+    }
 
-	public function onEnable() : void {
+    public function onEnable() : void {
         $this->initConfig();
         if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
         $this->getServer()->getPluginManager()->registerEvents(new EventListener, $this);
@@ -184,12 +195,29 @@ class IslandArchitect extends PluginBase {
         $this->getScheduler()->scheduleRepeatingTask($ev->getTask(), $ev->getPeriod());
     }
 
+    private function initConfig() : void {
+        $this->saveDefaultConfig();
+        $conf = $this->getConfig();
+        foreach ($all = $conf->getAll() as $k => $v) $conf->remove($k);
+
+        $conf->set('island-data-folder', Utils::cleanPath((string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/')));
+        $conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
+        $conf->set('island-creation-command-mapping', (array)($all['island-creation-command-mapping'] ?? [
+                'generation-name-which-will-be' => 'exported-island-data-file.json',
+                'use-in-island-creation-cmd' => 'relative-path/start-from/island-data-folder.json'
+            ]));
+        $conf->set('default-regex', (array)($all['default-regex'] ?? self::DEFAULT_REGEX));
+
+        $conf->save();
+        $conf->reload();
+    }
+
     /**
      * @param Plugin $pl
      * @internal
      */
-	public function initDependency(Plugin $pl) : void {
-	    switch (true) {
+    public function initDependency(Plugin $pl) : void {
+        switch (true) {
             case class_exists(BuilderTools::class) and $pl instanceof BuilderTools:
                 $reflect = new \ReflectionProperty(BuilderTools::class, 'editors');
                 $reflect->setAccessible(true);
@@ -204,27 +232,10 @@ class IslandArchitect extends PluginBase {
                 if ($cmd !== null) $pl->getCommandMap()->unregisterCommand($cmd->getName());
                 $map->registerCommand(new CustomSkyBlockCreateCommand($map));
 
-                $pl->getGeneratorManager()->registerGenerator(ApiMap::getInstance()->getTemplateIslandGeneratorClass()::GENERATOR_NAME, ApiMap::getInstance()->getTemplateIslandGeneratorClass());
+                $pl->getGeneratorManager()->registerGenerator(IslandArchitect::getInstance()->getTemplateIslandGenerator()::GENERATOR_NAME, IslandArchitect::getInstance()->getTemplateIslandGenerator());
                 break;
         }
     }
-
-	private function initConfig() : void {
-		$this->saveDefaultConfig();
-		$conf = $this->getConfig();
-		foreach ($all = $conf->getAll() as $k => $v) $conf->remove($k);
-
-		$conf->set('island-data-folder', Utils::cleanPath((string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/')));
-		$conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
-		$conf->set('island-creation-command-mapping', (array)($all['island-creation-command-mapping'] ?? [
-		    'generation-name-which-will-be' => 'exported-island-data-file.json',
-            'use-in-island-creation-cmd' => 'relative-path/start-from/island-data-folder.json'
-        ]));
-		$conf->set('default-regex', (array)($all['default-regex'] ?? self::DEFAULT_REGEX));
-
-		$conf->save();
-		$conf->reload();
-	}
 
     public function getSession(Player $player, bool $nonnull = false) : ?PlayerSession {
 		if (($this->sessions[$player->getName()] ?? null) !== null) $s = $this->sessions[$player->getName()];
@@ -266,8 +277,21 @@ class IslandArchitect extends PluginBase {
         return true;
     }
 
-	public static function getInstance() : ?self {
-		return self::$instance;
-	}
+    /**
+     * @return class-string<TemplateIslandGenerator>
+     */
+    public function getTemplateIslandGenerator() {
+        if (is_a($this->generator_class, TemplateIslandGenerator::class, true)) return $this->generator_class;
+        return TemplateIslandGenerator::class;
+    }
+
+    /**
+     * @param class-string<TemplateIslandGenerator> $class
+     */
+    public function setTemplateIslandGenerator(string $class) : bool {
+        if (!is_a($class, TemplateIslandGenerator::class, true)) return false;
+        $this->generator_class = $class;
+        return true;
+    }
 
 }

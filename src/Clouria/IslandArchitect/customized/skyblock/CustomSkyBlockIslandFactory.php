@@ -22,7 +22,8 @@ namespace Clouria\IslandArchitect\customized\skyblock;
 use pocketmine\{
     Server,
     level\Level,
-    level\Position};
+    level\Position
+};
 use room17\SkyBlock\{
     SkyBlock,
     island\RankIds,
@@ -31,7 +32,6 @@ use room17\SkyBlock\{
     event\island\IslandCreateEvent
 };
 use Clouria\IslandArchitect\{
-    ApiMap,
     IslandArchitect,
     runtime\TemplateIsland,
     conversion\IslandDataLoadTask,
@@ -59,7 +59,7 @@ class CustomSkyBlockIslandFactory extends IslandFactory {
         static::createTemplateIslandWorldAsync($identifier, $type, function(Level $w) use
         ($session, $islandManager, $identifier) : void {
             if (!$session->getPlayer()->isOnline()) return;
-            $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, ApiMap::getInstance()->getTemplateIslandGeneratorClass()::GENERATOR_NAME,
+            $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, IslandArchitect::getInstance()->getTemplateIslandGenerator()::GENERATOR_NAME,
                 $w, 0);
 
             $session->setIsland($island = $islandManager->getIsland($identifier));
@@ -84,7 +84,7 @@ class CustomSkyBlockIslandFactory extends IslandFactory {
         ($identifier, $callback) : void {
             $settings = ['preset' => serialize([$is->exportRaw()])];
             Server::getInstance()->generateLevel($identifier,
-                null, ApiMap::getInstance()->getTemplateIslandGeneratorClass()::class, $settings ?? []);
+                null, IslandArchitect::getInstance()->getTemplateIslandGenerator(), $settings ?? []);
             Server::getInstance()->loadLevel($identifier);
             $level = Server::getInstance()->getLevelByName($identifier);
 

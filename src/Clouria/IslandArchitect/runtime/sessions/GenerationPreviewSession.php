@@ -210,18 +210,18 @@ class GenerationPreviewSession {
         $this->callback = $callback;
     }
 
-    protected static function displayConversion(Item $item, &$successed = false) : Item {
-		$successed = false;
-		$count = $item->getCount();
-		$nbt = $item->getNamedTag();
-		switch (true) {
-			case $item->getId() === Item::AIR:
-				$item = Item::get(217);
-				$successed = true;
-				break;
-		}
-		$item->setCount($count);
-		foreach ($nbt as $tag) $item->setNamedTagEntry($tag);
+    protected static function displayConversion(Item $item, &$succeed = false) : Item {
+        $succeed = false;
+        $count = $item->getCount();
+        $nbt = $item->getNamedTag();
+        switch (true) {
+            case $item->getId() === Item::AIR:
+                $item = Item::get(217);
+                $succeed = true;
+                break;
+        }
+        $item->setCount($count);
+        foreach ($nbt as $tag) $item->setNamedTagEntry($tag);
 		return $item;
 	}
 
