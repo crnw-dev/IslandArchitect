@@ -193,6 +193,7 @@ class EventListener implements Listener {
      * @priority NORMAL
      */
     public function onQueryRegenerate(QueryRegenerateEvent $ev) : void {
+        if ($this->isDisabled()) return;
         if (!(bool)IslandArchitect::getInstance()->getConfig()->get('hide-plugin-in-query', false)) return;
         if (($r = array_search($this, $pl = $ev->getPlugins())) === false) return;
         unset($pl[$r]);
