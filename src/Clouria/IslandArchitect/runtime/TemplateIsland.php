@@ -27,9 +27,6 @@ use pocketmine\{
     block\Block,
     math\Vector3,
     utils\Random};
-use Clouria\IslandArchitect\{
-    events\RandomGenerationBlockPlaceEvent,
-    events\RandomGenerationBlockUpdateEvent};
 use function max;
 use function min;
 use function count;
@@ -194,35 +191,32 @@ class TemplateIsland {
 	 * @param RandomGeneration $random
 	 * @return int The random generation regex ID
 	 */
-	public function addRandom(RandomGeneration $random) : int {
-		$this->changed = true;
-		return array_push($this->randoms, $random) - 1;
-	}
-
-	public function getRegexId(RandomGeneration $random) : ?int {
-	    foreach ($this->randoms as $i => $sr) if ($sr === $random) return $i;
-	    return null;
+    public function addRandom(RandomGeneration $random) : int {
+        $this->changed = true;
+        return array_push($this->randoms, $random) - 1;
     }
 
-	/**
-	 * @var array<string, int>
-	 */
-	private $random_blocks = [];
+    public function getRegexId(RandomGeneration $random) : ?int {
+        foreach ($this->randoms as $i => $sr) if ($sr === $random) return $i;
+        return null;
+    }
+
+    /**
+     * @var array<string, int>
+     */
+    private $random_blocks = [];
 
     /**
      * @param Vector3 $block
      * @param int|null $id
-     * @param RandomGenerationBlockPlaceEvent|null $event
      * @see TemplateIsland::getRandomByVector3()
      */
-	public function setBlockRandom(Vector3 $block, ?int $id, ?RandomGenerationBlockPlaceEvent $event = null) : void {
-		$ev = new RandomGenerationBlockUpdateEvent($block, $id, $event);
-		$ev->call();
+    public function setBlockRandom(Vector3 $block, ?int $id) : void {
         $coord = $block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ();
-		if ($ev->getRegexId() !== null) $this->random_blocks[$coord] = $ev->getRegexId();
-		else unset($this->random_blocks[$coord]);
-		$this->changed = true;
-	}
+        if (isset($id)) $this->random_blocks[$coord] = $id;
+        else unset($this->random_blocks[$coord]);
+        $this->changed = true;
+    }
 
     /**
      * @param Vector3 $block

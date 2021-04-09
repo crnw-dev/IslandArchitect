@@ -1,69 +1,121 @@
 <?php
 /*
-
-		  _____     _                 _
-		  \_   \___| | __ _ _ __   __| |
-		   / /\/ __| |/ _` | '_ \ / _` |
-		/\/ /_ \__ \ | (_| | | | | (_| |
-		\____/ |___/_|\__,_|_| |_|\__,_|
-
-		   _            _     _ _            _
-		  /_\  _ __ ___| |__ (_) |_ ___  ___| |_
+		
+		  _____     _                 _          
+		  \_   \___| | __ _ _ __   __| |         
+		   / /\/ __| |/ _` | '_ \ / _` |         
+		/\/ /_ \__ \ | (_| | | | | (_| |         
+		\____/ |___/_|\__,_|_| |_|\__,_|         
+		                                         
+		   _            _     _ _            _   
+		  /_\  _ __ ___| |__ (_) |_ ___  ___| |_ 
 		 //_\\| '__/ __| '_ \| | __/ _ \/ __| __|
-		/  _  \ | | (__| | | | | ||  __/ (__| |_
+		/  _  \ | | (__| | | | | ||  __/ (__| |_ 
 		\_/ \_/_|  \___|_| |_|_|\__\___|\___|\__|
-
+		                                         
 		@ClouriaNetwork | Apache License 2.0
 														*/
+
 declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\events;
 
+use pocketmine\{
+    item\Item,
+    event\Event,
+    math\Vector3,
+    event\Cancellable
+};
+use Clouria\IslandArchitect\{
+    runtime\RandomGeneration,
+    runtime\sessions\PlayerSession
+};
 
-use pocketmine\math\Vector3;
+class RandomGenerationBlockUpdateEvent extends IslandArchitectEvent implements Cancellable {
 
-class RandomGenerationBlockUpdateEvent extends IslandArchitectEvent {
+    public const PLACE = 0;
+    public const PAINT = 1;
+    public const BREAK = 2;
+    public const UNDO = 3;
+
     /**
-     * @var Vector3
+     * @var int
      */
-    protected $pos;
+    protected $type;
+    /**
+     * @var Item|null
+     */
+    protected $item;
+    /**
+     * @var RandomGeneration
+     */
+    protected $regex;
+    /**
+     * @var Vector3|Vector3[]
+     */
+    protected $position;
+    /**
+     * @var PlayerSession
+     */
+    protected $session;
+    /**
+     * @var Event
+     */
+    protected $related_event;
 
     /**
-     * @var int|null
+     * RandomGenerationBlockPlaceEvent constructor.
+     * @param PlayerSession $session
+     * @param RandomGeneration $regex
+     * @param Vector3|Vector3[] $pos
+     * @param Item|null $item
+     * @param int $type
      */
-    protected $regexid;
-
-    /**
-     * @var RandomGenerationBlockPlaceEvent|null
-     */
-    protected $event;
-
-    /**
-     * RandomGenerationBlockUpdateEvent constructor.
-     * @param Vector3 $pos
-     * @param int|null $regexid
-     * @param RandomGenerationBlockPlaceEvent|null $event
-     */
-    public function __construct(Vector3 $pos, ?int $regexid, ?RandomGenerationBlockPlaceEvent $event) {
+    public function __construct(PlayerSession $session, RandomGeneration $regex, $pos, ?Item $item = null, ?Event $related_event = null, int $type = self::PLACE) {
         parent::__construct();
-        $this->pos = $pos;
-        $this->regexid = $regexid;
-        $this->event = $event;
+        $this->regex = $regex;
+        $this->session = $session;
+        $this->position = $pos;
+        $this->item = $item;
+        $this->type = $type;
+        $this->related_event = $related_event;
     }
 
-    public function getPosition() : Vector3 {
-        return $this->pos;
+    /**
+     * @return int
+     */
+    public function getType() : int {
+        return $this->type;
     }
 
-    public function getRegexId() : ?int {
-        return $this->regexid;
+    public function getItem() : ?Item {
+        return $this->item;
     }
 
-    public function setRegexId(?int $regexid) : void {
-        $this->regexid = $regexid;
+    public function getRandom() : RandomGeneration {
+        return $this->getRegex();
     }
 
-    public function getPreviousRandomGenerationBlockPlaceEvent() : ?RandomGenerationBlockPlaceEvent {
-        return $this->event;
+    public function getRegex() : RandomGeneration {
+        return $this->regex;
     }
+
+    /**
+     * @return Vector3|Vector3[]
+     */
+    public function getPosition() {
+        return $this->position;
+    }
+
+    public function getSession() : PlayerSession {
+        return $this->session;
+    }
+
+    /**
+     * @return Event
+     */
+    public function getRelatedEvent() : ?Event {
+        return $this->related_event;
+    }
+
 }

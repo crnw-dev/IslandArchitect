@@ -38,7 +38,7 @@ use Clouria\IslandArchitect\{
     IslandArchitect,
     runtime\RandomGeneration,
     runtime\sessions\PlayerSession,
-    events\RandomGenerationBlockPaintEvent
+    events\RandomGenerationBlockUpdateEvent
 };
 
 class CustomPrinter extends Printer {
@@ -112,14 +112,14 @@ class CustomPrinter extends Printer {
                 break;
         }
 
-        $e = new RandomGenerationBlockPaintEvent($s, $regex, $array ?? [], $item);
+        $e = new RandomGenerationBlockUpdateEvent($s, $regex, $array ?? [], $item, null, RandomGenerationBlockUpdateEvent::PAINT);
         $e->call();
         if ($e->isCancelled()) return;
         if (!($regexid = $nbt->getTag('regexid', IntTag::class)) instanceof IntTag) {
             foreach ($s->getIsland()->getRandoms() as $i => $sr) if ($sr->equals($regex)) $regexid = $i;
             if ($regexid === null) $regexid = $s->getIsland()->addRandom($regex);
         }
-        foreach ($e->getBlocks() as $vec) $s->getIsland()->setBlockRandom($vec, $regexid);
+        foreach ($e->getPosition() as $vec) $s->getIsland()->setBlockRandom($vec, $regexid);
     }
 
 }

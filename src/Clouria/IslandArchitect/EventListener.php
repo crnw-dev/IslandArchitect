@@ -33,8 +33,7 @@ use pocketmine\{
 use Clouria\IslandArchitect\{
     runtime\RandomGeneration,
     runtime\sessions\PlayerSession,
-    events\RandomGenerationBlockBreakEvent,
-    events\RandomGenerationBlockPlaceEvent
+    events\RandomGenerationBlockUpdateEvent
 };
 use pocketmine\event\{
     Listener,
@@ -89,7 +88,7 @@ class EventListener implements Listener {
 
         $vec = $ev->getBlock()->asVector3();
         if (($r = $s->getIsland()->getRandomByVector3($vec)) === null) return;
-        $e = new RandomGenerationBlockBreakEvent($s, $r, $ev->getBlock()->asPosition());
+        $e = new RandomGenerationBlockUpdateEvent($s, $s->getIsland()->getRandomById($r), $ev->getBlock()->asPosition(), null, $ev, RandomGenerationBlockUpdateEvent::BREAK);
         $e->call();
         if ($e->isCancelled()) return;
         $s->getPlayer()->sendPopup(TF::BOLD . TF::YELLOW . 'You have destroyed a random generation block, ' . TF::GOLD . 'the item has returned to your inventory!');
@@ -120,7 +119,7 @@ class EventListener implements Listener {
         if (!($regex = $nbt->getTag('regex', ListTag::class)) instanceof ListTag) return;
         if (PlayerSession::errorCheckOutRequired($ev->getPlayer(), $s)) return;
         $regex = RandomGeneration::fromNBT($regex);
-        $e = new RandomGenerationBlockPlaceEvent($s, $regex, $ev->getBlock()->asPosition(), $item);
+        $e = new RandomGenerationBlockUpdateEvent($s, $regex, $ev->getBlock()->asVector3(), $item, $ev);
         $e->call();
         if ($e->isCancelled()) return;
         if (!($regexid = $nbt->getTag('regexid', IntTag::class)) instanceof IntTag) {
@@ -132,7 +131,7 @@ class EventListener implements Listener {
             (($r = $s->getIsland()->getRandomById($regexid = $regexid->getValue())) === null or
                 !$r->equals($regex))
         ) $regexid = $s->getIsland()->addRandom($regex);
-        $s->getIsland()->setBlockRandom($ev->getBlock()->asVector3(), $regexid, $e);
+        $s->getIsland()->setBlockRandom($ev->getBlock()->asVector3(), $regexid);
         $symbolic = $s->getIsland()->getRandomSymbolicItem($regexid);
         $item = clone $item;
         if (!$item->equals($symbolic, true, false)) {
