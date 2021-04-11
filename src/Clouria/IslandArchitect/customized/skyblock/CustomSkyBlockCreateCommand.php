@@ -27,8 +27,7 @@ use Clouria\IslandArchitect\{
     IslandArchitect,
     runtime\TemplateIsland,
     conversion\IslandDataLoadTask,
-    events\IslandWorldPreCreateEvent
-};
+    events\IslandWorldPreCreateEvent};
 use room17\SkyBlock\{
     SkyBlock,
     island\RankIds,
@@ -36,8 +35,7 @@ use room17\SkyBlock\{
     island\IslandFactory,
     command\presets\CreateCommand,
     event\island\IslandCreateEvent,
-    utils\message\MessageContainer
-};
+    utils\message\MessageContainer};
 use function strtolower;
 
 class CustomSkyBlockCreateCommand extends CreateCommand {
@@ -81,16 +79,17 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
 
     public static function createIslandFor(Session $session, string $type) : void {
         $mapped = IslandArchitect::getInstance()->mapGeneratorType($type);
+        $ev = new IslandWorldPreCreateEvent($session, static::createIslandIdentifier(), $mapped ?? $type, isset($mapped));
+        $ev->call();
+        if (!SkyBlock::getInstance()->getGeneratorManager()->isGenerator($ev->getType())) return;
         if ($mapped === null) {
             try {
-                IslandFactory::createIslandFor($session, $type);
+                IslandFactory::createIslandFor($session, $ev->getType());
             } catch (ReflectionException $e) {
             }
             return;
         }
 
-        $ev = new IslandWorldPreCreateEvent($session, static::createIslandIdentifier(), $mapped);
-        $ev->call();
         $identifier = $ev->getIdentifier();
         $type = $ev->getType();
         $islandManager = SkyBlock::getInstance()->getIslandManager();
