@@ -30,12 +30,7 @@ class IslandChest {
 
     public function __construct(array $contents = []) {
         $this->contents = new \SplFixedArray($size = 27);
-        if (count($contents) > $size) throw new \InvalidArgumentException('More than ' . $size . ' items want to fit in a ' . $size . ' slots (0-' . ($size - 1) . ') container');
-        foreach ($contents as $content) {
-            if (is_array($content)) $content = $content[0] . ':' . $content[1] ?? 0;
-            // TODO: Allow random generation regex to be put into island chests
-            $this->contents[] = $content;
-        }
+        if (!$this->setContents($contents)) throw new \InvalidArgumentException('More than ' . $size . ' items want to fit in a ' . $size . ' slots (0-' . ($size - 1) . ') container');
     }
 
     /**
@@ -69,6 +64,15 @@ class IslandChest {
     public function removeContentAt(int $slot) : bool {
         if (!isset($this->contents[$slot])) return false;
         unset($this->contents[$slot]);
+        return true;
+    }
+
+    public function setContents(array $contents) : bool {
+        if (count($contents) > $this->contents->getSize()) return false;
+        foreach ($contents as $slot => $content) {
+            if (is_array($content)) $content = $content[0] . ':' . $content[1] ?? 0;
+            $this->contents[$slot] = $content;
+        }
         return true;
     }
 }
