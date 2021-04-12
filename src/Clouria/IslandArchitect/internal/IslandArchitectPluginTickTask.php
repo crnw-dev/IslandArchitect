@@ -18,9 +18,10 @@
 
 declare(strict_types=1);
 
-namespace Clouria\IslandArchitect;
+namespace Clouria\IslandArchitect\internal;
 
 
+use Clouria\IslandArchitect\IslandArchitect;
 use pocketmine\{
     level\Level,
     math\Vector3,

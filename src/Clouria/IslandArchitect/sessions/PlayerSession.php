@@ -17,13 +17,20 @@
 														*/
 
 declare(strict_types=1);
-namespace Clouria\IslandArchitect\runtime\sessions;
+namespace Clouria\IslandArchitect\sessions;
 
 use muqsit\invmenu\InvMenu;
 use jojoe77777\FormAPI\{
     ModalForm,
     SimpleForm,
     CustomForm
+};
+use Clouria\IslandArchitect\generator\tasks\IslandDataEmitTask;
+use Clouria\IslandArchitect\generator\properties\RandomGeneration;
+use Clouria\IslandArchitect\{
+    IslandArchitect,
+    generator\TemplateIsland,
+    events\TemplateIslandExportEvent
 };
 use pocketmine\{
     Player,
@@ -33,13 +40,6 @@ use pocketmine\{
     math\Vector3,
     utils\TextFormat as TF,
     level\particle\FloatingTextParticle
-};
-use Clouria\IslandArchitect\{
-    IslandArchitect,
-    runtime\TemplateIsland,
-    runtime\RandomGeneration,
-    conversion\IslandDataEmitTask,
-    events\TemplateIslandExportEvent
 };
 use function max;
 use function min;

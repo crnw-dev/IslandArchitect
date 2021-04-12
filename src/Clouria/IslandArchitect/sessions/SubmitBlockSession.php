@@ -17,16 +17,18 @@
 														*/
 declare(strict_types=1);
 
-namespace Clouria\IslandArchitect\runtime\sessions;
+namespace Clouria\IslandArchitect\sessions;
 
 use pocketmine\{
     item\Item,
     nbt\tag\ByteTag,
-    utils\TextFormat as TF};
+    utils\TextFormat as TF
+};
 use muqsit\invmenu\{
     InvMenu,
     transaction\InvMenuTransaction,
-    transaction\InvMenuTransactionResult};
+    transaction\InvMenuTransactionResult
+};
 use function class_exists;
 
 class SubmitBlockSession {

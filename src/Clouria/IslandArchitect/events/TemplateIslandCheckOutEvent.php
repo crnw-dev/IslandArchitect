@@ -19,10 +19,8 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\events;
 
-use Clouria\IslandArchitect\{
-    runtime\TemplateIsland,
-    runtime\sessions\PlayerSession
-};
+use Clouria\IslandArchitect\sessions\PlayerSession;
+use Clouria\IslandArchitect\generator\TemplateIsland;
 
 class TemplateIslandCheckOutEvent extends IslandArchitectEvent {
 

@@ -17,15 +17,17 @@
 														*/
 declare(strict_types=1);
 
-namespace Clouria\IslandArchitect\runtime\sessions;
+namespace Clouria\IslandArchitect\sessions;
 
 
 use room17\SkyBlock\{
-    SkyBlock};
+    SkyBlock
+};
 use muqsit\invmenu\{
     InvMenu,
     transaction\InvMenuTransaction,
-    transaction\InvMenuTransactionResult};
+    transaction\InvMenuTransactionResult
+};
 
 class IslandChestSession {
 

@@ -17,11 +17,11 @@
 														*/
 
 declare(strict_types=1);
-namespace Clouria\IslandArchitect\conversion;
+namespace Clouria\IslandArchitect\generator\tasks;
 
 use Clouria\IslandArchitect\{
     IslandArchitect,
-    runtime\TemplateIsland
+    generator\TemplateIsland
 };
 use pocketmine\{
     Server,

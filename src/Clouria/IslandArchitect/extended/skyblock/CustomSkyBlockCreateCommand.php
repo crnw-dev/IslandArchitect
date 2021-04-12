@@ -17,16 +17,19 @@
 														*/
 declare(strict_types=1);
 
-namespace Clouria\IslandArchitect\customized\skyblock;
+namespace Clouria\IslandArchitect\extended\skyblock;
 
-use pocketmine\Server;
-use pocketmine\level\Level;
-use pocketmine\level\Position;
+use pocketmine\{
+    Server,
+    level\Level,
+    level\Position
+};
 use Clouria\IslandArchitect\{
     IslandArchitect,
-    runtime\TemplateIsland,
-    conversion\IslandDataLoadTask,
-    events\IslandWorldPreCreateEvent};
+    generator\TemplateIsland,
+    events\IslandWorldPreCreateEvent,
+    generator\tasks\IslandDataLoadTask
+};
 use room17\SkyBlock\{
     SkyBlock,
     island\RankIds,
@@ -34,7 +37,8 @@ use room17\SkyBlock\{
     island\IslandFactory,
     command\presets\CreateCommand,
     event\island\IslandCreateEvent,
-    utils\message\MessageContainer};
+    utils\message\MessageContainer
+};
 use function strtolower;
 
 class CustomSkyBlockCreateCommand extends CreateCommand {

@@ -18,11 +18,17 @@
 
 declare(strict_types=1);
 
-namespace Clouria\IslandArchitect\worldedit\buildertools;
+namespace Clouria\IslandArchitect\extended\buildertools;
 
+use Clouria\IslandArchitect\sessions\PlayerSession;
 use czechpmdevs\buildertools\{
     utils\Math,
     editors\Printer
+};
+use Clouria\IslandArchitect\generator\properties\RandomGeneration;
+use Clouria\IslandArchitect\{
+    IslandArchitect,
+    events\RandomGenerationBlockUpdateEvent
 };
 use pocketmine\{
     Player,
@@ -33,12 +39,6 @@ use pocketmine\{
     nbt\tag\ListTag,
     nbt\tag\CompoundTag,
     utils\TextFormat as TF
-};
-use Clouria\IslandArchitect\{
-    IslandArchitect,
-    runtime\RandomGeneration,
-    runtime\sessions\PlayerSession,
-    events\RandomGenerationBlockUpdateEvent
 };
 
 class CustomPrinter extends Printer {

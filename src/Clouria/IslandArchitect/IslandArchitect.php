@@ -35,10 +35,13 @@ use pocketmine\{
     plugin\PluginBase
 };
 use Clouria\IslandArchitect\{
-    runtime\sessions\PlayerSession,
-    runtime\TemplateIslandGenerator,
-    worldedit\buildertools\CustomPrinter,
-    customized\skyblock\CustomSkyBlockCreateCommand
+    sessions\PlayerSession,
+    internal\IslandArchitectCommand,
+    generator\TemplateIslandGenerator,
+    extended\buildertools\CustomPrinter,
+    internal\IslandArchitectEventListener,
+    internal\IslandArchitectPluginTickTask,
+    extended\skyblock\CustomSkyBlockCreateCommand
 };
 use function is_a;
 use function substr;
@@ -185,7 +188,7 @@ class IslandArchitect extends PluginBase {
     public function onEnable() : void {
         $this->initConfig();
         if (class_exists(InvMenuHandler::class)) if (!InvMenuHandler::isRegistered()) InvMenuHandler::register($this);
-        $this->getServer()->getPluginManager()->registerEvents(EventListener::getInstance(), $this);
+        $this->getServer()->getPluginManager()->registerEvents(IslandArchitectEventListener::getInstance(), $this);
 
         $this->getServer()->getCommandMap()->register($this->getName(), new IslandArchitectCommand);
 

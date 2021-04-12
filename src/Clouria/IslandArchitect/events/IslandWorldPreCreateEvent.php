@@ -23,6 +23,7 @@ use room17\SkyBlock\SkyBlock;
 use room17\SkyBlock\session\Session;
 use Clouria\IslandArchitect\IslandArchitect;
 
+
 class IslandWorldPreCreateEvent extends IslandArchitectEvent {
 
     /**

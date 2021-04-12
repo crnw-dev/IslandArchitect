@@ -17,22 +17,25 @@
 														*/
 declare(strict_types=1);
 
-namespace Clouria\IslandArchitect\runtime\sessions;
+namespace Clouria\IslandArchitect\sessions;
 
 use jojoe77777\FormAPI\CustomForm;
-use Clouria\IslandArchitect\{
-    IslandArchitect,
-    runtime\RandomGeneration};
 use muqsit\invmenu\{
     InvMenu,
-    transaction\DeterministicInvMenuTransaction};
+    transaction\DeterministicInvMenuTransaction
+};
+use Clouria\IslandArchitect\{
+    IslandArchitect,
+    generator\properties\RandomGeneration
+};
 use pocketmine\{
     Player,
     item\Item,
     utils\Random,
     nbt\tag\ByteTag,
     utils\TextFormat as TF,
-    level\generator\Generator};
+    level\generator\Generator
+};
 use function in_array;
 use function random_int;
 use const INT32_MAX;

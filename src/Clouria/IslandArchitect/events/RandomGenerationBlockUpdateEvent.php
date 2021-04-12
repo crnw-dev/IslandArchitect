@@ -20,15 +20,13 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\events;
 
+use Clouria\IslandArchitect\sessions\PlayerSession;
+use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use pocketmine\{
     item\Item,
     event\Event,
     math\Vector3,
     event\Cancellable
-};
-use Clouria\IslandArchitect\{
-    runtime\RandomGeneration,
-    runtime\sessions\PlayerSession
 };
 
 class RandomGenerationBlockUpdateEvent extends IslandArchitectEvent implements Cancellable {
@@ -69,6 +67,7 @@ class RandomGenerationBlockUpdateEvent extends IslandArchitectEvent implements C
      * @param RandomGeneration $regex
      * @param Vector3|Vector3[] $pos
      * @param Item|null $item
+     * @param Event|null $related_event
      * @param int $type
      */
     public function __construct(PlayerSession $session, RandomGeneration $regex, $pos, ?Item $item = null, ?Event $related_event = null, int $type = self::PLACE) {

@@ -18,13 +18,14 @@
 														*/
 
 declare(strict_types=1);
-namespace Clouria\IslandArchitect\runtime;
+namespace Clouria\IslandArchitect\generator;
 
 use room17\SkyBlock\island\generator\IslandGenerator;
 use pocketmine\{
     item\Item,
     level\Level,
-    math\Vector3};
+    math\Vector3
+};
 use function unserialize;
 
 class TemplateIslandGenerator extends IslandGenerator {

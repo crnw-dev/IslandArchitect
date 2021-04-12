@@ -17,10 +17,11 @@
 														*/
 declare(strict_types=1);
 
-namespace Clouria\IslandArchitect;
+namespace Clouria\IslandArchitect\internal;
 
 use room17\SkyBlock\SkyBlock;
 use czechpmdevs\buildertools\BuilderTools;
+use Clouria\IslandArchitect\sessions\PlayerSession;
 use pocketmine\nbt\tag\{
     IntTag,
     ListTag,
@@ -30,9 +31,9 @@ use pocketmine\{
     utils\SingletonTrait,
     utils\TextFormat as TF
 };
+use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use Clouria\IslandArchitect\{
-    runtime\RandomGeneration,
-    runtime\sessions\PlayerSession,
+    IslandArchitect,
     events\RandomGenerationBlockUpdateEvent
 };
 use pocketmine\event\{
@@ -48,7 +49,7 @@ use pocketmine\event\{
 };
 use function class_exists;
 
-class EventListener implements Listener {
+class IslandArchitectEventListener implements Listener {
     use SingletonTrait;
 
     /**

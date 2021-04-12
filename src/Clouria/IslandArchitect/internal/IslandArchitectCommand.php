@@ -16,7 +16,7 @@
 		@ClouriaNetwork | Apache License 2.0
 														*/
 
-namespace Clouria\IslandArchitect;
+namespace Clouria\IslandArchitect\internal;
 
 use jojoe77777\FormAPI\ModalForm;
 use pocketmine\{
@@ -30,11 +30,12 @@ use pocketmine\{
     command\CommandSender
 };
 use Clouria\IslandArchitect\{
-    runtime\TemplateIsland,
-    runtime\RandomGeneration,
-    conversion\IslandDataLoadTask,
-    runtime\sessions\PlayerSession,
-    events\TemplateIslandCheckOutEvent
+    IslandArchitect,
+    sessions\PlayerSession,
+    generator\TemplateIsland,
+    generator\tasks\IslandDataLoadTask,
+    events\TemplateIslandCheckOutEvent,
+    generator\properties\RandomGeneration
 };
 use function strtolower;
 use function class_exists;
