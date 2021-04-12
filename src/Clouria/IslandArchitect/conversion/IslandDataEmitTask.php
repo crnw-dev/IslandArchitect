@@ -55,16 +55,17 @@ class IslandDataEmitTask extends AsyncTask {
      * @param TemplateIsland $island
      * @param Chunk[]|null $chunks If the array is not empty, an export action will be taken instead of normal save action
      * @param \Closure|null $callback Compatible with <code>function(string $file) {}</code>
+     * @param \Closure|null $onerror
      */
-	public function __construct(TemplateIsland $island, ?array $chunks, ?\Closure $callback = null) {
-		$this->island = serialize($island);
-		$this->chunks = serialize($chunks);
-		$this->path = IslandArchitect::getInstance()->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/');
+    public function __construct(TemplateIsland $island, ?array $chunks, ?\Closure $callback = null, ?\Closure $onerror = null) {
+        $this->island = serialize($island);
+        $this->chunks = serialize($chunks);
+        $this->path = IslandArchitect::getInstance()->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/');
 
-		$this->storeLocal([$callback]);
-	}
+        $this->storeLocal([$callback, $onerror]);
+    }
 
-	public function onRun() : void {
+    public function onRun() : void {
         $island = unserialize($this->island);
         $chunks = unserialize($this->chunks);
 

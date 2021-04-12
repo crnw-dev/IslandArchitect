@@ -20,47 +20,45 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\conversion;
 
 use pocketmine\{
-	Server,
-	scheduler\AsyncTask,
-	utils\Utils
+    Server,
+    utils\Utils,
+    scheduler\AsyncTask
 };
-
 use Clouria\IslandArchitect\{
-	IslandArchitect,
-	runtime\TemplateIsland
+    IslandArchitect,
+    runtime\TemplateIsland
 };
-
+use function is_file;
 use function serialize;
 use function unserialize;
 use function file_get_contents;
-use function is_file;
 
 class IslandDataLoadTask extends AsyncTask {
 
-	/**
-	 * @var string
-	 */
-	protected $path;
+    /**
+     * @var string
+     */
+    protected $path;
 
-	/**
-	 * @var string
-	 */
-	protected $islandname;
+    /**
+     * @var string
+     */
+    protected $islandname;
 
-	/**
-	 * @param \Closure|null $callback Compatible with <code>function(?<@link TemplateIsland> $island, string $filepath) {}</code>
-	 */
-	public function __construct(string $islandname, ?\Closure $callback = null) {
-		$this->islandname = $islandname;
-		$this->path = (string)IslandArchitect::getInstance()->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/');
+    /**
+     * @param \Closure|null $callback Compatible with <code>function(?<@link TemplateIsland> $island, string $filepath) {}</code>
+     */
+    public function __construct(string $islandname, ?\Closure $callback = null, ?\Closure $onerror = null) {
+        $this->islandname = $islandname;
+        $this->path = (string)IslandArchitect::getInstance()->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/');
 
-		$this->storeLocal([$callback]);
-	}
+        $this->storeLocal([$callback, $onerror]);
+    }
 
-	public function onRun() : void {
-		if (
-			is_file($spath = Utils::cleanPath($this->islandname)) or // ppath = Primary path (Don't question lol)
-			is_file($spath = Utils::cleanPath($this->islandname) . '.json') or
+    public function onRun() : void {
+        if (
+            is_file($spath = Utils::cleanPath($this->islandname)) or // ppath = Primary path (Don't question lol)
+            is_file($spath = Utils::cleanPath($this->islandname) . '.json') or
 			is_file($spath = Utils::cleanPath($this->path) . ($this->path[-1] === '/' ? '' : '/') . $this->islandname . '.json')
 		) $r = [serialize(TemplateIsland::load(file_get_contents($spath), $this->worker->getLogger()))];
 		else $r = [serialize(null)];

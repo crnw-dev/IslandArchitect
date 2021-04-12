@@ -23,14 +23,14 @@ use muqsit\invmenu\InvMenu;
 use jojoe77777\FormAPI\{
     ModalForm,
     SimpleForm,
-    CustomForm};
+    CustomForm
+};
 use pocketmine\{
     Player,
     Server,
     item\Item,
     level\Level,
     math\Vector3,
-    scheduler\ClosureTask,
     utils\TextFormat as TF,
     level\particle\FloatingTextParticle
 };
@@ -181,21 +181,11 @@ class PlayerSession {
             $this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Export completed!' . TF::ITALIC . TF::GRAY . ' (' . round(microtime(true) - $time, 2) . 's)');
             $ev = new TemplateIslandExportEvent($this, $island, $file);
             $ev->call();
+        }, function() use ($island) : void {
+            $this->export_lock = false;
+            $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Critical: Export task crashed' . TF::ITALIC . TF::GRAY . ' (The selected region might be too big or an unexpected error occurred)');
+            // Actually there is no need to restore data after a crash since normally it won't affect any original data
         });
-        $checker = null;
-        $checker = IslandArchitect::getInstance()->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) use (&$checker, $task, &$island) : void {
-            if ($task->isCrashed()) {
-                $this->export_lock = false;
-                $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Critical: Export task crashed' . TF::ITALIC . TF::GRAY . ' (The selected region might be too big or an unexpected error occurred)');
-                $this->getPlayer()->sendMessage(TF::BOLD . TF::GOLD . 'Attempting to recover original island settings...');
-                $this->checkOutIsland($island);
-                $restore = new IslandDataEmitTask($island, [], function(string $file) : void {
-                    $this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Restore succeed!');
-                });
-                Server::getInstance()->getAsyncPool()->submitTask($restore);
-            }
-            if (!$this->export_lock) $checker->cancel();
-        }), 10);
 
         Server::getInstance()->getAsyncPool()->submitTask($task);
     }
