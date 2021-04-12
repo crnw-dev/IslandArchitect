@@ -17,30 +17,25 @@
 														*/
 
 declare(strict_types=1);
+
 namespace Clouria\IslandArchitect\sessions;
 
+use pocketmine\Player;
+use pocketmine\Server;
+use pocketmine\item\Item;
 use muqsit\invmenu\InvMenu;
-use jojoe77777\FormAPI\{
-    ModalForm,
-    SimpleForm,
-    CustomForm
-};
+use pocketmine\level\Level;
+use pocketmine\math\Vector3;
+use jojoe77777\FormAPI\ModalForm;
+use jojoe77777\FormAPI\SimpleForm;
+use jojoe77777\FormAPI\CustomForm;
+use pocketmine\utils\TextFormat as TF;
+use Clouria\IslandArchitect\IslandArchitect;
+use pocketmine\level\particle\FloatingTextParticle;
+use Clouria\IslandArchitect\generator\TemplateIsland;
+use Clouria\IslandArchitect\events\TemplateIslandExportEvent;
 use Clouria\IslandArchitect\generator\tasks\IslandDataEmitTask;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
-use Clouria\IslandArchitect\{
-    IslandArchitect,
-    generator\TemplateIsland,
-    events\TemplateIslandExportEvent
-};
-use pocketmine\{
-    Player,
-    Server,
-    item\Item,
-    level\Level,
-    math\Vector3,
-    utils\TextFormat as TF,
-    level\particle\FloatingTextParticle
-};
 use function max;
 use function min;
 use function count;
@@ -57,69 +52,86 @@ class PlayerSession {
     public const FLOATINGTEXT_SPAWN = 0;
     public const FLOATINGTEXT_STARTCOORD = 1;
     public const FLOATINGTEXT_ENDCOORD = 2;
-
-    /**
-	 * @var Player
-	 */
-	private $player;
-
     /**
      * @var array<mixed, FloatingTextParticle>
      */
     protected $floatingtext = [];
-
     /**
      * @var scalar[]
      */
     protected $viewingft = [];
+    /**
+     * @var TemplateIsland|null
+     */
+    protected $island = null;
+    /**
+     * @var bool
+     */
+    protected $save_lock = false;
+    /**
+     * @var Player
+     */
+    private $player;
+    /**
+     * @var bool
+     */
+    private $export_lock = false;
 
     public function __construct(Player $player) {
-		$this->player = $player;
-	}
+        $this->player = $player;
+    }
 
-	public function getPlayer() : Player {
-		return $this->player;
-	}
+    /**
+     * @param Player $player
+     * @param PlayerSession|null $session
+     * @return bool true = No island checked out
+     */
+    public static function errorCheckOutRequired(Player $player, ?PlayerSession $session) : bool {
+        if ($session !== null and $session->getIsland() !== null) return false;
+        $player->sendMessage(TF::BOLD . TF::RED . 'Please check out an island first!' . TF::GRAY . TF::ITALIC . ' ("/ia island <Island data file name: string>")');
+        return true;
+    }
 
-	/**
-	 * @var TemplateIsland|null
-	 */
-	protected $island = null;
-
-	public function checkOutIsland(TemplateIsland $island) : void {
-		if ($this->export_lock) {
+    public function checkOutIsland(TemplateIsland $island) : void {
+        if ($this->export_lock) {
             $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'An island is exporting in background, please wait until the island export is finished!');
             return;
         }
-		$this->island = $island;
+        $this->island = $island;
 
-		$spawn = $island->getSpawn();
-		if ($spawn === null) return;
-		$spawn = $spawn->floor()->add(0.5, 0.5, 0.5);
-		$ft = $this->getFloatingText(self::FLOATINGTEXT_SPAWN, true);
+        $spawn = $island->getSpawn();
+        if ($spawn === null) return;
+        $spawn = $spawn->floor()->add(0.5, 0.5, 0.5);
+        $ft = $this->getFloatingText(self::FLOATINGTEXT_SPAWN, true);
         $ft->setComponents($spawn->getX(), $spawn->getY(), $spawn->getZ());
         $ft->setText(TF::BOLD . TF::GOLD . 'Island spawn' . "\n" . TF::RESET . TF::GREEN . $spawn->getFloorX() . ', ' . $spawn->getFloorY() . ', ' . $spawn->getFloorZ());
-	}
+    }
 
-	public function getIsland() : ?TemplateIsland {
-		return $this->island;
-	}
+    public function getPlayer() : Player {
+        return $this->player;
+    }
 
-	public function close() : void {
+    /**
+     * @param scalar $id
+     * @param bool $nonnull
+     * @return FloatingTextParticle|null
+     */
+    public function getFloatingText($id, bool $nonnull = false) : ?FloatingTextParticle {
+        if (isset($this->floatingtext[$id])) return $this->floatingtext[$id];
+        if ($nonnull) return ($this->floatingtext[$id] = new FloatingTextParticle(new Vector3(0, 0, 0), ''));
+        return null;
+    }
+
+    public function close() : void {
         $this->saveIsland();
         if (!$this->getPlayer()->isOnline()) return;
         foreach ($this->floatingtext as $ft) {
             $ft->setInvisible();
             $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
         }
-	}
+    }
 
-	/**
-	 * @var bool
-	 */
-	protected $save_lock = false;
-
-	public function saveIsland() : void {
+    public function saveIsland() : void {
         if ($this->save_lock) return;
         if (($island = $this->getIsland()) === null) return;
         if (!$island->hasChanges()) return;
@@ -134,28 +146,27 @@ class PlayerSession {
         Server::getInstance()->getAsyncPool()->submitTask($task);
     }
 
-	/**
-	 * @var bool
-	 */
-	private $export_lock = false;
+    public function getIsland() : ?TemplateIsland {
+        return $this->island;
+    }
 
-	public function exportIsland() : void {
-		if (($island = $this->getIsland()) === null) return;
-		if (!$island->readyToExport()) {
-			$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Please set the island start and end coordinate first!');
-			return;
-		}
-		$this->export_lock = true;
-		$this->island = null;
-		$time = microtime(true);
-		$this->getPlayer()->sendMessage(TF::YELLOW . 'Queued export task for island "' . $island->getName() . '"...');
+    public function exportIsland() : void {
+        if (($island = $this->getIsland()) === null) return;
+        if (!$island->readyToExport()) {
+            $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Please set the island start and end coordinate first!');
+            return;
+        }
+        $this->export_lock = true;
+        $this->island = null;
+        $time = microtime(true);
+        $this->getPlayer()->sendMessage(TF::YELLOW . 'Queued export task for island "' . $island->getName() . '"...');
 
-		$sc = $island->getStartCoord();
-		$ec = $island->getEndCoord();
+        $sc = $island->getStartCoord();
+        $ec = $island->getEndCoord();
 
-		for ($x=min($sc->getFloorX(), $ec->getFloorX()) >> 4; $x <= (max($sc->getFloorX(), $ec->getFloorX()) >> 4); $x++) for ($z=min($sc->getFloorZ(), $ec->getFloorZ()) >> 4; $z <= (max($sc->getFloorZ(), $ec->getFloorZ()) >> 4); $z++) {
-			while (($level = Server::getInstance()->getLevelByName($island->getLevel())) === null) {
-				if ($wlock ?? false) {
+        for ($x = min($sc->getFloorX(), $ec->getFloorX()) >> 4; $x <= (max($sc->getFloorX(), $ec->getFloorX()) >> 4); $x++) for ($z = min($sc->getFloorZ(), $ec->getFloorZ()) >> 4; $z <= (max($sc->getFloorZ(), $ec->getFloorZ()) >> 4); $z++) {
+            while (($level = Server::getInstance()->getLevelByName($island->getLevel())) === null) {
+                if ($wlock ?? false) {
                     $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Island world (' . $island->getLevel() . ') is missing!');
                     $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Export task aborted.');
                     $this->export_lock = false;
@@ -191,40 +202,18 @@ class PlayerSession {
     }
 
     /**
-     * @param Player $player
-     * @param PlayerSession|null $session
-     * @return bool true = No island checked out
-     */
-	public static function errorCheckOutRequired(Player $player, ?PlayerSession $session) : bool {
-		if ($session !== null and $session->getIsland() !== null) return false;
-		$player->sendMessage(TF::BOLD . TF::RED . 'Please check out an island first!' . TF::GRAY . TF::ITALIC . ' ("/ia island <Island data file name: string>")');
-		return true;
-	}
-
-    /**
-     * @param scalar $id
-     * @param bool $nonnull
-     * @return FloatingTextParticle|null
-     */
-    public function getFloatingText($id, bool $nonnull = false) : ?FloatingTextParticle {
-	    if (isset($this->floatingtext[$id])) return $this->floatingtext[$id];
-	    if ($nonnull) return ($this->floatingtext[$id] = new FloatingTextParticle(new Vector3(0, 0, 0), ''));
-	    return null;
-    }
-
-    /**
      * @param scalar $id
      * @return bool
      */
     public function showFloatingText($id) : bool {
-	    if (!isset($this->floatingtext[$id])) return false;
-	    if (in_array($id, $this->viewingft, true)) return false;
-	    $this->viewingft[] = $id;
+        if (!isset($this->floatingtext[$id])) return false;
+        if (in_array($id, $this->viewingft, true)) return false;
+        $this->viewingft[] = $id;
 
-	    $ft = $this->floatingtext[$id];
-	    $ft->setInvisible(false);
-	    $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
-	    return true;
+        $ft = $this->floatingtext[$id];
+        $ft->setInvisible(false);
+        $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
+        return true;
     }
 
     /**
@@ -233,41 +222,42 @@ class PlayerSession {
      */
     public function hideFloatingText($id) : bool {
         if (!isset($this->floatingtext[$id])) return false;
-	    if (($r = array_search($id, $this->viewingft, true)) === false) return false;
+        if (($r = array_search($id, $this->viewingft, true)) === false) return false;
         unset($this->viewingft[$r]);
 
-	    $ft = $this->floatingtext[$id];
-	    $ft->setInvisible(true);
-	    $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
-	    return true;
+        $ft = $this->floatingtext[$id];
+        $ft->setInvisible(true);
+        $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
+        return true;
     }
 
     public function listRandoms() : void {
-		if ($this->getIsland() === null) return;
-		if (class_exists(SimpleForm::class)) {
-			$f = new SimpleForm(function(Player $p, int $d = null) : void {
-				if ($d === null) return;
-				if ($d <= count($this->getIsland()->getRandoms()) or count($this->getIsland()->getRandoms()) < 0x7fffffff) {
-				    if ($this->getIsland()->getRandomById($d) === null) $this->editRandom();
-				    else $this->editRandom($d);
+        if ($this->getIsland() === null) return;
+        if (class_exists(SimpleForm::class)) {
+            $f = new SimpleForm(function(Player $p, int $d = null) : void {
+                if ($d === null) return;
+                if ($d <= count($this->getIsland()->getRandoms()) or count($this->getIsland()->getRandoms()) < 0x7fffffff) {
+                    if ($this->getIsland()->getRandomById($d) === null) $this->editRandom();
+                    else $this->editRandom($d);
                 }
-			});
-			foreach ($this->getIsland()->getRandoms() as $i => $r) $f->addButton(TF::BOLD . TF::DARK_BLUE . $this->getIsland()->getRandomLabel($i) . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(' . count($r->getAllElements()) . ' elements)');
-			$f->setTitle(TF::BOLD . TF::DARK_AQUA . 'Regex List');
-			$f->addButton(count($this->getIsland()->getRandoms()) < 0x7fffffff ? TF::BOLD . TF::DARK_GREEN . 'New Regex' : TF::BOLD . TF::DARK_GRAY . 'Max limit reached' . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(2147483647 regex)');
-			$this->getPlayer()->sendForm($f);
-		} else {
+            });
+            foreach ($this->getIsland()->getRandoms() as $i => $r) $f->addButton(TF::BOLD . TF::DARK_BLUE . $this->getIsland()
+                                                                                                                 ->getRandomLabel($i) . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(' . count($r->getAllElements()) . ' elements)');
+            $f->setTitle(TF::BOLD . TF::DARK_AQUA . 'Regex List');
+            $f->addButton(count($this->getIsland()->getRandoms()) < 0x7fffffff ? TF::BOLD . TF::DARK_GREEN . 'New Regex' : TF::BOLD . TF::DARK_GRAY . 'Max limit reached' . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(2147483647 regex)');
+            $this->getPlayer()->sendForm($f);
+        } else {
             $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Cannot edit random generation regex due to required virion dependency "libFormAPI"' . TF::ITALIC . TF::GRAY . '(https://github.com/Infernus101/FormAPI) ' . TF::RESET .
                 TF::BOLD . TF::RED . 'is not installed. ' . TF::YELLOW . 'An empty regex has been added to the template island data, please edit it manually with an text editor!');
             $this->getIsland()->addRandom(new RandomGeneration);
         }
-	}
+    }
 
     public function editRandom(?int $regexid = null) : bool {
         if ($regexid === null and count($this->getIsland()->getRandoms()) < 0x7fffffff) $regexid = $this->getIsland()->addRandom(new RandomGeneration);
         // 2147483647, max limit of int tag value and random generation regex number
         elseif ($regexid === null) return false;
-        $form = new SimpleForm(function (Player $p, int $d = null) use ($regexid) : void {
+        $form = new SimpleForm(function(Player $p, int $d = null) use ($regexid) : void {
             if ($d === null) {
                 $this->listRandoms();
                 return;
@@ -311,7 +301,7 @@ class PlayerSession {
                     break;
 
                 case 5:
-                    $form = new ModalForm(function (Player $p, bool $d) use ($regexid) : void {
+                    $form = new ModalForm(function(Player $p, bool $d) use ($regexid) : void {
                         if ($d) {
                             $this->getIsland()->removeRandomById($regexid);
                             $this->listRandoms();
@@ -319,7 +309,7 @@ class PlayerSession {
                     });
                     $form->setTitle(TF::BOLD . TF::DARK_RED . 'Delete Confirmation');
                     $form->setContent(TF::YELLOW . 'Are you sure to ' . TF::BOLD . TF::RED . 'remove' . TF::RESET . TF::YELLOW . ' random generation regex ' . TF::GOLD . '#' . $regexid .
-                        (($label = $this->getIsland()->getRandomLabel($regexid, true)) === null ? '' : TF::ITALIC . ' (' . $label. ')') . TF::RESET . TF::YELLOW .
+                        (($label = $this->getIsland()->getRandomLabel($regexid, true)) === null ? '' : TF::ITALIC . ' (' . $label . ')') . TF::RESET . TF::YELLOW .
                         ' from your current checked out island ' . TF::BOLD . TF::GOLD . '"' . $this->getIsland()->getName() . '"' . TF::RESET . TF::YELLOW . ' and all the random generation blocks around the world? ' . TF::BOLD . TF::RED
                         . 'This action cannot be undo!'
                     );
@@ -342,7 +332,7 @@ class PlayerSession {
 
     public function listRandomElements(RandomGeneration $regex) : void {
         $elements = $regex->getAllElements();
-        $form = new SimpleForm(function (Player $p, int $d = null) use ($elements, $regex) : void {
+        $form = new SimpleForm(function(Player $p, int $d = null) use ($elements, $regex) : void {
             if ($d === null) {
                 $rid = $this->getIsland()->getRegexId($regex);
                 if ($rid !== null) $this->editRandom($rid);
@@ -360,7 +350,7 @@ class PlayerSession {
                         return;
                     }
                     if ($item->getBlock()->getId() === Item::AIR) {
-                        $this->errorInvalidBlock(function (Player $p, bool $d) use ($regex) : void {
+                        $this->errorInvalidBlock(function(Player $p, bool $d) use ($regex) : void {
                             $this->listRandomElements($regex);
                         });
                         return;
@@ -388,7 +378,7 @@ class PlayerSession {
     }
 
     public function editRandomElement(RandomGeneration $regex, int $id, int $meta = 0) : void {
-        $form = new CustomForm(function (Player $p, array $d = null) use ($id, $meta, $regex) : void {
+        $form = new CustomForm(function(Player $p, array $d = null) use ($id, $meta, $regex) : void {
             if ($d === null) {
                 $this->listRandomElements($regex);
                 return;
@@ -433,8 +423,15 @@ class PlayerSession {
         $this->getPlayer()->sendForm($form);
     }
 
+    protected function errorInvalidBlock(?\Closure $callback = null) : void {
+        $form = new ModalForm($callback ?? null);
+        $form->setTitle(TF::BOLD . TF::DARK_RED . 'Error');
+        $form->setContent(TF::GOLD . 'Submitted item must be a valid block item!');
+        $this->getPlayer()->sendForm($form);
+    }
+
     public function editRandomLabel(int $regexid) : void {
-        $form = new CustomForm(function (Player $p, array $d = null) use ($regexid) : void {
+        $form = new CustomForm(function(Player $p, array $d = null) use ($regexid) : void {
             if ($d === null) {
                 $this->editRandom($regexid);
                 return;
@@ -447,13 +444,13 @@ class PlayerSession {
     }
 
     public function editRandomSymbolic(int $regexid) : void {
-        new SubmitBlockSession($this, function (Item $item) use ($regexid) : void {
+        new SubmitBlockSession($this, function(Item $item) use ($regexid) : void {
             if ($item->getId() === Item::AIR) {
                 $this->editRandom($regexid);
                 return;
             }
             if ($item->getBlock()->getId() === Item::AIR) {
-                $form = new ModalForm(function (Player $p, bool $d) use ($regexid) : void {
+                $form = new ModalForm(function(Player $p, bool $d) use ($regexid) : void {
                     $this->editRandom($regexid);
                 });
                 $form->setTitle(TF::BOLD . TF::DARK_RED . 'Error');
@@ -462,12 +459,5 @@ class PlayerSession {
             }
             $this->getIsland()->setRandomSymbolic($regexid, $item->getId(), $item->getDamage());
         });
-    }
-
-    protected function errorInvalidBlock(?\Closure $callback = null) : void {
-        $form = new ModalForm($callback ?? null);
-        $form->setTitle(TF::BOLD . TF::DARK_RED . 'Error');
-        $form->setContent(TF::GOLD . 'Submitted item must be a valid block item!');
-        $this->getPlayer()->sendForm($form);
     }
 }

@@ -18,17 +18,16 @@
 														*/
 
 declare(strict_types=1);
+
 namespace Clouria\IslandArchitect\generator;
 
+use pocketmine\Server;
+use pocketmine\item\Item;
+use pocketmine\level\Level;
+use pocketmine\block\Block;
+use pocketmine\math\Vector3;
+use pocketmine\utils\Random;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
-use pocketmine\{
-    Server,
-    item\Item,
-    level\Level,
-    block\Block,
-    math\Vector3,
-    utils\Random
-};
 use function max;
 use function min;
 use function count;
@@ -46,201 +45,7 @@ use function array_values;
 
 class TemplateIsland {
 
-    public function __construct(string $name) {
-        $this->name = $name;
-    }
-
-    /**
-     * @var string
-     */
-    protected $name;
-
-    public function getName() : string {
-        return $this->name;
-    }
-
-    /**
-     * @var Vector3|null
-     */
-    protected $startcoord = null;
-
-    public function getStartCoord() : ?Vector3 {
-        return $this->startcoord;
-    }
-
-    public function setStartCoord(?Vector3 $pos) : void {
-        if (isset($pos)) $this->startcoord = $pos->asVector3();
-        else $this->startcoord = null;
-        $this->changed = true;
-    }
-
-    /**
-     * @var Vector3|null
-     */
-    protected $endcoord = null;
-
-    public function getEndCoord() : ?Vector3 {
-        return $this->endcoord;
-    }
-
-    public function setEndCoord(?Vector3 $pos) : void {
-        if (isset($pos)) $this->endcoord = $pos->asVector3();
-        else $this->endcoord = null;
-        $this->changed = true;
-    }
-
-    /**
-     * @var Vector3|null
-     */
-    protected $spawn = null;
-
-    public function getSpawn() : ?Vector3 {
-        return $this->spawn;
-    }
-
-    public function setSpawn(?Vector3 $pos) : void {
-        if (isset($pos)) $this->spawn = $pos->asVector3();
-        else $this->spawn = null;
-        $this->changed = true;
-    }
-
-    /**
-     * @var string|null
-     */
-    protected $level = null;
-
-    public function getLevel() : ?string {
-        return $this->level;
-    }
-
-    /**
-     * @param string $level Folder name of the level
-     */
-    public function setLevel(string $level) : void {
-        $this->level = $level;
-        $this->changed = true;
-    }
-
     public const DEFAULT_YOFFSET = 60;
-
-    /**
-     * @var int
-     */
-    protected $yoffset = self::DEFAULT_YOFFSET;
-
-    public function setYOffset(?int $yoffset) : void {
-        $this->yoffset = $yoffset ?? self::DEFAULT_YOFFSET;
-    }
-
-    public function getYOffset() : int {
-        return $this->yoffset;
-    }
-
-    /**
-     * @var RandomGeneration[]
-     */
-    protected $randoms = [];
-
-    /**
-     * @return RandomGeneration[]
-     */
-    public function getRandoms() : array {
-        return $this->randoms;
-    }
-
-    public function getRandomById(int $id) : ?RandomGeneration {
-        return $this->randoms[$id] ?? null;
-    }
-
-    public function removeRandomById(int $id) : bool {
-        if (!isset($this->randoms[$id])) return false;
-        unset($this->randoms[$id]);
-        $this->randoms = array_values($this->randoms);
-        $blocks = $this->random_blocks;
-        foreach ($blocks as $pos => $rid) if ($rid === $id) {
-            $remove[] = $pos;
-            unset($blocks[$pos]);
-        }
-        $this->random_blocks = $blocks;
-        $labels = $this->random_labels;
-        if (isset($labels[$id])) {
-            unset($labels[$id]);
-            $this->random_labels = array_values($labels);
-        }
-        $symbolic = $this->symbolic;
-        if (isset($symbolic[$id])) {
-            unset($symbolic[$id]);
-            $this->symbolic = array_values($symbolic);
-        }
-
-        while (($level = Server::getInstance()->getLevelByName($this->getLevel())) === null) {
-            if ($wlock ?? false) break;
-            Server::getInstance()->loadLevel($this->getLevel());
-            $wlock = true;
-        }
-        if ($level !== null) {
-            $block = Block::get(Item::AIR);
-            foreach ($remove ?? [] as $pos) {
-                $pos = explode(':', $pos);
-                $level->setBlock(new Vector3((int)$pos[0], (int)$pos[1], (int)$pos[2]), $block);
-            }
-        }
-        $this->changed = true;
-        return true;
-    }
-
-    /**
-     * @param RandomGeneration $random
-     * @return int The random generation regex ID
-     */
-    public function addRandom(RandomGeneration $random) : int {
-        $this->changed = true;
-        return array_push($this->randoms, $random) - 1;
-    }
-
-    public function getRegexId(RandomGeneration $random) : ?int {
-        foreach ($this->randoms as $i => $sr) if ($sr === $random) return $i;
-        return null;
-    }
-
-    /**
-     * @var array<string, int>
-     */
-    private $random_blocks = [];
-
-    /**
-     * @param Vector3 $block
-     * @param int|null $id
-     * @see TemplateIsland::getRandomByVector3()
-     */
-    public function setBlockRandom(Vector3 $block, ?int $id) : void {
-        $coord = $block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ();
-        if (isset($id)) $this->random_blocks[$coord] = $id;
-        else unset($this->random_blocks[$coord]);
-        $this->changed = true;
-    }
-
-    /**
-     * @param Vector3 $block
-     * @return int|null
-     * @see TemplateIsland::setBlockRandom()
-     */
-    public function getRandomByVector3(Vector3 $block) : ?int {
-        return $this->random_blocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()] ?? null;
-    }
-
-    /**
-     * @return array<string, int>
-     */
-    public function getRandomBlocks() : array {
-        return $this->random_blocks;
-    }
-
-    /**
-     * @var array<int, int[]>
-     */
-    protected $symbolic = [];
-
     protected const SYMBOLICS = [
         [Item::PURPLE_GLAZED_TERRACOTTA],
         [Item::WHITE_GLAZED_TERRACOTTA],
@@ -254,191 +59,59 @@ class TemplateIsland {
         [Item::SILVER_GLAZED_TERRACOTTA],
         [Item::CYAN_GLAZED_TERRACOTTA]
     ];
-
-    private $unused_symbolics = self::SYMBOLICS;
-
-    public function getRandomSymbolicItem(int $regex) : Item {
-        if (!isset($this->symbolic[$regex])) {
-            if (empty($this->unused_symbolics)) $this->unused_symbolics = self::SYMBOLICS;
-            $chosenone = array_rand($this->unused_symbolics);
-            $this->symbolic[$regex] = $this->unused_symbolics[$chosenone];
-            unset($this->unused_symbolics[$chosenone]);
-        }
-        return Item::get($this->symbolic[$regex][0], $this->symbolic[$regex][1] ?? 0);
-    }
-
+    public const VERSION = '1.3';
     /**
-     * @return array<int, int[]>
+     * @var string
      */
-    public function getRandomSymbolics() : array {
-        return $this->symbolic;
-    }
-
-    public function setRandomSymbolic(int $regex, int $id, int $meta = 0) : void {
-        if (isset($this->symbolic[$regex])) $this->unused_symbolics[] = $this->symbolic[$regex];
-        $this->symbolic[$regex] = [$id, $meta];
-        $this->changed = true;
-    }
-
+    protected $name;
+    /**
+     * @var Vector3|null
+     */
+    protected $startcoord = null;
+    /**
+     * @var Vector3|null
+     */
+    protected $endcoord = null;
+    /**
+     * @var Vector3|null
+     */
+    protected $spawn = null;
+    /**
+     * @var string|null
+     */
+    protected $level = null;
+    /**
+     * @var int
+     */
+    protected $yoffset = self::DEFAULT_YOFFSET;
+    /**
+     * @var RandomGeneration[]
+     */
+    protected $randoms = [];
+    /**
+     * @var array<int, int[]>
+     */
+    protected $symbolic = [];
+    /**
+     * @var array<string, string>
+     */
+    protected $structure;
+    /**
+     * @var bool
+     */
+    protected $changed = false;
+    /**
+     * @var array<string, int>
+     */
+    private $random_blocks = [];
+    private $unused_symbolics = self::SYMBOLICS;
     /**
      * @var array<int, string>
      */
     private $random_labels = [];
 
-    public function getRandomLabel(int $regex, bool $nullable = false) : ?string {
-        return $this->random_labels[$regex] ?? ($nullable ? null : 'Regex #' . $regex);
-    }
-
-    public function setRandomLabel(int $regex, string $label) : void {
-        $this->random_labels[$regex] = $label;
-    }
-
-    public function resetRandomLabel(int $regex) : bool {
-        if (!isset($this->random_labels[$regex])) return false;
-        unset($this->random_labels[$regex]);
-        $this->changed = true;
-        return false;
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    public function getRandomLabels() : array {
-        return $this->random_labels;
-    }
-
-    /**
-     * @var array<string, string>
-     */
-    protected $structure;
-
-    /**
-     * @param int $x
-     * @param int $y
-     * @param int $z
-     * @param Random $random
-     * @return array|null null = Block is air (The returned block ID is not limited in valid block range 0-255, valid block meta 0-15, also not casted to int)
-     */
-    public function getProcessedBlock(int $x, int $y, int $z, Random $random) : ?array {
-        $y -= $this->getYOffset();
-        $block = $this->structure[$x . ':' . $y . ':' . $z] ?? null;
-        $block = explode(':', $block);
-        if (!isset($block[1])) return null;
-        switch ((int)$block[0]) {
-            case 1:
-                $block = $this->getRandomById((int)$block[1])->randomElementArray($random);
-                if ($block[0] === Item::AIR) return null;
-                else return $block;
-        }
-        return null;
-    }
-
-    public const VERSION = '1.3'; // TODO: Bump version
-
-    public function save() : string {
-        $data['level'] = $this->getLevel();
-        $data['startcoord'] = $this->getStartCoord() === null ? null : $this->getStartCoord()->floor();
-        $data['endcoord'] = $this->getEndCoord() === null ? null : $this->getEndCoord()->floor();
-        $data['y_offset'] = $this->getYOffset();
-        if (($vec = $this->getSpawn()) !== null) $data['spawn'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
-        else $data['spawn'] = null;
-        $data['random_blocks'] = $this->random_blocks;
-        $data['random_labels'] = $this->random_labels;
-        $data['symbolic'] = [];
-        foreach ($this->symbolic as $regexid => $symbolic) {
-            $symbolic = $symbolic[0] . (isset($symbolic[1]) ? ':' . $symbolic[1] : '');
-            $data['symbolic'][$regexid] = $symbolic;
-        }
-        $data['randoms'] = [];
-        foreach ($this->randoms as $regexid => $random) {
-            $elements = $random->getAllElements();
-            if (empty($elements)) $data['randoms'][$regexid] = ['blockid:meta' => 'chance'];
-            else $data['randoms'][$regexid] = $elements;
-        }
-
-        return $this->encode($data);
-    }
-
-    /**
-     * @param array $chunks
-     * @return string JSON encoded template island data
-     */
-    public function export(array $chunks) : string {
-        $sc = $this->getStartCoord()->floor();
-        $ec = $this->getEndCoord()->floor();
-        $ux = max($sc->getFloorX(), $ec->getFloorX());
-        $lx = min($sc->getFloorX(), $ec->getFloorX());
-        $uz = max($sc->getFloorZ(), $ec->getFloorZ());
-        $lz = min($sc->getFloorZ(), $ec->getFloorZ());
-        $uy = max($sc->getFloorY(), $ec->getFloorY());
-        $ly = min($sc->getFloorY(), $ec->getFloorY());
-
-        $usedrandoms = [];
-        foreach ($chunks[0] as $hash => $chunk) {
-            $chunk = $chunks[1][$hash]::fastDeserialize($chunk);
-            for ($x=0; $x < 16; $x++) for ($z=0; $z < 16; $z++) {
-                $wx = ($chunk->getX() << 4) + $x;
-                $wz = ($chunk->getZ() << 4) + $z;
-                if (
-                    $wx < $lx or
-                    $wx > $ux or
-                    $wz < $lz or
-                    $wz > $uz
-                ) continue;
-                $bx = $wx - $lx;
-                $bz = $wz - $lz;
-                for ($y = $ly; $y <= $uy; $y++) {
-                    if (($id = $chunk->getBlockId($x, $y, $z)) === Block::AIR) continue;
-                    $by = $y - $ly;
-                    $coord = $wx . ':' . $y . ':' . $wz;
-                    $bcoord = $bx . ':' . $by . ':' . $bz;
-                    if (isset($this->random_blocks[$coord]) and count($this->randoms[$this->random_blocks[$coord]]->getAllElements()) > 1) {
-                        $id = $this->random_blocks[$coord];
-                        if (($r = $this->getRandomById($this->random_blocks[$coord])) === null) continue;
-                        if (!$r->isValid()) continue;
-                        if (($i = array_search($id, $usedrandoms, true)) === false) $id = array_push($usedrandoms, $id) - 1;
-                        else $id = $usedrandoms[$i];
-                        $data['structure'][$bcoord] = '1:' . $id;
-                    } else {
-                        $data['structure'][$bcoord] = '0:' . (isset($this->random_blocks[$coord]) ? array_keys($this->randoms[$this->random_blocks[$coord]]->getAllElements())[0] : $id);
-                        $meta = $chunk->getBlockData($x & 0x0f, $y, $z & 0x0f);
-                        if ($meta !== Item::AIR) $data['structure'][$bcoord] .= ':' . $meta; // Lmao I didn't found this error for like 7 versions
-                    }
-                }
-            }
-            unset($chunks[$hash], $wx, $wz, $x, $y, $z);
-        }
-
-        if (!empty($usedrandoms ?? [])) foreach ($this->randoms as $id => $random) if (in_array($id, $usedrandoms)) {
-            $random->simplifyRegex();
-            $data['randoms'][] = $random->getAllElements();
-        }
-
-        if (($vec = $this->getSpawn()) !== null) {
-            $vec = $vec->subtract($lx, $ly, $lz);
-            $coord = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
-            $data['spawn'] = $coord;
-        }
-
-        if ($this->yoffset + max($this->getStartCoord()->getFloorY(), $this->getEndCoord()->getFloorY()) > Level::Y_MAX) $this->yoffset = 0;
-        if (($yoffset = $this->getYOffset()) > 0) $data['y_offset'] = $yoffset;
-
-        return $this->encode($data ?? []);
-    }
-
-    public function exportRaw() : string {
-        $data['structure'] = $this->structure;
-        foreach ($this->randoms as $random) $data['randoms'][] = $random->getAllElements();
-        if (isset($this->spawn)) $data['spawn'] = $this->spawn->getFloorX() . ':' . $this->spawn->getFloorY() . ':' . $this->spawn->getFloorZ();
-        if ($this->yoffset > 0) $data['y_offset'] = $this->yoffset;
-        return $this->encode($data ?? []);
-    }
-
-    protected function encode(array $data) : string {
-        $data['version'] = self::VERSION;
-        $data['name'] = $this->getName();
-
-        return json_encode($data);
+    public function __construct(string $name) {
+        $this->name = $name;
     }
 
     public static function load(string $data, ?\Logger $logger = null) : ?TemplateIsland {
@@ -499,9 +172,320 @@ class TemplateIsland {
     }
 
     /**
-     * @var bool
+     * @return RandomGeneration[]
      */
-    protected $changed = false;
+    public function getRandoms() : array {
+        return $this->randoms;
+    }
+
+    public function removeRandomById(int $id) : bool {
+        if (!isset($this->randoms[$id])) return false;
+        unset($this->randoms[$id]);
+        $this->randoms = array_values($this->randoms);
+        $blocks = $this->random_blocks;
+        foreach ($blocks as $pos => $rid) if ($rid === $id) {
+            $remove[] = $pos;
+            unset($blocks[$pos]);
+        }
+        $this->random_blocks = $blocks;
+        $labels = $this->random_labels;
+        if (isset($labels[$id])) {
+            unset($labels[$id]);
+            $this->random_labels = array_values($labels);
+        }
+        $symbolic = $this->symbolic;
+        if (isset($symbolic[$id])) {
+            unset($symbolic[$id]);
+            $this->symbolic = array_values($symbolic);
+        }
+
+        while (($level = Server::getInstance()->getLevelByName($this->getLevel())) === null) {
+            if ($wlock ?? false) break;
+            Server::getInstance()->loadLevel($this->getLevel());
+            $wlock = true;
+        }
+        if ($level !== null) {
+            $block = Block::get(Item::AIR);
+            foreach ($remove ?? [] as $pos) {
+                $pos = explode(':', $pos);
+                $level->setBlock(new Vector3((int)$pos[0], (int)$pos[1], (int)$pos[2]), $block);
+            }
+        }
+        $this->changed = true;
+        return true;
+    }
+
+    public function getLevel() : ?string {
+        return $this->level;
+    }
+
+    /**
+     * @param string $level Folder name of the level
+     */
+    public function setLevel(string $level) : void {
+        $this->level = $level;
+        $this->changed = true;
+    }
+
+    /**
+     * @param RandomGeneration $random
+     * @return int The random generation regex ID
+     */
+    public function addRandom(RandomGeneration $random) : int {
+        $this->changed = true;
+        return array_push($this->randoms, $random) - 1;
+    }
+
+    public function getRegexId(RandomGeneration $random) : ?int {
+        foreach ($this->randoms as $i => $sr) if ($sr === $random) return $i;
+        return null;
+    }
+
+    /**
+     * @param Vector3 $block
+     * @param int|null $id
+     * @see TemplateIsland::getRandomByVector3()
+     */
+    public function setBlockRandom(Vector3 $block, ?int $id) : void {
+        $coord = $block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ();
+        if (isset($id)) $this->random_blocks[$coord] = $id;
+        else unset($this->random_blocks[$coord]);
+        $this->changed = true;
+    }
+
+    /**
+     * @param Vector3 $block
+     * @return int|null
+     * @see TemplateIsland::setBlockRandom()
+     */
+    public function getRandomByVector3(Vector3 $block) : ?int {
+        return $this->random_blocks[$block->getFloorX() . ':' . $block->getFloorY() . ':' . $block->getFloorZ()] ?? null;
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    public function getRandomBlocks() : array {
+        return $this->random_blocks;
+    }
+
+    public function getRandomSymbolicItem(int $regex) : Item {
+        if (!isset($this->symbolic[$regex])) {
+            if (empty($this->unused_symbolics)) $this->unused_symbolics = self::SYMBOLICS;
+            $chosenone = array_rand($this->unused_symbolics);
+            $this->symbolic[$regex] = $this->unused_symbolics[$chosenone];
+            unset($this->unused_symbolics[$chosenone]);
+        }
+        return Item::get($this->symbolic[$regex][0], $this->symbolic[$regex][1] ?? 0);
+    }
+
+    /**
+     * @return array<int, int[]>
+     */
+    public function getRandomSymbolics() : array {
+        return $this->symbolic;
+    }
+
+    public function setRandomSymbolic(int $regex, int $id, int $meta = 0) : void {
+        if (isset($this->symbolic[$regex])) $this->unused_symbolics[] = $this->symbolic[$regex];
+        $this->symbolic[$regex] = [$id, $meta];
+        $this->changed = true;
+    }
+
+    public function getRandomLabel(int $regex, bool $nullable = false) : ?string {
+        return $this->random_labels[$regex] ?? ($nullable ? null : 'Regex #' . $regex);
+    }
+
+    public function setRandomLabel(int $regex, string $label) : void {
+        $this->random_labels[$regex] = $label;
+    }
+
+    public function resetRandomLabel(int $regex) : bool {
+        if (!isset($this->random_labels[$regex])) return false;
+        unset($this->random_labels[$regex]);
+        $this->changed = true;
+        return false;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getRandomLabels() : array {
+        return $this->random_labels;
+    }
+
+    /**
+     * @param int $x
+     * @param int $y
+     * @param int $z
+     * @param Random $random
+     * @return array|null null = Block is air (The returned block ID is not limited in valid block range 0-255, valid block meta 0-15, also not casted to int)
+     */
+    public function getProcessedBlock(int $x, int $y, int $z, Random $random) : ?array {
+        $y -= $this->getYOffset();
+        $block = $this->structure[$x . ':' . $y . ':' . $z] ?? null;
+        $block = explode(':', $block);
+        if (!isset($block[1])) return null;
+        switch ((int)$block[0]) {
+            case 1:
+                $block = $this->getRandomById((int)$block[1])->randomElementArray($random);
+                if ($block[0] === Item::AIR) return null;
+                else return $block;
+        }
+        return null;
+    }
+
+    public function getYOffset() : int {
+        return $this->yoffset;
+    }
+
+    public function setYOffset(?int $yoffset) : void {
+        $this->yoffset = $yoffset ?? self::DEFAULT_YOFFSET;
+    }
+
+    public function getRandomById(int $id) : ?RandomGeneration {
+        return $this->randoms[$id] ?? null;
+    }
+
+    public function save() : string {
+        $data['level'] = $this->getLevel();
+        $data['startcoord'] = $this->getStartCoord() === null ? null : $this->getStartCoord()->floor();
+        $data['endcoord'] = $this->getEndCoord() === null ? null : $this->getEndCoord()->floor();
+        $data['y_offset'] = $this->getYOffset();
+        if (($vec = $this->getSpawn()) !== null) $data['spawn'] = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
+        else $data['spawn'] = null;
+        $data['random_blocks'] = $this->random_blocks;
+        $data['random_labels'] = $this->random_labels;
+        $data['symbolic'] = [];
+        foreach ($this->symbolic as $regexid => $symbolic) {
+            $symbolic = $symbolic[0] . (isset($symbolic[1]) ? ':' . $symbolic[1] : '');
+            $data['symbolic'][$regexid] = $symbolic;
+        }
+        $data['randoms'] = [];
+        foreach ($this->randoms as $regexid => $random) {
+            $elements = $random->getAllElements();
+            if (empty($elements)) $data['randoms'][$regexid] = ['blockid:meta' => 'chance'];
+            else $data['randoms'][$regexid] = $elements;
+        }
+
+        return $this->encode($data);
+    }
+
+    public function getStartCoord() : ?Vector3 {
+        return $this->startcoord;
+    }
+
+    public function setStartCoord(?Vector3 $pos) : void {
+        if (isset($pos)) $this->startcoord = $pos->asVector3();
+        else $this->startcoord = null;
+        $this->changed = true;
+    }
+
+    public function getEndCoord() : ?Vector3 {
+        return $this->endcoord;
+    }
+
+    public function setEndCoord(?Vector3 $pos) : void {
+        if (isset($pos)) $this->endcoord = $pos->asVector3();
+        else $this->endcoord = null;
+        $this->changed = true;
+    } // TODO: Bump version
+
+    public function getSpawn() : ?Vector3 {
+        return $this->spawn;
+    }
+
+    public function setSpawn(?Vector3 $pos) : void {
+        if (isset($pos)) $this->spawn = $pos->asVector3();
+        else $this->spawn = null;
+        $this->changed = true;
+    }
+
+    protected function encode(array $data) : string {
+        $data['version'] = self::VERSION;
+        $data['name'] = $this->getName();
+
+        return json_encode($data);
+    }
+
+    public function getName() : string {
+        return $this->name;
+    }
+
+    /**
+     * @param array $chunks
+     * @return string JSON encoded template island data
+     */
+    public function export(array $chunks) : string {
+        $sc = $this->getStartCoord()->floor();
+        $ec = $this->getEndCoord()->floor();
+        $ux = max($sc->getFloorX(), $ec->getFloorX());
+        $lx = min($sc->getFloorX(), $ec->getFloorX());
+        $uz = max($sc->getFloorZ(), $ec->getFloorZ());
+        $lz = min($sc->getFloorZ(), $ec->getFloorZ());
+        $uy = max($sc->getFloorY(), $ec->getFloorY());
+        $ly = min($sc->getFloorY(), $ec->getFloorY());
+
+        $usedrandoms = [];
+        foreach ($chunks[0] as $hash => $chunk) {
+            $chunk = $chunks[1][$hash]::fastDeserialize($chunk);
+            for ($x = 0; $x < 16; $x++) for ($z = 0; $z < 16; $z++) {
+                $wx = ($chunk->getX() << 4) + $x;
+                $wz = ($chunk->getZ() << 4) + $z;
+                if (
+                    $wx < $lx or
+                    $wx > $ux or
+                    $wz < $lz or
+                    $wz > $uz
+                ) continue;
+                $bx = $wx - $lx;
+                $bz = $wz - $lz;
+                for ($y = $ly; $y <= $uy; $y++) {
+                    if (($id = $chunk->getBlockId($x, $y, $z)) === Block::AIR) continue;
+                    $by = $y - $ly;
+                    $coord = $wx . ':' . $y . ':' . $wz;
+                    $bcoord = $bx . ':' . $by . ':' . $bz;
+                    if (isset($this->random_blocks[$coord]) and count($this->randoms[$this->random_blocks[$coord]]->getAllElements()) > 1) {
+                        $id = $this->random_blocks[$coord];
+                        if (($r = $this->getRandomById($this->random_blocks[$coord])) === null) continue;
+                        if (!$r->isValid()) continue;
+                        if (($i = array_search($id, $usedrandoms, true)) === false) $id = array_push($usedrandoms, $id) - 1;
+                        else $id = $usedrandoms[$i];
+                        $data['structure'][$bcoord] = '1:' . $id;
+                    } else {
+                        $data['structure'][$bcoord] = '0:' . (isset($this->random_blocks[$coord]) ? array_keys($this->randoms[$this->random_blocks[$coord]]->getAllElements())[0] : $id);
+                        $meta = $chunk->getBlockData($x & 0x0f, $y, $z & 0x0f);
+                        if ($meta !== Item::AIR) $data['structure'][$bcoord] .= ':' . $meta; // Lmao I didn't found this error for like 7 versions
+                    }
+                }
+            }
+            unset($chunks[$hash], $wx, $wz, $x, $y, $z);
+        }
+
+        if (!empty($usedrandoms ?? [])) foreach ($this->randoms as $id => $random) if (in_array($id, $usedrandoms)) {
+            $random->simplifyRegex();
+            $data['randoms'][] = $random->getAllElements();
+        }
+
+        if (($vec = $this->getSpawn()) !== null) {
+            $vec = $vec->subtract($lx, $ly, $lz);
+            $coord = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
+            $data['spawn'] = $coord;
+        }
+
+        if ($this->yoffset + max($this->getStartCoord()->getFloorY(), $this->getEndCoord()->getFloorY()) > Level::Y_MAX) $this->yoffset = 0;
+        if (($yoffset = $this->getYOffset()) > 0) $data['y_offset'] = $yoffset;
+
+        return $this->encode($data ?? []);
+    }
+
+    public function exportRaw() : string {
+        $data['structure'] = $this->structure;
+        foreach ($this->randoms as $random) $data['randoms'][] = $random->getAllElements();
+        if (isset($this->spawn)) $data['spawn'] = $this->spawn->getFloorX() . ':' . $this->spawn->getFloorY() . ':' . $this->spawn->getFloorZ();
+        if ($this->yoffset > 0) $data['y_offset'] = $this->yoffset;
+        return $this->encode($data ?? []);
+    }
 
     public function noMoreChanges() : void {
         $this->changed = false;

@@ -20,14 +20,10 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\sessions;
 
 
-use room17\SkyBlock\{
-    SkyBlock
-};
-use muqsit\invmenu\{
-    InvMenu,
-    transaction\InvMenuTransaction,
-    transaction\InvMenuTransactionResult
-};
+use muqsit\invmenu\InvMenu;
+use room17\SkyBlock\SkyBlock;
+use muqsit\invmenu\transaction\InvMenuTransaction;
+use muqsit\invmenu\transaction\InvMenuTransactionResult;
 
 class IslandChestSession {
 

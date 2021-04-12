@@ -17,10 +17,10 @@
 														*/
 
 declare(strict_types=1);
+
 namespace Clouria\IslandArchitect\events;
 
 use pocketmine\event\plugin\PluginEvent;
-
 use Clouria\IslandArchitect\IslandArchitect;
 
 abstract class IslandArchitectEvent extends PluginEvent {

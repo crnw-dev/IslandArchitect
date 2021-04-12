@@ -17,15 +17,14 @@
 														*/
 
 declare(strict_types=1);
+
 namespace Clouria\IslandArchitect\generator\tasks;
 
+use pocketmine\Server;
+use pocketmine\utils\Utils;
+use pocketmine\scheduler\AsyncTask;
 use Clouria\IslandArchitect\IslandArchitect;
 use Clouria\IslandArchitect\generator\TemplateIsland;
-use pocketmine\{
-    Server,
-    utils\Utils,
-    scheduler\AsyncTask
-};
 use function is_file;
 use function serialize;
 use function unserialize;

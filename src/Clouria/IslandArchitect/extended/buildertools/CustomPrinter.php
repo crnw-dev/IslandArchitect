@@ -20,26 +20,20 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\extended\buildertools;
 
+use pocketmine\Player;
+use pocketmine\block\Block;
+use pocketmine\math\Vector3;
+use pocketmine\nbt\tag\IntTag;
+use pocketmine\level\Position;
+use pocketmine\nbt\tag\ListTag;
+use pocketmine\nbt\tag\CompoundTag;
+use pocketmine\utils\TextFormat as TF;
+use czechpmdevs\buildertools\utils\Math;
+use Clouria\IslandArchitect\IslandArchitect;
+use czechpmdevs\buildertools\editors\Printer;
 use Clouria\IslandArchitect\sessions\PlayerSession;
-use czechpmdevs\buildertools\{
-    utils\Math,
-    editors\Printer
-};
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
-use Clouria\IslandArchitect\{
-    IslandArchitect,
-    events\RandomGenerationBlockUpdateEvent
-};
-use pocketmine\{
-    Player,
-    block\Block,
-    math\Vector3,
-    nbt\tag\IntTag,
-    level\Position,
-    nbt\tag\ListTag,
-    nbt\tag\CompoundTag,
-    utils\TextFormat as TF
-};
+use Clouria\IslandArchitect\events\RandomGenerationBlockUpdateEvent;
 
 class CustomPrinter extends Printer {
 
@@ -89,15 +83,15 @@ class CustomPrinter extends Printer {
                 break;
 
             case self::SPHERE:
-                for ($x = $center->getX()-$brush; $x <= $center->getX()+$brush; $x++) {
-                    $xsqr = ($center->getX()-$x) * ($center->getX()-$x);
-                    for ($y = $center->getY()-$brush; $y <= $center->getY()+$brush; $y++) {
-                        $ysqr = ($center->getY()-$y) * ($center->getY()-$y);
-                        for ($z = $center->getZ()-$brush; $z <= $center->getZ()+$brush; $z++) {
-                            $zsqr = ($center->getZ()-$z) * ($center->getZ()-$z);
-                            if(($xsqr + $ysqr + $zsqr) <= ($brush*$brush)) {
-                                if(!$fall) {
-                                    if($y > 0) {
+                for ($x = $center->getX() - $brush; $x <= $center->getX() + $brush; $x++) {
+                    $xsqr = ($center->getX() - $x) * ($center->getX() - $x);
+                    for ($y = $center->getY() - $brush; $y <= $center->getY() + $brush; $y++) {
+                        $ysqr = ($center->getY() - $y) * ($center->getY() - $y);
+                        for ($z = $center->getZ() - $brush; $z <= $center->getZ() + $brush; $z++) {
+                            $zsqr = ($center->getZ() - $z) * ($center->getZ() - $z);
+                            if (($xsqr + $ysqr + $zsqr) <= ($brush * $brush)) {
+                                if (!$fall) {
+                                    if ($y > 0) {
                                         $array[] = new Vector3($x, $y, $z);
                                         // $undoList->addBlock(new Vector3($x, $y, $z), $block);
                                     }

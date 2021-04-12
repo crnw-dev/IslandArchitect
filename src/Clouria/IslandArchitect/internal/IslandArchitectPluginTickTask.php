@@ -21,15 +21,13 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\internal;
 
 
+use pocketmine\level\Level;
+use pocketmine\math\Vector3;
+use pocketmine\scheduler\Task;
+use pocketmine\math\AxisAlignedBB;
+use pocketmine\utils\SingletonTrait;
+use pocketmine\utils\TextFormat as TF;
 use Clouria\IslandArchitect\IslandArchitect;
-use pocketmine\{
-    level\Level,
-    math\Vector3,
-    scheduler\Task,
-    math\AxisAlignedBB,
-    utils\SingletonTrait,
-    utils\TextFormat as TF
-};
 
 class IslandArchitectPluginTickTask extends Task {
     use SingletonTrait;

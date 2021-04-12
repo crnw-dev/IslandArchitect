@@ -20,29 +20,23 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect;
 
+use pocketmine\Player;
+use pocketmine\item\Item;
+use pocketmine\utils\Utils;
 use room17\SkyBlock\SkyBlock;
+use pocketmine\plugin\Plugin;
+use pocketmine\plugin\PluginBase;
 use muqsit\invmenu\InvMenuHandler;
+use czechpmdevs\buildertools\BuilderTools;
+use czechpmdevs\buildertools\editors\Printer;
 use room17\SkyBlock\command\presets\CreateCommand;
-use czechpmdevs\buildertools\{
-    BuilderTools,
-    editors\Printer
-};
-use pocketmine\{
-    Player,
-    item\Item,
-    utils\Utils,
-    plugin\Plugin,
-    plugin\PluginBase
-};
-use Clouria\IslandArchitect\{
-    sessions\PlayerSession,
-    internal\IslandArchitectCommand,
-    generator\TemplateIslandGenerator,
-    extended\buildertools\CustomPrinter,
-    internal\IslandArchitectEventListener,
-    internal\IslandArchitectPluginTickTask,
-    extended\skyblock\CustomSkyBlockCreateCommand
-};
+use Clouria\IslandArchitect\sessions\PlayerSession;
+use Clouria\IslandArchitect\internal\IslandArchitectCommand;
+use Clouria\IslandArchitect\generator\TemplateIslandGenerator;
+use Clouria\IslandArchitect\extended\buildertools\CustomPrinter;
+use Clouria\IslandArchitect\internal\IslandArchitectEventListener;
+use Clouria\IslandArchitect\internal\IslandArchitectPluginTickTask;
+use Clouria\IslandArchitect\extended\skyblock\CustomSkyBlockCreateCommand;
 use function is_a;
 use function substr;
 use function get_class;
@@ -181,6 +175,10 @@ class IslandArchitect extends PluginBase {
      */
     private $generator_class = TemplateIslandGenerator::class;
 
+    public static function getInstance() : ?self {
+        return self::$instance;
+    }
+
     public function onLoad() : void {
         self::$instance = $this;
     }
@@ -272,10 +270,10 @@ class IslandArchitect extends PluginBase {
                         if ($class !== null) {
                             $this->getLogger()->error('Some plugins do not compatible with IslandArchitect, IslandArchitect cannot register the template island generator!');
                             $this->getLogger()
-                                 ->debug('(One of the plugin has already registered a generator("' . get_class($class) . '") that does not extends ' . TemplateIslandGenerator::class . ' and uses the same name as template island generator ("' .
-                                     $this->getTemplateIslandGenerator()::GENERATOR_NAME . '")' .
-                                     CustomSkyBlockCreateCommand::class
-                                     . ')');
+                                ->debug('(One of the plugin has already registered a generator("' . get_class($class) . '") that does not extends ' . TemplateIslandGenerator::class . ' and uses the same name as template island generator ("' .
+                                    $this->getTemplateIslandGenerator()::GENERATOR_NAME . '")' .
+                                    CustomSkyBlockCreateCommand::class
+                                    . ')');
                             break;
                         }
                         $pl->getGeneratorManager()->registerGenerator($this->getTemplateIslandGenerator()::GENERATOR_NAME, $this->getTemplateIslandGenerator());
@@ -291,10 +289,6 @@ class IslandArchitect extends PluginBase {
     public function getTemplateIslandGenerator() {
         if (is_a($this->generator_class, TemplateIslandGenerator::class, true) and is_string($this->generator_class)) return $this->generator_class;
         return TemplateIslandGenerator::class;
-    }
-
-    public static function getInstance() : ?self {
-        return self::$instance;
     }
 
     public function getSession(Player $player, bool $nonnull = false) : ?PlayerSession {

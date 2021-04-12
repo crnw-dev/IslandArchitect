@@ -17,6 +17,7 @@
 														*/
 
 declare(strict_types=1);
+
 namespace Clouria\IslandArchitect\events;
 
 use Clouria\IslandArchitect\sessions\PlayerSession;
@@ -24,28 +25,27 @@ use Clouria\IslandArchitect\generator\TemplateIsland;
 
 class TemplateIslandCheckOutEvent extends IslandArchitectEvent {
 
+    /**
+     * @var PlayerSession
+     */
+    protected $session;
+    /**
+     * @var TemplateIsland
+     */
+    protected $island;
+
     public function __construct(PlayerSession $session, TemplateIsland $island) {
         parent::__construct();
         $this->session = $session;
         $this->island = $island;
     }
 
-    /**
-     * @var PlayerSession
-     */
-    protected $session;
-
     public function getSession() : PlayerSession {
         return $this->session;
     }
 
-    /**
-     * @var TemplateIsland
-     */
-    protected $island;
-
-	public function getIsland() : TemplateIsland {
-		return $this->island;
-	}
+    public function getIsland() : TemplateIsland {
+        return $this->island;
+    }
 
 }

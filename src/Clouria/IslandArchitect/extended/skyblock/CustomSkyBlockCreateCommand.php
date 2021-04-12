@@ -19,26 +19,20 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\extended\skyblock;
 
-use pocketmine\{
-    Server,
-    level\Level,
-    level\Position
-};
-use Clouria\IslandArchitect\{
-    IslandArchitect,
-    generator\TemplateIsland,
-    events\IslandWorldPreCreateEvent,
-    generator\tasks\IslandDataLoadTask
-};
-use room17\SkyBlock\{
-    SkyBlock,
-    island\RankIds,
-    session\Session,
-    island\IslandFactory,
-    command\presets\CreateCommand,
-    event\island\IslandCreateEvent,
-    utils\message\MessageContainer
-};
+use pocketmine\Server;
+use pocketmine\level\Level;
+use room17\SkyBlock\SkyBlock;
+use pocketmine\level\Position;
+use room17\SkyBlock\island\RankIds;
+use room17\SkyBlock\session\Session;
+use room17\SkyBlock\island\IslandFactory;
+use Clouria\IslandArchitect\IslandArchitect;
+use room17\SkyBlock\command\presets\CreateCommand;
+use room17\SkyBlock\event\island\IslandCreateEvent;
+use room17\SkyBlock\utils\message\MessageContainer;
+use Clouria\IslandArchitect\generator\TemplateIsland;
+use Clouria\IslandArchitect\events\IslandWorldPreCreateEvent;
+use Clouria\IslandArchitect\generator\tasks\IslandDataLoadTask;
 use function strtolower;
 
 class CustomSkyBlockCreateCommand extends CreateCommand {
@@ -51,10 +45,6 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
             static::createIslandFor($session, $generator);
             $session->sendTranslatedMessage(new MessageContainer("SUCCESSFULLY_CREATED_A_ISLAND"));
         } else $session->sendTranslatedMessage(new MessageContainer("NOT_VALID_GENERATOR", ["name" => $generator]));
-    }
-
-    private function hasPermission(Session $session, string $generator) : bool {
-        return $session->getPlayer()->hasPermission("skyblock.island.$generator");
     }
 
     private function checkIslandAvailability(Session $session) : bool {
@@ -78,6 +68,10 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
             return true;
         }
         return false;
+    }
+
+    private function hasPermission(Session $session, string $generator) : bool {
+        return $session->getPlayer()->hasPermission("skyblock.island.$generator");
     }
 
     public static function createIslandFor(Session $session, string $type) : void {
@@ -127,6 +121,10 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
         } else static::createTemplateIslandWorldAsync($identifier, $type, $callback);
     }
 
+    protected static function createIslandIdentifier() : string {
+        return uniqid("sb-");
+    }
+
     /**
      * @param string $identifier
      * @param string $type
@@ -148,10 +146,6 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
             $callback($level);
         });
         Server::getInstance()->getAsyncPool()->submitTask($task);
-    }
-
-    protected static function createIslandIdentifier() : string {
-        return uniqid("sb-");
     }
 
 }

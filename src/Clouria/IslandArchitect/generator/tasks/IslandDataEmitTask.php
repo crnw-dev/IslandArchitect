@@ -17,18 +17,15 @@
 														*/
 
 declare(strict_types=1);
+
 namespace Clouria\IslandArchitect\generator\tasks;
 
-use Clouria\IslandArchitect\{
-    IslandArchitect,
-    generator\TemplateIsland
-};
-use pocketmine\{
-    Server,
-    utils\Utils,
-    level\format\Chunk,
-    scheduler\AsyncTask
-};
+use pocketmine\Server;
+use pocketmine\utils\Utils;
+use pocketmine\level\format\Chunk;
+use pocketmine\scheduler\AsyncTask;
+use Clouria\IslandArchitect\IslandArchitect;
+use Clouria\IslandArchitect\generator\TemplateIsland;
 use function mkdir;
 use function serialize;
 use function unserialize;
@@ -79,7 +76,7 @@ class IslandDataEmitTask extends AsyncTask {
         $this->setResult($path);
     }
 
-	public function onCompletion(Server $server) : void {
+    public function onCompletion(Server $server) : void {
         $callback = $this->fetchLocal()[0];
         if (isset($callback)) $callback($this->getResult());
     }

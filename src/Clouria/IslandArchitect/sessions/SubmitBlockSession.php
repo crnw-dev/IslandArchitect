@@ -19,40 +19,33 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\sessions;
 
-use pocketmine\{
-    item\Item,
-    nbt\tag\ByteTag,
-    utils\TextFormat as TF
-};
-use muqsit\invmenu\{
-    InvMenu,
-    transaction\InvMenuTransaction,
-    transaction\InvMenuTransactionResult
-};
+use pocketmine\item\Item;
+use muqsit\invmenu\InvMenu;
+use pocketmine\nbt\tag\ByteTag;
+use pocketmine\utils\TextFormat as TF;
+use muqsit\invmenu\transaction\InvMenuTransaction;
+use muqsit\invmenu\transaction\InvMenuTransactionResult;
 use function class_exists;
 
 class SubmitBlockSession {
-
-    /**
-     * @var PlayerSession
-     */
-    private $session;
-
-    /**
-     * @var \Closure
-     */
-    private $callback;
-
-    /**
-     * @var InvMenu
-     */
-    private $menu;
 
     public const ACTION_FRAME = 0;
     /**
      * @var Item|null
      */
     protected $default = null;
+    /**
+     * @var PlayerSession
+     */
+    private $session;
+    /**
+     * @var \Closure
+     */
+    private $callback;
+    /**
+     * @var InvMenu
+     */
+    private $menu;
 
     public function __construct(PlayerSession $session, \Closure $callback, ?Item $default = null) {
         $this->session = $session;
@@ -64,7 +57,7 @@ class SubmitBlockSession {
         }
         $this->menu = InvMenu::create(InvMenu::TYPE_HOPPER);
         $this->getMenu()->setName(TF::BOLD . TF::DARK_BLUE . 'Please submit a block');
-        $this->getMenu()->setListener(function (InvMenuTransaction $transaction) : InvMenuTransactionResult {
+        $this->getMenu()->setListener(function(InvMenuTransaction $transaction) : InvMenuTransactionResult {
             $out = static::inputConversion($transaction->getOut());
             if (
                 ($nbt = $out->getNamedTagEntry('action')) instanceof ByteTag and
@@ -72,7 +65,7 @@ class SubmitBlockSession {
             ) return $transaction->discard();
             return $transaction->continue();
         });
-        $this->getMenu()->setInventoryCloseListener(function () : void {
+        $this->getMenu()->setInventoryCloseListener(function() : void {
             $item = $this->getMenu()->getInventory()->getItem(2);
             $this->getSession()->getPlayer()->getInventory()->addItem($item);
             $this->getCallback()($item);
@@ -80,6 +73,41 @@ class SubmitBlockSession {
         $this->panelInit();
 
         $this->getMenu()->send($session->getPlayer());
+    }
+
+    /**
+     * @return InvMenu
+     */
+    public function getMenu() : InvMenu {
+        return $this->menu;
+    }
+
+    protected static function inputConversion(Item $item, &$succeed = false) : Item {
+        $succeed = false;
+        $count = $item->getCount();
+        $nbt = $item->getNamedTag();
+        switch (true) {
+            case $item->getId() === Item::BUCKET and $item->getDamage() === 8:
+            case $item->getId() === Item::POTION and $item->getDamage() === 0:
+                $item = Item::get(Item::WATER);
+                $succeed = true;
+                break;
+
+            case $item->getId() === Item::BUCKET and $item->getDamage() === 10:
+                $item = Item::get(Item::LAVA);
+                $succeed = true;
+                break;
+
+            case $item->getId() === Item::BUCKET and $item->getDamage() === 0:
+            case $item->getId() === Item::GLASS_BOTTLE and $item->getDamage() === 0:
+            case $item->getId() === Item::BOWL and $item->getDamage() === 0:
+                $item = Item::get(Item::AIR);
+                $succeed = true;
+                break;
+        }
+        $item->setCount($count);
+        foreach ($nbt as $tag) $item->setNamedTagEntry($tag);
+        return $item;
     }
 
     /**
@@ -103,13 +131,6 @@ class SubmitBlockSession {
         $this->callback = $callback;
     }
 
-    /**
-     * @return InvMenu
-     */
-    public function getMenu() : InvMenu {
-        return $this->menu;
-    }
-
     protected function panelInit() : void {
         $inv = $this->getMenu()->getInventory();
         $item = Item::get(Item::INVISIBLEBEDROCK);
@@ -120,33 +141,5 @@ class SubmitBlockSession {
             elseif (isset($this->default)) $inv->setItem($slot, $this->default, false);
         }
     }
-
-    protected static function inputConversion(Item $item, &$succeed = false) : Item {
-		$succeed = false;
-		$count = $item->getCount();
-		$nbt = $item->getNamedTag();
-		switch (true) {
-			case $item->getId() === Item::BUCKET and $item->getDamage() === 8:
-			case $item->getId() === Item::POTION and $item->getDamage() === 0:
-				$item = Item::get(Item::WATER);
-				$succeed = true;
-				break;
-
-			case $item->getId() === Item::BUCKET and $item->getDamage() === 10:
-				$item = Item::get(Item::LAVA);
-				$succeed = true;
-				break;
-
-			case $item->getId() === Item::BUCKET and $item->getDamage() === 0:
-			case $item->getId() === Item::GLASS_BOTTLE and $item->getDamage() === 0:
-			case $item->getId() === Item::BOWL and $item->getDamage() === 0:
-				$item = Item::get(Item::AIR);
-				$succeed = true;
-				break;
-		}
-		$item->setCount($count);
-		foreach ($nbt as $tag) $item->setNamedTagEntry($tag);
-		return $item;
-	}
 
 }

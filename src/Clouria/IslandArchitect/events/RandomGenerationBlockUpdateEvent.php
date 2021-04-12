@@ -20,14 +20,12 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\events;
 
+use pocketmine\item\Item;
+use pocketmine\event\Event;
+use pocketmine\math\Vector3;
+use pocketmine\event\Cancellable;
 use Clouria\IslandArchitect\sessions\PlayerSession;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
-use pocketmine\{
-    item\Item,
-    event\Event,
-    math\Vector3,
-    event\Cancellable
-};
 
 class RandomGenerationBlockUpdateEvent extends IslandArchitectEvent implements Cancellable {
 

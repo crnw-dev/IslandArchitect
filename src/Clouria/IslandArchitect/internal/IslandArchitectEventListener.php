@@ -20,33 +20,25 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\internal;
 
 use room17\SkyBlock\SkyBlock;
+use pocketmine\nbt\tag\IntTag;
+use pocketmine\event\Listener;
+use pocketmine\nbt\tag\ListTag;
+use pocketmine\nbt\tag\CompoundTag;
+use pocketmine\utils\SingletonTrait;
+use pocketmine\utils\TextFormat as TF;
 use czechpmdevs\buildertools\BuilderTools;
+use pocketmine\event\level\LevelSaveEvent;
+use pocketmine\event\block\BlockPlaceEvent;
+use pocketmine\event\block\BlockBreakEvent;
+use Clouria\IslandArchitect\IslandArchitect;
+use pocketmine\event\player\PlayerQuitEvent;
+use pocketmine\event\plugin\PluginEnableEvent;
+use pocketmine\event\entity\EntityExplodeEvent;
+use pocketmine\event\server\QueryRegenerateEvent;
+use pocketmine\event\inventory\InventoryOpenEvent;
 use Clouria\IslandArchitect\sessions\PlayerSession;
-use pocketmine\nbt\tag\{
-    IntTag,
-    ListTag,
-    CompoundTag
-};
-use pocketmine\{
-    utils\SingletonTrait,
-    utils\TextFormat as TF
-};
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
-use Clouria\IslandArchitect\{
-    IslandArchitect,
-    events\RandomGenerationBlockUpdateEvent
-};
-use pocketmine\event\{
-    Listener,
-    level\LevelSaveEvent,
-    block\BlockPlaceEvent,
-    block\BlockBreakEvent,
-    player\PlayerQuitEvent,
-    plugin\PluginEnableEvent,
-    entity\EntityExplodeEvent,
-    server\QueryRegenerateEvent,
-    inventory\InventoryOpenEvent
-};
+use Clouria\IslandArchitect\events\RandomGenerationBlockUpdateEvent;
 use function class_exists;
 
 class IslandArchitectEventListener implements Listener {
@@ -64,19 +56,19 @@ class IslandArchitectEventListener implements Listener {
     }
 
     /**
-     * @return bool
-     */
-    public function isDisabled() : bool {
-        return $this->disabled;
-    }
-
-    /**
      * @priority MONITOR
      */
     public function onPlayerQuit(PlayerQuitEvent $ev) : void {
         if ($this->isDisabled()) return;
         if (($s = IslandArchitect::getInstance()->getSession($ev->getPlayer())) === null) return;
         IslandArchitect::getInstance()->disposeSession($s);
+    }
+
+    /**
+     * @return bool
+     */
+    public function isDisabled() : bool {
+        return $this->disabled;
     }
 
     /**

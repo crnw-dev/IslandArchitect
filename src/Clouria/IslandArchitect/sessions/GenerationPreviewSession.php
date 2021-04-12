@@ -19,23 +19,17 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\sessions;
 
+use pocketmine\Player;
+use pocketmine\item\Item;
+use muqsit\invmenu\InvMenu;
+use pocketmine\utils\Random;
+use pocketmine\nbt\tag\ByteTag;
 use jojoe77777\FormAPI\CustomForm;
-use muqsit\invmenu\{
-    InvMenu,
-    transaction\DeterministicInvMenuTransaction
-};
-use Clouria\IslandArchitect\{
-    IslandArchitect,
-    generator\properties\RandomGeneration
-};
-use pocketmine\{
-    Player,
-    item\Item,
-    utils\Random,
-    nbt\tag\ByteTag,
-    utils\TextFormat as TF,
-    level\generator\Generator
-};
+use pocketmine\utils\TextFormat as TF;
+use pocketmine\level\generator\Generator;
+use Clouria\IslandArchitect\IslandArchitect;
+use muqsit\invmenu\transaction\DeterministicInvMenuTransaction;
+use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use function in_array;
 use function random_int;
 use const INT32_MAX;
@@ -73,7 +67,7 @@ class GenerationPreviewSession {
         $this->regex = $regex;
         $this->setCallback($callback);
         $this->menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
-        $this->getMenu()->setListener(InvMenu::readonly(function (DeterministicInvMenuTransaction $transaction) : void {
+        $this->getMenu()->setListener(InvMenu::readonly(function(DeterministicInvMenuTransaction $transaction) : void {
             $out = $transaction->getOut();
             if (!($nbt = $out->getNamedTagEntry('action')) instanceof ByteTag) return;
             switch ($nbt->getValue()) {
@@ -135,6 +129,21 @@ class GenerationPreviewSession {
         }
     }
 
+    protected static function displayConversion(Item $item, &$succeed = false) : Item {
+        $succeed = false;
+        $count = $item->getCount();
+        $nbt = $item->getNamedTag();
+        switch (true) {
+            case $item->getId() === Item::AIR:
+                $item = Item::get(217);
+                $succeed = true;
+                break;
+        }
+        $item->setCount($count);
+        foreach ($nbt as $tag) $item->setNamedTagEntry($tag);
+        return $item;
+    }
+
     /**
      * @return RandomGeneration
      */
@@ -165,18 +174,18 @@ class GenerationPreviewSession {
     }
 
     public function editSeed() : void {
-		$form = new CustomForm(function(Player $p, array $d = null) : void {
-			if ($d !== null and !empty($d[0] ?? null)) {
-					$this->setNoise(new Random(empty(preg_replace('/[0-9-]+/i', '', $d[0])) ? (int)$d[0] : Generator::convertSeed($d[0])));
-					$this->panelSeed();
-					$this->panelGeneration();
-				}
-			$this->menu->send($this->getSession()->getPlayer());
-		});
-		$form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Edit Seed');
-		$form->addInput(TF::BOLD . TF::ITALIC . TF::GRAY . '(Empty box to discard change)', (string)$this->getNoise()->getSeed(), isset($this->random) ? (string)$this->random->getSeed() : '');
-		$this->getSession()->getPlayer()->sendForm($form);
-	}
+        $form = new CustomForm(function(Player $p, array $d = null) : void {
+            if ($d !== null and !empty($d[0] ?? null)) {
+                $this->setNoise(new Random(empty(preg_replace('/[0-9-]+/i', '', $d[0])) ? (int)$d[0] : Generator::convertSeed($d[0])));
+                $this->panelSeed();
+                $this->panelGeneration();
+            }
+            $this->menu->send($this->getSession()->getPlayer());
+        });
+        $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Edit Seed');
+        $form->addInput(TF::BOLD . TF::ITALIC . TF::GRAY . '(Empty box to discard change)', (string)$this->getNoise()->getSeed(), isset($this->random) ? (string)$this->random->getSeed() : '');
+        $this->getSession()->getPlayer()->sendForm($form);
+    }
 
     protected function panelSeed() : void {
         $i = Item::get(Item::SEEDS);
@@ -212,20 +221,5 @@ class GenerationPreviewSession {
     public function setCallback(?\Closure $callback) : void {
         $this->callback = $callback;
     }
-
-    protected static function displayConversion(Item $item, &$succeed = false) : Item {
-        $succeed = false;
-        $count = $item->getCount();
-        $nbt = $item->getNamedTag();
-        switch (true) {
-            case $item->getId() === Item::AIR:
-                $item = Item::get(217);
-                $succeed = true;
-                break;
-        }
-        $item->setCount($count);
-        foreach ($nbt as $tag) $item->setNamedTagEntry($tag);
-		return $item;
-	}
 
 }
