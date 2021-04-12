@@ -27,6 +27,7 @@ use pocketmine\level\Level;
 use pocketmine\block\Block;
 use pocketmine\math\Vector3;
 use pocketmine\utils\Random;
+use Clouria\IslandArchitect\generator\properties\IslandChest;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use function max;
 use function min;
@@ -63,35 +64,35 @@ class TemplateIsland {
     /**
      * @var string
      */
-    protected $name;
+    private $name;
     /**
      * @var Vector3|null
      */
-    protected $startcoord = null;
+    private $startcoord = null;
     /**
      * @var Vector3|null
      */
-    protected $endcoord = null;
+    private $endcoord = null;
     /**
      * @var Vector3|null
      */
-    protected $spawn = null;
+    private $spawn = null;
     /**
      * @var string|null
      */
-    protected $level = null;
+    private $level = null;
     /**
      * @var int
      */
-    protected $yoffset = self::DEFAULT_YOFFSET;
+    private $yoffset = self::DEFAULT_YOFFSET;
     /**
      * @var RandomGeneration[]
      */
-    protected $randoms = [];
+    private $randoms = [];
     /**
      * @var array<int, int[]>
      */
-    protected $symbolic = [];
+    private $symbolic = [];
     /**
      * @var array<string, string>
      */
@@ -109,6 +110,40 @@ class TemplateIsland {
      * @var array<int, string>
      */
     private $random_labels = [];
+
+    /**
+     * @var IslandChest[]
+     */
+    private $chests = [];
+
+    /**
+     * @return IslandChest[]
+     */
+    public function getChests() : array {
+        return $this->chests;
+    }
+
+    /**
+     * @param Vector3 $vec
+     * @param IslandChest $chest
+     * @return bool false = This island chest position has already been assigned to another position, please clone the instance first
+     */
+    public function setChest(Vector3 $vec, IslandChest $chest) : bool {
+        if (in_array($chest, $this->chests, true)) return false;
+        $this->chests[$vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ()] = $chest;
+        return true;
+    }
+
+    public function getChest(Vector3 $vec) : ?IslandChest {
+        return $this->chests[$vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ()] ?? null;
+    }
+
+    public function removeChest(Vector3 $vec) : bool {
+        $coord = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
+        if (!isset($this->chests[$coord])) return false;
+        unset($this->chests[$coord]);
+        return true;
+    }
 
     public function __construct(string $name) {
         $this->name = $name;
