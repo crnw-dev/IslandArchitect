@@ -20,7 +20,6 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\customized\skyblock;
 
 use pocketmine\Server;
-use ReflectionException;
 use pocketmine\level\Level;
 use pocketmine\level\Position;
 use Clouria\IslandArchitect\{
@@ -79,22 +78,18 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
 
     public static function createIslandFor(Session $session, string $type) : void {
         $mapped = IslandArchitect::getInstance()->mapGeneratorType($type);
-        $ev = new IslandWorldPreCreateEvent($session, static::createIslandIdentifier(), $mapped ?? $type, isset($mapped));
+        $ev = new IslandWorldPreCreateEvent($session, isset($mapped) ? static::createIslandIdentifier() : null, $mapped ?? $type, isset($mapped));
         $ev->call();
-        if (!SkyBlock::getInstance()->getGeneratorManager()->isGenerator($ev->getType())) return;
-        if ($mapped === null) {
-            try {
-                IslandFactory::createIslandFor($session, $ev->getType());
-            } catch (ReflectionException $e) {
-            }
+        if ($mapped === null and !SkyBlock::getInstance()->getGeneratorManager()->isGenerator($ev->getType())) return;
+        $identifier = $ev->getIdentifier();
+        if ($mapped === null and $identifier === null) {
+            IslandFactory::createIslandFor($session, $ev->getType());
             return;
         }
 
-        $identifier = $ev->getIdentifier();
         $type = $ev->getType();
         $islandManager = SkyBlock::getInstance()->getIslandManager();
-
-        static::createTemplateIslandWorldAsync($identifier, $type, function(Level $w) use ($session, $islandManager, $identifier) : void {
+        $callback = function(Level $w) use ($session, $islandManager, $identifier) : void {
             if (!$session->getPlayer()->isOnline()) return;
             $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, IslandArchitect::getInstance()->getTemplateIslandGenerator()::GENERATOR_NAME,
                 $w, 0);
@@ -108,7 +103,24 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
             $island->save();
 
             (new IslandCreateEvent($island))->call();
-        });
+        };
+
+        if ($mapped === null) {
+            $generatorManager = SkyBlock::getInstance()->getGeneratorManager();
+            if ($generatorManager->isGenerator($type)) {
+                $generator = $generatorManager->getGenerator($type);
+            } else {
+                $generator = $generatorManager->getGenerator("Basic");
+            }
+
+            $server = SkyBlock::getInstance()->getServer();
+            $server->generateLevel($identifier, null, $generator);
+            $server->loadLevel($identifier);
+            $level = $server->getLevelByName($identifier);
+            $level->setSpawnLocation($generator::getWorldSpawn());
+
+            $callback($level);
+        } else static::createTemplateIslandWorldAsync($identifier, $type, $callback);
     }
 
     /**
