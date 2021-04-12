@@ -19,43 +19,42 @@
 declare(strict_types=1);
 namespace Clouria\IslandArchitect\conversion;
 
-use pocketmine\{
-    level\format\Chunk,
-    Server,
-    scheduler\AsyncTask,
-    utils\Utils};
-
 use Clouria\IslandArchitect\{
-	IslandArchitect,
-	runtime\TemplateIsland
+    IslandArchitect,
+    runtime\TemplateIsland
 };
-
+use pocketmine\{
+    Server,
+    utils\Utils,
+    level\format\Chunk,
+    scheduler\AsyncTask
+};
+use function mkdir;
 use function serialize;
 use function unserialize;
 use function file_put_contents;
-use function mkdir;
 
 class IslandDataEmitTask extends AsyncTask {
 
-	/**
-	 * @var string (Serialized TemplateIsland object)
-	 */
-	protected $island;
+    /**
+     * @var string (Serialized TemplateIsland object)
+     */
+    protected $island;
 
-	/**
-	 * @var string
-	 */
-	protected $path;
+    /**
+     * @var string
+     */
+    protected $path;
 
-	/**
-	 * @var string (Serialized Chunk[]|null)
-	 */
-	protected $chunks;
+    /**
+     * @var string (Serialized Chunk[]|null)
+     */
+    protected $chunks;
 
     /**
      * @param TemplateIsland $island
      * @param Chunk[]|null $chunks If the array is not empty, an export action will be taken instead of normal save action
-     * @param \Closure|null $callback Compatible with <code>function() {}</code>
+     * @param \Closure|null $callback Compatible with <code>function(string $file) {}</code>
      */
 	public function __construct(TemplateIsland $island, ?array $chunks, ?\Closure $callback = null) {
 		$this->island = serialize($island);
@@ -66,21 +65,21 @@ class IslandDataEmitTask extends AsyncTask {
 	}
 
 	public function onRun() : void {
-		$island = unserialize($this->island);
-		$chunks = unserialize($this->chunks);
+        $island = unserialize($this->island);
+        $chunks = unserialize($this->chunks);
 
-		if (empty($chunks ?? [])) $data = $island->save();
-		else $data = $island->export($chunks);
-		$path = Utils::cleanPath($this->path);
-		@mkdir($path);
-		$path = $path . ($path[-1] === '/' ? '' : '/') . $island->getName() . '.json';
-		file_put_contents($path, $data);
+        if (empty($chunks ?? [])) $data = $island->save();
+        else $data = $island->export($chunks);
+        $path = Utils::cleanPath($this->path);
+        @mkdir($path);
+        $path = $path . ($path[-1] === '/' ? '' : '/') . $island->getName() . '.json';
+        file_put_contents($path, $data);
 
-		$this->setResult(null);
-	}
+        $this->setResult($path);
+    }
 
 	public function onCompletion(Server $server) : void {
-		$callback = $this->fetchLocal()[0];
-		if (isset($callback)) $callback();
-	}
+        $callback = $this->fetchLocal()[0];
+        if (isset($callback)) $callback($this->getResult());
+    }
 }

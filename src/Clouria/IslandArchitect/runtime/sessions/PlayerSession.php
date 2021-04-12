@@ -24,11 +24,6 @@ use jojoe77777\FormAPI\{
     ModalForm,
     SimpleForm,
     CustomForm};
-use Clouria\IslandArchitect\{
-    IslandArchitect,
-    runtime\TemplateIsland,
-    runtime\RandomGeneration,
-    conversion\IslandDataEmitTask};
 use pocketmine\{
     Player,
     Server,
@@ -37,7 +32,15 @@ use pocketmine\{
     math\Vector3,
     scheduler\ClosureTask,
     utils\TextFormat as TF,
-    level\particle\FloatingTextParticle};
+    level\particle\FloatingTextParticle
+};
+use Clouria\IslandArchitect\{
+    IslandArchitect,
+    runtime\TemplateIsland,
+    runtime\RandomGeneration,
+    conversion\IslandDataEmitTask,
+    events\TemplateIslandExportEvent
+};
 use function max;
 use function min;
 use function count;
@@ -117,19 +120,19 @@ class PlayerSession {
 	protected $save_lock = false;
 
 	public function saveIsland() : void {
-		if ($this->save_lock) return;
-		if (($island = $this->getIsland()) === null) return;
-		if (!$island->hasChanges()) return;
-		$this->save_lock = true;
-		$time = microtime(true);
-		IslandArchitect::getInstance()->getLogger()->debug('Saving island "' . $island->getName() . '" (' . spl_object_id($island) . ')');
-		$task = new IslandDataEmitTask($island, [], function() use ($island, $time) : void {
-			$this->save_lock = false;
-			IslandArchitect::getInstance()->getLogger()->debug('Island "' . $island->getName() . '" (' . spl_object_id($island) . ') save completed (' . round(microtime(true) - $time, 2) . 's)');
-			$island->noMoreChanges();
-		});
-		Server::getInstance()->getAsyncPool()->submitTask($task);
-	}
+        if ($this->save_lock) return;
+        if (($island = $this->getIsland()) === null) return;
+        if (!$island->hasChanges()) return;
+        $this->save_lock = true;
+        $time = microtime(true);
+        IslandArchitect::getInstance()->getLogger()->debug('Saving island "' . $island->getName() . '" (' . spl_object_id($island) . ')');
+        $task = new IslandDataEmitTask($island, [], function(string $file) use ($island, $time) : void {
+            $this->save_lock = false;
+            IslandArchitect::getInstance()->getLogger()->debug('Island "' . $island->getName() . '" (' . spl_object_id($island) . ') save completed (' . round(microtime(true) - $time, 2) . 's)');
+            $island->noMoreChanges();
+        });
+        Server::getInstance()->getAsyncPool()->submitTask($task);
+    }
 
 	/**
 	 * @var bool
@@ -153,47 +156,49 @@ class PlayerSession {
 		for ($x=min($sc->getFloorX(), $ec->getFloorX()) >> 4; $x <= (max($sc->getFloorX(), $ec->getFloorX()) >> 4); $x++) for ($z=min($sc->getFloorZ(), $ec->getFloorZ()) >> 4; $z <= (max($sc->getFloorZ(), $ec->getFloorZ()) >> 4); $z++) {
 			while (($level = Server::getInstance()->getLevelByName($island->getLevel())) === null) {
 				if ($wlock ?? false) {
-					$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Island world (' . $island->getLevel() . ') is missing!');
-					$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Export task aborted.');
-					$this->export_lock = false;
-					return;
-				}
-				Server::getInstance()->loadLevel($island->getLevel());
-				$wlock = true;
-			}
-			$chunk = $level->getChunk($x, $z, true);
-			if ($chunk === null) $this->getPlayer()->sendMessage(TF::BOLD . TF::YELLOW . 'Warning: ' . TF::RED . 'Failed to load required chunk ' . $x . ', ' . $z);
-			else {
-				$chunks[0][$hash = Level::chunkHash($x, $z)] = $chunk->fastSerialize();
-				$chunks[1][$hash] = get_class($chunk);
-			}
-		}
-		if (!isset($chunks)) {
-		    $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Critical: Failed to load required chunks');
-		    return;
+                    $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Island world (' . $island->getLevel() . ') is missing!');
+                    $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Export task aborted.');
+                    $this->export_lock = false;
+                    return;
+                }
+                Server::getInstance()->loadLevel($island->getLevel());
+                $wlock = true;
+            }
+            $chunk = $level->getChunk($x, $z, true);
+            if ($chunk === null) $this->getPlayer()->sendMessage(TF::BOLD . TF::YELLOW . 'Warning: ' . TF::RED . 'Failed to load required chunk ' . $x . ', ' . $z);
+            else {
+                $chunks[0][$hash = Level::chunkHash($x, $z)] = $chunk->fastSerialize();
+                $chunks[1][$hash] = get_class($chunk);
+            }
         }
-		$this->getPlayer()->sendMessage(TF::GOLD . 'Start exporting...');
-		$task = new IslandDataEmitTask($island, $chunks, function() use ($time) : void {
-			$this->export_lock = false;
-			$this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Export completed!' . TF::ITALIC . TF::GRAY . ' (' . round(microtime(true) - $time, 2) . 's)');
-		});
-		$checker = null;
-		$checker = IslandArchitect::getInstance()->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) use (&$checker, $task, &$island) : void {
-			if ($task->isCrashed()) {
-				$this->export_lock = false;
-				$this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Critical: Export task crashed' . TF::ITALIC . TF::GRAY . ' (The selected region might be too big or an unexpected error occurred)');
-				$this->getPlayer()->sendMessage(TF::BOLD . TF::GOLD . 'Attempting to recover original island settings...');
-				$this->checkOutIsland($island);
-				$restore = new IslandDataEmitTask($island, [], function() : void {
-					$this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Restore succeed!');
-				});
-				Server::getInstance()->getAsyncPool()->submitTask($restore);
-			}
-			if (!$this->export_lock) $checker->cancel();
-		}), 10);
+        if (!isset($chunks)) {
+            $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Critical: Failed to load required chunks');
+            return;
+        }
+        $this->getPlayer()->sendMessage(TF::GOLD . 'Start exporting...');
+        $task = new IslandDataEmitTask($island, $chunks, function(string $file) use ($time, $island) : void {
+            $this->export_lock = false;
+            $this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Export completed!' . TF::ITALIC . TF::GRAY . ' (' . round(microtime(true) - $time, 2) . 's)');
+            $ev = new TemplateIslandExportEvent($this, $island, $file);
+            $ev->call();
+        });
+        $checker = null;
+        $checker = IslandArchitect::getInstance()->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(int $ct) use (&$checker, $task, &$island) : void {
+            if ($task->isCrashed()) {
+                $this->export_lock = false;
+                $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Critical: Export task crashed' . TF::ITALIC . TF::GRAY . ' (The selected region might be too big or an unexpected error occurred)');
+                $this->getPlayer()->sendMessage(TF::BOLD . TF::GOLD . 'Attempting to recover original island settings...');
+                $this->checkOutIsland($island);
+                $restore = new IslandDataEmitTask($island, [], function(string $file) : void {
+                    $this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Restore succeed!');
+                });
+                Server::getInstance()->getAsyncPool()->submitTask($restore);
+            }
+            if (!$this->export_lock) $checker->cancel();
+        }), 10);
 
-		Server::getInstance()->getAsyncPool()->submitTask($task);
-	}
+        Server::getInstance()->getAsyncPool()->submitTask($task);
+    }
 
     /**
      * @param Player $player

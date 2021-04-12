@@ -4,7 +4,7 @@
 		  _____     _                 _          
 		  \_   \___| | __ _ _ __   __| |         
 		   / /\/ __| |/ _` | '_ \ / _` |         
-		/\/ /_ \__ \ | (_| | | | | (_| |         
+		/\/ /_ \__ \ | (_| | | | | (_| |
 		\____/ |___/_|\__,_|_| |_|\__,_|         
 		                                         
 		   _            _     _ _            _   
@@ -15,39 +15,54 @@
 		                                         
 		@ClouriaNetwork | Apache License 2.0
 														*/
-
 declare(strict_types=1);
+
 namespace Clouria\IslandArchitect\events;
 
-use Clouria\IslandArchitect\{
-    runtime\TemplateIsland,
-    runtime\sessions\PlayerSession
-};
+use Clouria\IslandArchitect\runtime\TemplateIsland;
+use Clouria\IslandArchitect\runtime\sessions\PlayerSession;
 
-class TemplateIslandCheckOutEvent extends IslandArchitectEvent {
-
-    public function __construct(PlayerSession $session, TemplateIsland $island) {
-        parent::__construct();
-        $this->session = $session;
-        $this->island = $island;
-    }
+class TemplateIslandExportEvent extends IslandArchitectEvent {
 
     /**
      * @var PlayerSession
      */
     protected $session;
+    /**
+     * @var TemplateIsland
+     */
+    protected $island;
+    /**
+     * @var string
+     */
+    protected $file;
 
+    public function __construct(PlayerSession $session, TemplateIsland $island, string $file) {
+        parent::__construct();
+        $this->session = $session;
+        $this->island = $island;
+        $this->file = $file;
+    }
+
+    /**
+     * @return PlayerSession
+     */
     public function getSession() : PlayerSession {
         return $this->session;
     }
 
     /**
-     * @var TemplateIsland
+     * @return TemplateIsland
      */
-    protected $island;
+    public function getIsland() : TemplateIsland {
+        return $this->island;
+    }
 
-	public function getIsland() : TemplateIsland {
-		return $this->island;
-	}
+    /**
+     * @return string
+     */
+    public function getFile() : string {
+        return $this->file;
+    }
 
 }

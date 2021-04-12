@@ -124,10 +124,9 @@ class IslandArchitectCommand extends Command {
                             $sender->sendMessage(TF::BOLD . TF::GOLD . 'Created' . TF::GREEN . ' new island "' . $is->getName() . '"!');
                         } else $sender->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . 's)');
                         $s = IslandArchitect::getInstance()->getSession($sender, true);
+                        $s->checkOutIsland($is);
                         $ev = new TemplateIslandCheckOutEvent($s, $is);
                         $ev->call();
-                        if ($ev->isCancelled()) return;
-                        $s->checkOutIsland($is);
                     };
                     foreach (IslandArchitect::getInstance()->getSessions() as $s) if (
                         ($i = $s->getIsland()) !== null and
