@@ -27,6 +27,10 @@ class IslandChest {
      * @var \SplFixedArray<string|RandomGeneration>
      */
     protected $contents;
+    /**
+     * @var false
+     */
+    protected $changed = false;
 
     public function __construct(array $contents = []) {
         $this->contents = new \SplFixedArray($size = 27);
@@ -44,12 +48,14 @@ class IslandChest {
     public function setItem(int $slot, int $id, int $meta = 0) : bool {
         if ($slot >= $this->contents->getSize()) return false;
         $this->contents[$slot] = $id . ':' . $meta;
+        $this->changed = true;
         return true;
     }
 
     public function setRandom(int $slot, RandomGeneration $regex) : bool {
         if ($slot >= $this->contents->getSize()) return false;
         $this->contents[$slot] = $regex;
+        $this->changed = true;
         return true;
     }
 
@@ -64,6 +70,7 @@ class IslandChest {
     public function removeContentAt(int $slot) : bool {
         if (!isset($this->contents[$slot])) return false;
         unset($this->contents[$slot]);
+        $this->changed = true;
         return true;
     }
 
@@ -74,5 +81,13 @@ class IslandChest {
             $this->contents[$slot] = $content;
         }
         return true;
+    }
+
+    public function noMoreChanges() : void {
+        $this->changed = false;
+    }
+
+    public function hasChanges() : bool {
+        return $this->changed;
     }
 }

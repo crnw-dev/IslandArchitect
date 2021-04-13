@@ -530,6 +530,7 @@ class TemplateIsland {
     public function hasChanges() : bool {
         if ($this->changed) return $this->changed;
         foreach ($this->randoms as $r) if ($r->hasChanges()) return true;
+        foreach ($this->chests as $c) if ($c->hasChanges()) return true;
         return false;
     }
 
