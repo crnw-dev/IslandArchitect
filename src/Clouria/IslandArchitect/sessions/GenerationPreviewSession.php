@@ -24,6 +24,8 @@ use pocketmine\item\Item;
 use muqsit\invmenu\InvMenu;
 use pocketmine\utils\Random;
 use pocketmine\nbt\tag\ByteTag;
+use pocketmine\nbt\tag\ListTag;
+use pocketmine\nbt\tag\ShortTag;
 use jojoe77777\FormAPI\CustomForm;
 use pocketmine\utils\TextFormat as TF;
 use pocketmine\level\generator\Generator;
@@ -69,8 +71,7 @@ class GenerationPreviewSession {
         $this->menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
         $this->getMenu()->setListener(InvMenu::readonly(function(DeterministicInvMenuTransaction $transaction) : void {
             $out = $transaction->getOut();
-            if (!($nbt = $out->getNamedTagEntry('action')) instanceof ByteTag) return;
-            switch ($nbt->getValue()) {
+            if (($nbt = $out->getNamedTagEntry('action')) instanceof ByteTag) switch ($nbt->getValue()) {
                 case self::ACTION_RANDOM:
                     $this->panelGeneration();
                     $this->getMenu()->getInventory()->sendContents($this->getSession()->getPlayer());
@@ -82,6 +83,13 @@ class GenerationPreviewSession {
                         $this->editSeed();
                     });
                     break;
+            } elseif ($nbt = $out->getNamedTagEntry('element') instanceof ListTag) {
+                $this->getSession()->getPlayer()->removeWindow($this->getMenu()->getInventory());
+                $transaction->then(function() use ($nbt) : void {
+                    if (!($id = $nbt[0]) instanceof ShortTag) return;
+                    $meta = $nbt[1];
+                    $this->getSession()->editRandomElement($this->getRegex(), (int)$id->getValue(), (int)($meta instanceof ByteTag ? $meta->getValue() : 0));
+                });
             }
         }));
         if (count($regex->getAllElements()) > 0) {
