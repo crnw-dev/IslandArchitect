@@ -534,15 +534,19 @@ class TemplateIsland {
             $random->simplifyRegex();
             $data['randoms'][] = $random->getAllElements();
         }
+        unset($usedrandoms);
 
-        if (($vec = $this->getSpawn()) !== null) {
+        $vec = $this->getSpawn();
+        if ($vec !== null) {
             $vec = $vec->subtract($lx, $ly, $lz);
             $coord = $vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ();
             $data['spawn'] = $coord;
         }
+        unset($vec);
 
         if ($this->yoffset + max($this->getStartCoord()->getFloorY(), $this->getEndCoord()->getFloorY()) > Level::Y_MAX) $this->yoffset = 0;
         if (($yoffset = $this->getYOffset()) > 0) $data['y_offset'] = $yoffset;
+        unset($yoffset);
 
         return $this->encode($data ?? []);
     }
