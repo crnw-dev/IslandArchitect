@@ -40,7 +40,6 @@ use function min;
 use function count;
 use function explode;
 use function is_array;
-use function in_array;
 use function array_push;
 use function array_rand;
 use function var_export;
@@ -123,6 +122,22 @@ class TemplateIsland {
     private $chests = [];
 
     /**
+     * @param int $id
+     * @param array $usedrandoms
+     * @return int|null Return the random generation regex ID, null = regex not found / invalid regex
+     */
+    protected function markRandomUsed(int $id, array &$usedrandoms) : ?int {
+        $r = $this->getRandomById($id);
+        if ($r === null) return null;
+        if (!$r->isValid()) return null;
+
+        $i = array_search($id, $usedrandoms, true);
+        if ($i === false) $id = array_push($usedrandoms, $id) - 1;
+        else $id = $usedrandoms[$i];
+        return $id;
+    }
+
+    /**
      * @return IslandChest[]
      */
     public function getChests() : array {
@@ -132,12 +147,10 @@ class TemplateIsland {
     /**
      * @param Vector3 $vec
      * @param IslandChest $chest
-     * @return bool false = This island chest position has already been assigned to another position, please clone the instance first
+     * @return IslandChest
      */
-    public function setChest(Vector3 $vec, IslandChest $chest) : bool {
-        if (in_array($chest, $this->chests, true)) return false;
-        $this->chests[$vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ()] = $chest;
-        return true;
+    public function setChest(Vector3 $vec, IslandChest $chest) : IslandChest {
+        return $this->chests[$vec->getFloorX() . ':' . $vec->getFloorY() . ':' . $vec->getFloorZ()] = clone $chest;
     }
 
     public function getChest(Vector3 $vec) : ?IslandChest {
@@ -489,11 +502,8 @@ class TemplateIsland {
                     $coord = $wx . ':' . $y . ':' . $wz;
                     $bcoord = $bx . ':' . $by . ':' . $bz;
                     if (isset($this->random_blocks[$coord]) and count($this->randoms[$this->random_blocks[$coord]]->getAllElements()) > 1) {
-                        $id = $this->random_blocks[$coord];
-                        if (($r = $this->getRandomById($this->random_blocks[$coord])) === null) continue;
-                        if (!$r->isValid()) continue;
-                        if (($i = array_search($id, $usedrandoms, true)) === false) $id = array_push($usedrandoms, $id) - 1;
-                        else $id = $usedrandoms[$i];
+                        $id = $this->markRandomUsed($this->random_blocks[$coord], $usedrandoms);
+                        if ($id === null) continue;
                         $data['structure'][$bcoord] = '1:' . $id;
                     } else {
                         $data['structure'][$bcoord] = '0:' . (isset($this->random_blocks[$coord]) ? array_keys($this->randoms[$this->random_blocks[$coord]]->getAllElements())[0] : $id);
@@ -501,7 +511,18 @@ class TemplateIsland {
                         if ($meta !== Item::AIR) $data['structure'][$bcoord] .= ':' . $meta; // Lmao I didn't found this error for like 7 versions
                     }
 
-                    if (isset($this->chests[$coord])) $data['chests'][$bcoord] = $this->chests[$coord];
+                    if (isset($this->chests[$coord])) {
+                        $chest = $this->chests[$coord]->getContents();
+                        foreach ($chest as $content) {
+                            $content = explode(':', $content);
+                            if ((int)$content[0] === 1) {
+                                $id = $this->markRandomUsed($this->random_blocks[$coord], $usedrandoms);
+                                $content[1] = $id;
+                            }
+                            $contents[] = implode(':', $content);
+                        }
+                        if (!empty($contents)) $data['chests'][$bcoord] = $contents;
+                    }
                 }
             }
             unset($chunks[$hash], $wx, $wz, $x, $y, $z);
