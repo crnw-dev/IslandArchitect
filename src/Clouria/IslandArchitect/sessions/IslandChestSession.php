@@ -15,7 +15,7 @@
 
 		@ClouriaNetwork | Apache License 2.0
 
-		██╗  ██╗    ██╗  ██╗
+        ██╗  ██╗    ██╗  ██╗
         ██║  ██║    ██║ ██╔╝    光   時   LIBERATE
         ███████║    █████╔╝     復   代   HONG
         ██╔══██║    ██╔═██╗     香   革   KONG
@@ -31,10 +31,16 @@ namespace Clouria\IslandArchitect\sessions;
 use pocketmine\item\Item;
 use muqsit\invmenu\InvMenu;
 use room17\SkyBlock\SkyBlock;
+use pocketmine\nbt\tag\IntTag;
+use pocketmine\nbt\tag\ListTag;
+use pocketmine\nbt\tag\CompoundTag;
 use room17\SkyBlock\SkyBlockSettings;
 use muqsit\invmenu\transaction\InvMenuTransaction;
 use muqsit\invmenu\transaction\InvMenuTransactionResult;
 use Clouria\IslandArchitect\generator\properties\IslandChest;
+use Clouria\IslandArchitect\generator\properties\RandomGeneration;
+use Clouria\IslandArchitect\events\TemplateIslandChestContentsUpdateEvent;
+use function is_string;
 
 class IslandChestSession {
 
@@ -137,5 +143,30 @@ class IslandChestSession {
 
     protected function closeCallback() : void {
         if (!$this->isChanged()) return;
+        $ev = new TemplateIslandChestContentsUpdateEvent($this->getSession(), $this->getChest(), $this->$this->getMenu()->getInventory()->getContents());
+        $ev->call();
+        if ($ev->isCancelled()) return;
+        if (is_string($ev->getContents()[0] ?? null)) $this->getChest()->setContents($ev->getContents());
+        else foreach ($ev->getContents() as $slot => $item) {
+            if (
+                !($nbt = $item->getNamedTagEntry('IslandArchitect')) instanceof CompoundTag or
+                !($nbt = $nbt->getTag('random-generation', CompoundTag::class)) instanceof CompoundTag or
+                !($regex = $nbt->getTag('regex', ListTag::class)) instanceof ListTag
+            ) $this->getChest()->setItem($slot, $item->getId(), $item->getDamage(), $item->getCount(), $item->getNamedTag());
+            else {
+                $regex = RandomGeneration::fromNBT($regex);
+                if (!($regexid = $nbt->getTag('regexid', IntTag::class)) instanceof IntTag) {
+                    foreach ($this->getSession()->getIsland()->getRandoms() as $i => $sr) if ($sr->equals($regex)) $regexid = $i;
+                    if ($regexid === null) $regexid = $this->getSession()->getIsland()->addRandom($regex);
+                }
+                if (
+                    $regexid instanceof IntTag and
+                    (($r = $this->getSession()->getIsland()->getRandomById($regexid = $regexid->getValue())) === null or
+                        !$r->equals($regex))
+                ) $regexid = $this->getSession()->getIsland()->addRandom($regex);
+                $this->getChest()->setRandom($slot, $regexid);
+            }
+        }
+        $this->getCallback()();
     }
 }
