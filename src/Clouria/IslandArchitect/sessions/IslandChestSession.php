@@ -28,10 +28,13 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\sessions;
 
 
+use pocketmine\item\Item;
 use muqsit\invmenu\InvMenu;
 use room17\SkyBlock\SkyBlock;
+use room17\SkyBlock\SkyBlockSettings;
 use muqsit\invmenu\transaction\InvMenuTransaction;
 use muqsit\invmenu\transaction\InvMenuTransactionResult;
+use Clouria\IslandArchitect\generator\properties\IslandChest;
 
 class IslandChestSession {
 
@@ -51,17 +54,28 @@ class IslandChestSession {
      * @var bool
      */
     private $changed = false;
+    /**
+     * @var IslandChest
+     */
+    private $chest;
+
+    /**
+     * @return IslandChest
+     */
+    public function getChest() : IslandChest {
+        return $this->chest;
+    }
 
     /**
      * IslandChestSession constructor.
      * @param PlayerSession $session
      * @param \Closure|null $callback
      */
-    public function __construct(PlayerSession $session, ?\Closure $callback = null) {
-        return; // TODO: Wait until the rich customization release
+    public function __construct(PlayerSession $session, IslandChest $chest, ?\Closure $callback = null) {
         if ($session->getIsland() === null) throw new \RuntimeException('Target session hasn\'t check out an island');
         $this->session = $session;
         $this->callback = $callback;
+        $this->chest = $chest;
 
         if (!isset($this->menu)) $this->menu = InvMenu::create(InvMenu::TYPE_CHEST);
         $this->menu->setListener(function(InvMenuTransaction $transaction) : InvMenuTransactionResult {
@@ -75,7 +89,22 @@ class IslandChestSession {
     }
 
     protected function putDefaultItems() : void {
-        foreach (SkyBlock::getInstance()->getSettings()->getChestContentByGenerator($this->getSession()->getIsland()->getName()) as $slot => $item) $this->menu->getInventory()->setItem($slot, $item, false);
+        $contents = $this->getChest()->getContents();
+        if (empty($contents)) {
+            $reflect = new \ReflectionProperty(SkyBlockSettings::class, 'defaultChestContent');
+            $reflect->setAccessible(true);
+            foreach ($reflect->getValue(SkyBlock::getInstance()->getSettings()) as $slot => $item) $this->getMenu()->getInventory()->setItem($slot, $item, false);
+            $this->changed = true;
+        } else foreach ($contents as $slot => $content) {
+            $content = explode(':', $content);
+            if ((int)$content[0] === 0) $item = Item::get((int)$content[1], (int)$content[2], (int)$content[3], isset($content[4]) ? base64_decode((string)$content[4]) : '');
+            else {
+                $r = $this->getSession()->getIsland()->getRandomById((int)$content[1]);
+                if ($r === null) continue;
+                $item = $r->getRandomGenerationItem($this->getSession()->getIsland()->getRandomSymbolicItem((int)$content[1]));
+            }
+            $this->getMenu()->getInventory()->setItem($slot, $item, false);
+        }
     }
 
     /**
@@ -107,5 +136,6 @@ class IslandChestSession {
     }
 
     protected function closeCallback() : void {
+        if (!$this->isChanged()) return;
     }
 }

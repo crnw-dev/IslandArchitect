@@ -55,6 +55,22 @@ class SubmitBlockSession {
      */
     private $menu;
 
+    private $convert_input = false;
+
+    /**
+     * @return bool
+     */
+    public function isConvertInput() : bool {
+        return $this->convert_input;
+    }
+
+    /**
+     * @param bool $convert_input
+     */
+    public function setConvertInput(bool $convert_input) : void {
+        $this->convert_input = $convert_input;
+    }
+
     public function __construct(PlayerSession $session, \Closure $callback, ?Item $default = null) {
         $this->session = $session;
         $this->setCallback($callback);
@@ -66,7 +82,8 @@ class SubmitBlockSession {
         $this->menu = InvMenu::create(InvMenu::TYPE_HOPPER);
         $this->getMenu()->setName(TF::BOLD . TF::DARK_BLUE . 'Please submit a block');
         $this->getMenu()->setListener(function(InvMenuTransaction $transaction) : InvMenuTransactionResult {
-            $out = static::inputConversion($transaction->getOut());
+            $out = $transaction->getOut();
+            if ($this->isConvertInput()) $out = static::inputConversion($out);
             if (
                 ($nbt = $out->getNamedTagEntry('action')) instanceof ByteTag and
                 $nbt->getValue() === self::ACTION_FRAME

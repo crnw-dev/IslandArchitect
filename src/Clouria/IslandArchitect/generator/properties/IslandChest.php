@@ -61,6 +61,7 @@ class IslandChest {
 
     public function setItem(int $slot, int $id, int $meta = 0, int $count = 64, ?CompoundTag $nbt = null) : bool {
         if ($slot >= $this->contents->getSize()) return false;
+        if ($id === Item::AIR) return true;
         $this->contents[$slot] = '0:' . $id . ':' . $meta . ':' . $count;
         if (isset($nbt) and count($nbt) > 0) $this->contents[$slot] .= ':' . base64_encode((new LittleEndianNBTStream)->write($nbt));
         $this->changed = true;
@@ -94,6 +95,7 @@ class IslandChest {
      * @return bool
      */
     public function setContents(array $contents) : bool {
+        for ($slot = 0; $slot < $this->contents->getSize(); $slot++) unset($this->contents[$slot]);
         if (count($contents) > $this->contents->getSize()) return false;
         foreach ($contents as $slot => $content) if (is_string($content)) $this->contents[(int)$slot] = $content;
         return true;
@@ -112,10 +114,11 @@ class IslandChest {
      */
     public function getRuntimeContents(Random $random) : array {
         foreach ($this->contents as $slot => $content) {
+            if ($content === null) continue;
             if (is_string($content)) {
                 $content = explode(':', $content);
                 try {
-                    $contents[] = Item::get((int)$content[0], (int)$content[1], (int)$content[2], base64_decode((string)$content[3]) ?? '');
+                    $contents[] = Item::get((int)$content[1], (int)$content[2], (int)$content[3], isset($content[4]) ? base64_decode((string)$content[4]) : '');
                 } catch (\InvalidArgumentException $err) {
                     continue;
                 }
