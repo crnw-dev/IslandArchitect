@@ -1,19 +1,27 @@
 <?php
 /*
-		
-		  _____     _                 _          
-		  \_   \___| | __ _ _ __   __| |         
-		   / /\/ __| |/ _` | '_ \ / _` |         
-		/\/ /_ \__ \ | (_| | | | | (_| |         
-		\____/ |___/_|\__,_|_| |_|\__,_|         
-		                                         
-		   _            _     _ _            _   
-		  /_\  _ __ ___| |__ (_) |_ ___  ___| |_ 
+
+		  _____     _                 _
+		  \_   \___| | __ _ _ __   __| |
+		   / /\/ __| |/ _` | '_ \ / _` |
+		/\/ /_ \__ \ | (_| | | | | (_| |
+		\____/ |___/_|\__,_|_| |_|\__,_|
+
+		   _            _     _ _            _
+		  /_\  _ __ ___| |__ (_) |_ ___  ___| |_
 		 //_\\| '__/ __| '_ \| | __/ _ \/ __| __|
-		/  _  \ | | (__| | | | | ||  __/ (__| |_ 
+		/  _  \ | | (__| | | | | ||  __/ (__| |_
 		\_/ \_/_|  \___|_| |_|_|\__\___|\___|\__|
-		                                         
+
 		@ClouriaNetwork | Apache License 2.0
+
+		██╗  ██╗    ██╗  ██╗
+        ██║  ██║    ██║ ██╔╝    光   時   LIBERATE
+        ███████║    █████╔╝     復   代   HONG
+        ██╔══██║    ██╔═██╗     香   革   KONG
+        ██║  ██║    ██║  ██╗    港   命
+        ╚═╝  ╚═╝    ╚═╝  ╚═╝
+
 														*/
 
 declare(strict_types=1);
@@ -270,10 +278,8 @@ class IslandArchitect extends PluginBase {
                         if ($class !== null) {
                             $this->getLogger()->error('Some plugins do not compatible with IslandArchitect, IslandArchitect cannot register the template island generator!');
                             $this->getLogger()
-                                ->debug('(One of the plugin has already registered a generator("' . get_class($class) . '") that does not extends ' . TemplateIslandGenerator::class . ' and uses the same name as template island generator ("' .
-                                    $this->getTemplateIslandGenerator()::GENERATOR_NAME . '")' .
-                                    CustomSkyBlockCreateCommand::class
-                                    . ')');
+                                 ->debug('(One of the plugin has already registered a generator("' . get_class($class) . '") that does not extends ' . TemplateIslandGenerator::class . ' and uses the same name as template island generator ("' .
+                                     $this->getTemplateIslandGenerator()::GENERATOR_NAME . '")' . CustomSkyBlockCreateCommand::class . ')');
                             break;
                         }
                         $pl->getGeneratorManager()->registerGenerator($this->getTemplateIslandGenerator()::GENERATOR_NAME, $this->getTemplateIslandGenerator());
