@@ -66,7 +66,7 @@ class TemplateIsland {
         [Item::SILVER_GLAZED_TERRACOTTA],
         [Item::CYAN_GLAZED_TERRACOTTA]
     ];
-    public const VERSION = '1.3';
+    public const VERSION = '1.3'; // TODO: Bump version
     /**
      * @var string
      */
@@ -408,6 +408,14 @@ class TemplateIsland {
             if (empty($elements)) $data['randoms'][$regexid] = ['blockid:meta' => 'chance'];
             else $data['randoms'][$regexid] = $elements;
         }
+        foreach ($this->chests as $coord => $chest) {
+            foreach ($chest->getContents() as $content) {
+                if ($content instanceof RandomGeneration) $content = $content->getAllElements();
+                $contents[] = $content;
+            }
+            if (!isset($contents)) continue;
+            $data['chests'][$coord] = $contents;
+        }
 
         return $this->encode($data);
     }
@@ -430,7 +438,7 @@ class TemplateIsland {
         if (isset($pos)) $this->endcoord = $pos->asVector3();
         else $this->endcoord = null;
         $this->changed = true;
-    } // TODO: Bump version
+    }
 
     public function getSpawn() : ?Vector3 {
         return $this->spawn;
@@ -498,12 +506,16 @@ class TemplateIsland {
                         $meta = $chunk->getBlockData($x & 0x0f, $y, $z & 0x0f);
                         if ($meta !== Item::AIR) $data['structure'][$bcoord] .= ':' . $meta; // Lmao I didn't found this error for like 7 versions
                     }
+
+                    if (isset($this->chests[$coord])) $data['chests'][$bcoord] = $this->chests[$coord];
                 }
             }
             unset($chunks[$hash], $wx, $wz, $x, $y, $z);
         }
 
-        if (!empty($usedrandoms ?? [])) foreach ($this->randoms as $id => $random) if (in_array($id, $usedrandoms)) {
+        foreach ($usedrandoms as $id) {
+            $random = $this->randoms[$id] ?? null;
+            if (!isset($random)) continue;
             $random->simplifyRegex();
             $data['randoms'][] = $random->getAllElements();
         }
@@ -520,9 +532,17 @@ class TemplateIsland {
         return $this->encode($data ?? []);
     }
 
-    public function exportRaw() : string {
+    public function dump() : string {
         $data['structure'] = $this->structure;
         foreach ($this->randoms as $random) $data['randoms'][] = $random->getAllElements();
+        foreach ($this->chests as $coord => $chest) {
+            foreach ($chest->getContents() as $content) {
+                if ($content instanceof RandomGeneration) $content = $content->getAllElements();
+                $contents[] = $content;
+            }
+            if (!isset($contents)) continue;
+            $data['chests'][$coord] = $contents;
+        }
         if (isset($this->spawn)) $data['spawn'] = $this->spawn->getFloorX() . ':' . $this->spawn->getFloorY() . ':' . $this->spawn->getFloorZ();
         if ($this->yoffset > 0) $data['y_offset'] = $this->yoffset;
         return $this->encode($data ?? []);

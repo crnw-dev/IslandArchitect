@@ -140,7 +140,7 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
      */
     public static function createTemplateIslandWorldAsync(string $identifier, string $type, \Closure $callback) : void {
         $task = new IslandDataLoadTask($type, function(TemplateIsland $is, string $file) use ($identifier, $callback) : void {
-            $settings = ['preset' => serialize([$is->exportRaw()])];
+            $settings = ['preset' => serialize([$is->dump()])];
             Server::getInstance()->generateLevel($identifier,
                 null, IslandArchitect::getInstance()->getTemplateIslandGenerator(), $settings ?? []);
             Server::getInstance()->loadLevel($identifier);

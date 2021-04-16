@@ -48,7 +48,7 @@ class IslandChest {
 
     public function __construct(array $contents = []) {
         $this->contents = new \SplFixedArray($size = 27);
-        if (!$this->setContents($contents)) throw new \InvalidArgumentException('More than ' . $size . ' items want to fit in a ' . $size . ' slots (0-' . ($size - 1) . ') container');
+        if (!$this->setContents($contents)) throw new \InvalidArgumentException('More than ' . $size . ' items attempt to fit into a ' . $size . ' slots (0-' . ($size - 1) . ') container');
     }
 
     /**
