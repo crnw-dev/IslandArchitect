@@ -19,7 +19,13 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\generator\properties;
 
+use pocketmine\item\Item;
+use pocketmine\utils\Random;
+use pocketmine\nbt\tag\CompoundTag;
+use pocketmine\nbt\BigEndianNBTStream;
 use function is_array;
+use function is_string;
+use function base64_encode;
 
 class IslandChest {
 
@@ -45,9 +51,15 @@ class IslandChest {
         return $contents ?? [];
     }
 
-    public function setItem(int $slot, int $id, int $meta = 0) : bool {
+    public function setItem(int $slot, int $id, int $meta = 0, int $count = 64, ?CompoundTag $nbt = null) : bool {
         if ($slot >= $this->contents->getSize()) return false;
-        $this->contents[$slot] = $id . ':' . $meta;
+        if (isset($nbt) and count($nbt) > 0) {
+            $stream = new BigEndianNBTStream;
+            $stream->writeTag($nbt);
+            $stream = $stream->get(true);
+            $stream = base64_encode($stream);
+        }
+        $this->contents[$slot] = $id . ':' . $meta . ':' . $count . (isset($stream) ? ':' . $stream : '');
         $this->changed = true;
         return true;
     }
@@ -89,5 +101,24 @@ class IslandChest {
 
     public function hasChanges() : bool {
         return $this->changed;
+    }
+
+    /**
+     * @return Item[]
+     */
+    public function getRuntimeContents(Random $random) : array {
+        foreach ($this->contents as $content) {
+            if (is_string($content)) {
+                $content = explode(':', $content);
+                if (isset($content[3])) {
+                    $stream = new BigEndianNBTStream;
+                    $stream = $stream->read((string)$content[3]);
+                    if ($stream instanceof CompoundTag and $stream->getName() === '') $nbt = $stream;
+                }
+                $contents[] = Item::get((int)$content[0], (int)$content[1], (int)$content[2], $nbt ?? '');
+            }
+            if ($content instanceof RandomGeneration) $contents[] = $content->randomElementItem($random);
+        }
+        return $contents ?? [];
     }
 }
