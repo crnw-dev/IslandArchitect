@@ -15,7 +15,7 @@
 
 		@ClouriaNetwork | Apache License 2.0
 
-		██╗  ██╗    ██╗  ██╗
+        ██╗  ██╗    ██╗  ██╗
         ██║  ██║    ██║ ██╔╝    光   時   LIBERATE
         ███████║    █████╔╝     復   代   HONG
         ██╔══██║    ██╔═██╗     香   革   KONG

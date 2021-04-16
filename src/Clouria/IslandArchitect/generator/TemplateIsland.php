@@ -199,7 +199,7 @@ class TemplateIsland {
             }
             $self->unused_symbolics = $unused_symbolics;
         }
-        foreach ($data['randoms'] ?? [] as $regexdata) {
+        foreach ($data['randoms'] ?? $data['regex'] ?? [] as $regexdata) {
             $regex = new RandomGeneration;
             foreach ($regexdata as $element => $chance) {
                 $element = explode(':', $element);
@@ -208,6 +208,7 @@ class TemplateIsland {
             }
             $self->randoms[] = $regex;
         }
+        foreach ($data['chests'] ?? $data['island_chests'] ?? [] as $coord => $chest) $self->chests[$coord] = new IslandChest($chest);
         if (isset($data['structure'])) $self->structure = $data['structure'];
         return $self;
     }
@@ -408,14 +409,7 @@ class TemplateIsland {
             if (empty($elements)) $data['randoms'][$regexid] = ['blockid:meta' => 'chance'];
             else $data['randoms'][$regexid] = $elements;
         }
-        foreach ($this->chests as $coord => $chest) {
-            foreach ($chest->getContents() as $content) {
-                if ($content instanceof RandomGeneration) $content = $content->getAllElements();
-                $contents[] = $content;
-            }
-            if (!isset($contents)) continue;
-            $data['chests'][$coord] = $contents;
-        }
+        foreach ($this->chests as $coord => $chest) $data['chests'][$coord] = $chest->getContents();
 
         return $this->encode($data);
     }
@@ -535,14 +529,7 @@ class TemplateIsland {
     public function dump() : string {
         $data['structure'] = $this->structure;
         foreach ($this->randoms as $random) $data['randoms'][] = $random->getAllElements();
-        foreach ($this->chests as $coord => $chest) {
-            foreach ($chest->getContents() as $content) {
-                if ($content instanceof RandomGeneration) $content = $content->getAllElements();
-                $contents[] = $content;
-            }
-            if (!isset($contents)) continue;
-            $data['chests'][$coord] = $contents;
-        }
+        foreach ($this->chests as $coord => $chest) $data['chests'][$coord] = $chest->getContents();
         if (isset($this->spawn)) $data['spawn'] = $this->spawn->getFloorX() . ':' . $this->spawn->getFloorY() . ':' . $this->spawn->getFloorZ();
         if ($this->yoffset > 0) $data['y_offset'] = $this->yoffset;
         return $this->encode($data ?? []);

@@ -15,7 +15,7 @@
 		                                         
 		@ClouriaNetwork | Apache License 2.0
 
-		██╗  ██╗    ██╗  ██╗
+        ██╗  ██╗    ██╗  ██╗
         ██║  ██║    ██║ ██╔╝    光   時   LIBERATE
         ███████║    █████╔╝     復   代   HONG
         ██╔══██║    ██╔═██╗     香   革   KONG
@@ -30,9 +30,9 @@ namespace Clouria\IslandArchitect\generator\properties;
 use pocketmine\item\Item;
 use pocketmine\utils\Random;
 use pocketmine\nbt\tag\CompoundTag;
-use pocketmine\nbt\BigEndianNBTStream;
-use function is_array;
+use pocketmine\nbt\LittleEndianNBTStream;
 use function is_string;
+use function base64_decode;
 use function base64_encode;
 
 class IslandChest {
@@ -61,20 +61,15 @@ class IslandChest {
 
     public function setItem(int $slot, int $id, int $meta = 0, int $count = 64, ?CompoundTag $nbt = null) : bool {
         if ($slot >= $this->contents->getSize()) return false;
-        if (isset($nbt) and count($nbt) > 0) {
-            $stream = new BigEndianNBTStream;
-            $stream->writeTag($nbt);
-            $stream = $stream->get(true);
-            $stream = base64_encode($stream);
-        }
-        $this->contents[$slot] = $id . ':' . $meta . ':' . $count . (isset($stream) ? ':' . $stream : '');
+        $this->contents[$slot] = '0:' . $id . ':' . $meta . ':' . $count;
+        if (isset($nbt) and count($nbt) > 0) $this->contents[$slot] .= ':' . base64_encode((new LittleEndianNBTStream)->write($nbt));
         $this->changed = true;
         return true;
     }
 
-    public function setRandom(int $slot, RandomGeneration $regex) : bool {
+    public function setRandom(int $slot, int $regexid) : bool {
         if ($slot >= $this->contents->getSize()) return false;
-        $this->contents[$slot] = $regex;
+        $this->contents[$slot] = '1:' . $regexid;
         $this->changed = true;
         return true;
     }
@@ -94,12 +89,13 @@ class IslandChest {
         return true;
     }
 
+    /**
+     * @param string[] $contents Contents in the array won't be validate, only checks whether it is a string or not!
+     * @return bool
+     */
     public function setContents(array $contents) : bool {
         if (count($contents) > $this->contents->getSize()) return false;
-        foreach ($contents as $slot => $content) {
-            if (is_array($content)) $content = $content[0] . ':' . $content[1] ?? 0;
-            $this->contents[$slot] = $content;
-        }
+        foreach ($contents as $slot => $content) if (is_string($content)) $this->contents[(int)$slot] = $content;
         return true;
     }
 
@@ -115,17 +111,16 @@ class IslandChest {
      * @return Item[]
      */
     public function getRuntimeContents(Random $random) : array {
-        foreach ($this->contents as $content) {
+        foreach ($this->contents as $slot => $content) {
             if (is_string($content)) {
                 $content = explode(':', $content);
-                if (isset($content[3])) {
-                    $stream = new BigEndianNBTStream;
-                    $stream = $stream->read((string)$content[3]);
-                    if ($stream instanceof CompoundTag and $stream->getName() === '') $nbt = $stream;
+                try {
+                    $contents[] = Item::get((int)$content[0], (int)$content[1], (int)$content[2], base64_decode((string)$content[3]) ?? '');
+                } catch (\InvalidArgumentException $err) {
+                    continue;
                 }
-                $contents[] = Item::get((int)$content[0], (int)$content[1], (int)$content[2], $nbt ?? '');
             }
-            if ($content instanceof RandomGeneration) $contents[] = $content->randomElementItem($random);
+            if ($content instanceof RandomGeneration) $contents[$slot] = $content->randomElementItem($random);
         }
         return $contents ?? [];
     }
