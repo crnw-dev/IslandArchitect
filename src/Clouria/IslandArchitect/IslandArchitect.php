@@ -46,9 +46,7 @@ use Clouria\IslandArchitect\internal\IslandArchitectEventListener;
 use Clouria\IslandArchitect\internal\IslandArchitectPluginTickTask;
 use Clouria\IslandArchitect\extended\skyblock\CustomSkyBlockCreateCommand;
 use function is_a;
-use function substr;
 use function get_class;
-use function strtolower;
 use function file_exists;
 use function array_search;
 use function class_exists;
@@ -209,17 +207,10 @@ class IslandArchitect extends PluginBase {
         $conf = $this->getConfig();
         foreach ($all = $conf->getAll() as $k => $v) $conf->remove($k);
 
-        $conf->set('enable-commands', (bool)($all['enable-commands'] ?? $all['enable-plugin'] ?? true));
         $conf->set('hide-plugin-in-query', (bool)($all['hide-plugin-in-query'] ?? false));
-        $conf->set('island-data-folder', (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'));
-        $conf->set('panel-allow-unstable-item', (bool)($all['panel-allow-unstable-item'] ?? true));
         $conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
         $conf->set('island-data-folder', Utils::cleanPath((string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/')));
         $conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
-        $conf->set('island-creation-command-mapping', (array)($all['island-creation-command-mapping'] ?? [
-                'generation-name-which-will-be' => 'exported-island-data-file.json',
-                'use-in-island-creation-cmd' => 'relative-path/start-from/island-data-folder.json'
-            ]));
         $conf->set('default-regex', (array)($all['default-regex'] ?? self::DEFAULT_REGEX));
 
         $conf->save();
@@ -304,19 +295,8 @@ class IslandArchitect extends PluginBase {
     }
 
     public function mapGeneratorType(string $type) : ?string {
-        foreach ($this->getConfig()->get('island-creation-command-mapping', []) as $st => $file) if (strtolower($st) === strtolower($type)) {
-            $sf = $file;
-            break;
-        }
-        if (!isset($sf)) return null;
-        $type = $sf;
-        if (
-            !(file_exists($type = Utils::cleanPath($type))) and
-            !file_exists($type = Utils::cleanPath(
-                ($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/') .
-                $type . (strtolower(substr($type, -5)) === '.json' ? '' : '.json')
-            ))) $type = null;
-        return $type;
+        $path = $this->getConfig()->get('island-data-folder', ($path = Utils::cleanPath((string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'))) . ($path[-1] === '/' ? '' : '/'));
+        return file_exists($path = $path . $type . '.isarch-templis') ? $path : null;
     }
 
     /**

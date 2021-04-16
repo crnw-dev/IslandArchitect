@@ -15,7 +15,7 @@
 
 		@ClouriaNetwork | Apache License 2.0
 
-		██╗  ██╗    ██╗  ██╗
+        ██╗  ██╗    ██╗  ██╗
         ██║  ██║    ██║ ██╔╝    光   時   LIBERATE
         ███████║    █████╔╝     復   代   HONG
         ██╔══██║    ██╔═██╗     香   革   KONG
@@ -35,6 +35,8 @@ use pocketmine\scheduler\AsyncTask;
 use Clouria\IslandArchitect\IslandArchitect;
 use Clouria\IslandArchitect\generator\TemplateIsland;
 use function mkdir;
+use function unlink;
+use function substr;
 use function serialize;
 use function unserialize;
 use function file_put_contents;
@@ -78,8 +80,8 @@ class IslandDataEmitTask extends AsyncTask {
         else $data = $island->export($chunks);
         $path = Utils::cleanPath($this->path);
         @mkdir($path);
-        $path = $path . ($path[-1] === '/' ? '' : '/') . $island->getName() . '.json';
-        file_put_contents($path, $data);
+        $path = $path . ($path[-1] === '/' ? '' : '/') . $island->getName() . '.isarch-templis';
+        if (file_put_contents($path, $data)) @unlink(substr($path, 22) . 'json');
 
         $this->setResult($path);
     }
