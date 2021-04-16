@@ -202,7 +202,7 @@ class IslandArchitect extends PluginBase {
         foreach ($all = $conf->getAll() as $k => $v) $conf->remove($k);
 
         $conf->set('enable-commands', (bool)($all['enable-commands'] ?? $all['enable-plugin'] ?? true));
-        $conf->set('hide-plugin-in-query', (bool)($all['hide-plugin-in-query']));
+        $conf->set('hide-plugin-in-query', (bool)($all['hide-plugin-in-query'] ?? false));
         $conf->set('island-data-folder', (string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'));
         $conf->set('panel-allow-unstable-item', (bool)($all['panel-allow-unstable-item'] ?? true));
         $conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
