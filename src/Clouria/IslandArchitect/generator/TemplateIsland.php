@@ -351,7 +351,13 @@ class TemplateIsland {
         $this->changed = true;
     }
 
-    public function getRandomLabel(int $regex, bool $nullable = false) : ?string {
+    /**
+     * @param int|null $regex
+     * @param bool $nullable If the regex argument is null the return will always be null no matter what
+     * @return string|null
+     */
+    public function getRandomLabel(?int $regex, bool $nullable = false) : ?string {
+        if ($regex === null) return null;
         return $this->random_labels[$regex] ?? ($nullable ? null : 'Regex #' . $regex);
     }
 
@@ -364,7 +370,7 @@ class TemplateIsland {
             }
             return false;
         }
-        if (!isset($this->random_labels[$regex]) and $this->random_labels[$regex] === $label) return false;
+        if (!isset($this->random_labels[$regex]) or $this->random_labels[$regex] === $label) return false;
         $this->random_labels[$regex] = $label;
         $this->changed = true;
         return true;

@@ -73,6 +73,7 @@ class RandomEditSession {
      * RandomEditSession constructor.
      */
     public function __construct(PlayerSession $session, ?RandomGeneration $regex = null, ?int $id = null, ?int $meta = null, ?\Closure $callback = null) {
+        // TODO: Display error if no FormAPI installed
         $this->session = $session;
         $this->regex = $regex;
         if (isset($id)) $this->last_edited_element = $id . (isset($meta) ? ':' . $meta : '');
@@ -83,9 +84,11 @@ class RandomEditSession {
     public function editRandom() : void {
         $p = $this->getSession()->getPlayer();
         $is = $this->getSession()->getIsland();
-        $regexid = $is->getRegexId($this->getRegex());
+        if ($this->getRegex() !== null) $regexid = $is->getRegexId($this->getRegex());
+        else $regexid = null;
         $regs = $is->getRandoms();
-        $elements = $this->getRegex()->getAllElements();
+        if ($this->getRegex() !== null) $elements = $this->getRegex()->getAllElements();
+        else $elements = [];
         $form = new CustomForm(function(Player $p, array $d = null) use ($regexid, $regs, $is, $elements) : void {
             if ($d === null) {
                 if ($this->getCallback() !== null) $this->getCallback()();
@@ -134,7 +137,7 @@ class RandomEditSession {
             }
             $this->editRandom();
         });
-        $totalchance = $this->getRegex()->getTotalChance();
+        if ($this->getRegex() !== null) $totalchance = $this->getRegex()->getTotalChance();
         $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Modify Regex #' . $regexid);
 
         $i = -1;
@@ -143,7 +146,7 @@ class RandomEditSession {
         if ($this->getRegex() !== null and $regexid === null) $rs[] = TF::ITALIC . TF::DARK_GRAY . 'External regex';
         $form->addDropdown(TF::BOLD . TF::GOLD . 'Select regex to modify:', $rs, $regexid ?? 0);
         if (!$this->isCreateNewElement()) {
-            foreach ($elements as $element => $chance) {
+            if (isset($totalchance)) foreach ($elements as $element => $chance) {
                 $element = explode(':', $element);
                 $item = Item::get((int)$element[0], (int)$element[1]);
                 $totalchanceNonZero = $totalchance == 0 ? $chance : $totalchance;
@@ -160,7 +163,7 @@ class RandomEditSession {
         $item = $this->getLastEditedElementAsItem();
         if ($item !== null) $chance = $this->getRegex()->getElementChance($item->getId(), $item->getDamage());
         $form->addInput(TF::BOLD . TF::GOLD . 'Element chance:', '<chance>, ...', (string)($chance ?? ''));
-        $form->addInput(TF::BOLD . TF::GOLD . 'Regex label:', $is->getRandomLabel($regexid), $is->getRandomLabel($regexid, true) ?? '');
+        $form->addInput(TF::BOLD . TF::GOLD . 'Regex label:', $is->getRandomLabel($regexid) ?? 'Leave here empty to remove label', $is->getRandomLabel($regexid, true) ?? '');
         $p->sendForm($form);
     }
 
