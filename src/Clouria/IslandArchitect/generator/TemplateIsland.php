@@ -178,6 +178,10 @@ class TemplateIsland {
             $log->debug(var_export($dataraw, true));
             return null;
         }
+        return static::loadArray($data, $logger);
+    }
+
+    public static function loadArray(array $data, ?\Logger $logger = null) : ?TemplateIsland {
         if (
             (int)($version = $data['version'] ?? -1) === -1 or
             ((int)$version > (int)self::VERSION) or

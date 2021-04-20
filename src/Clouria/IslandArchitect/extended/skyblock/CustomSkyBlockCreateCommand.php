@@ -29,8 +29,8 @@ namespace Clouria\IslandArchitect\extended\skyblock;
 
 use pocketmine\Server;
 use pocketmine\level\Level;
+use pocketmine\math\Vector3;
 use room17\SkyBlock\SkyBlock;
-use pocketmine\level\Position;
 use room17\SkyBlock\island\RankIds;
 use room17\SkyBlock\session\Session;
 use room17\SkyBlock\island\IslandFactory;
@@ -44,6 +44,10 @@ use Clouria\IslandArchitect\generator\tasks\IslandDataLoadTask;
 use function strtolower;
 
 class CustomSkyBlockCreateCommand extends CreateCommand {
+
+    public const FILE_PATH = 0;
+    public const ISLAND_DATA_ARRAY = 1;
+    public const FILE_NAME = 2;
 
     public function onCommand(Session $session, array $args) : void {
         if ($this->checkIslandAvailability($session) or $this->checkIslandCreationCooldown($session)) return;
@@ -139,8 +143,8 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
      * @param \Closure $callback Should compatible with <code>function(<@link Level> $level) {}</code>
      */
     public static function createTemplateIslandWorldAsync(string $identifier, string $type, \Closure $callback) : void {
-        $task = new IslandDataLoadTask($type, function(TemplateIsland $is, string $file) use ($identifier, $callback) : void {
-            $settings = ['preset' => serialize([$is->dump()])];
+        $task = new IslandDataLoadTask($type, function(TemplateIsland $is, string $file) use ($identifier, $callback, $type) : void {
+            $settings = ['preset' => serialize([self::FILE_NAME, $type]), 'IslandArchitect' => serialize([self::ISLAND_DATA_ARRAY, $is->dump()])];
             Server::getInstance()->generateLevel($identifier,
                 null, IslandArchitect::getInstance()->getTemplateIslandGenerator(), $settings ?? []);
             Server::getInstance()->loadLevel($identifier);
@@ -148,9 +152,9 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
 
             if ($is->getSpawn() !== null) {
                 $spawn = $is->getSpawn();
-                $spawn->setComponents($spawn->getX(), $spawn->getY() + $is->getYOffset(), $spawn->getZ());
-            } else $spawn = new Position(0, 0, 0, $level);
-            $level->setSpawnLocation($spawn);
+                $spawn = $spawn->add(0, $is->getYOffset(), 0);
+            }
+            $level->setSpawnLocation($spawn ?? new Vector3(0, $is->getYOffset(), 0));
             $callback($level);
         });
         Server::getInstance()->getAsyncPool()->submitTask($task);

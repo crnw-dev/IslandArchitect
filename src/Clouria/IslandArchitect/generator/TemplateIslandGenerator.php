@@ -32,7 +32,13 @@ use pocketmine\item\Item;
 use pocketmine\level\Level;
 use pocketmine\math\Vector3;
 use room17\SkyBlock\island\generator\IslandGenerator;
+use Clouria\IslandArchitect\extended\skyblock\CustomSkyBlockCreateCommand;
+use function implode;
+use function is_array;
+use function is_string;
 use function unserialize;
+use function file_exists;
+use function file_get_contents;
 
 class TemplateIslandGenerator extends IslandGenerator {
 
@@ -46,8 +52,30 @@ class TemplateIslandGenerator extends IslandGenerator {
     public function __construct(array $settings = []) {
         parent::__construct($settings);
 
-        $island = TemplateIsland::load(unserialize($this->getSettings()['preset'])[0]);
-        if ($island === null) throw new \RuntimeException('Cannot pass template island instance into the generator thread');
+        if (isset($settings['IslandArchitect'])) {
+            $data = unserialize($settings['IslandArchitect']);
+            if ($data[0] === CustomSkyBlockCreateCommand::ISLAND_DATA_ARRAY and isset($data[1])) $island = TemplateIsland::load($data[1]);
+        } else {
+            $data = unserialize($this->getSettings()['preset']);
+            if (is_string($data[0]) and $data[0][0] === 'O') {
+                $serialized = explode(':', $data[0][0]);
+                if ($serialized[2] === 'Clouria\IslandArchitect\runtime\TemplateIsland') $serialized[2] = TemplateIsland::class;
+                $data[0] = implode(':', $serialized);
+                $island = @unserialize($data[0]);
+                if (!$island instanceof TemplateIsland) $island = null;
+            } elseif (is_array($data[0])) $island = TemplateIsland::load($data[0]);
+            else switch ($data[0]) {
+
+                case CustomSkyBlockCreateCommand::ISLAND_DATA_ARRAY:
+                    $island = TemplateIsland::loadArray((array)($data[1] ?? []));
+                    break;
+
+                case CustomSkyBlockCreateCommand::FILE_PATH:
+                    if (isset($data[1]) and file_exists((string)$data[1])) $island = TemplateIsland::load(file_get_contents((string)$data[1]));
+                    break;
+            }
+        }
+        if (!isset($island)) throw new \RuntimeException('Cannot pass template island instance into the generator thread');
         $this->island = $island;
     }
 
