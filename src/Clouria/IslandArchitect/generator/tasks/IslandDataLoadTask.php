@@ -50,11 +50,13 @@ class IslandDataLoadTask extends AsyncTask {
     protected $islandname;
 
     /**
+     * @param string $islandname
      * @param \Closure|null $callback Compatible with <code>function(?<@link TemplateIsland> $island, string $filepath) {}</code>
+     * @param \Closure|null $onerror Compatible with <code>function(<@link \Throwable>$err) {}</code>
      */
     public function __construct(string $islandname, ?\Closure $callback = null, ?\Closure $onerror = null) {
         $this->islandname = $islandname;
-        $this->path = (string)IslandArchitect::getInstance()->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/');
+        $this->path = IslandArchitect::getInstance()->getDataFolder();
 
         $this->storeLocal([$callback, $onerror]);
     }

@@ -209,7 +209,10 @@ class IslandArchitect extends PluginBase {
 
         $conf->set('hide-plugin-in-query', (bool)($all['hide-plugin-in-query'] ?? false));
         $conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
-        $conf->set('island-data-folder', Utils::cleanPath((string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/')));
+
+        if (Utils::cleanPath($conf->get('island-data-folder', '')) !== $this->getDataFolder() . 'islands/') $this->getLogger()
+                                                                                                                 ->warning('Island data files are now forced to be inside ' . $this->getDataFolder() . 'islands/ in order to let the new template island generator to work properly!');
+
         $conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
         $conf->set('default-regex', (array)($all['default-regex'] ?? self::DEFAULT_REGEX));
 
@@ -295,8 +298,7 @@ class IslandArchitect extends PluginBase {
     }
 
     public function mapGeneratorType(string $type) : ?string {
-        $path = $this->getConfig()->get('island-data-folder', ($path = Utils::cleanPath((string)($all['island-data-folder'] ?? $this->getDataFolder() . 'islands/'))) . ($path[-1] === '/' ? '' : '/'));
-        return file_exists($path = $path . $type . '.isarch-templis') ? $path : null;
+        return file_exists($path = $this->getDataFolder() . 'islands/' . $type . '.isarch-templis') ? $path : null;
     }
 
     /**

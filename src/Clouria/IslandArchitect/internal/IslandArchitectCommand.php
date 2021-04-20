@@ -29,7 +29,6 @@ namespace Clouria\IslandArchitect\internal;
 use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\level\Level;
-use pocketmine\utils\Utils;
 use pocketmine\level\Position;
 use pocketmine\command\Command;
 use jojoe77777\FormAPI\ModalForm;
@@ -137,8 +136,7 @@ class IslandArchitectCommand extends Command {
                         ($i = $s->getIsland()) !== null and
                         $i->getName() === $args[1]
                     ) {
-                        $path = Utils::cleanPath(IslandArchitect::getInstance()->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/'));
-                        $callback($i, $path . ($path[-1] === '/' ? '' : '/') . $i->getName());
+                        $callback($i, IslandArchitect::getInstance()->getDataFolder() . $i->getName());
                         return;
                     }
                     $task = new IslandDataLoadTask($args[1], $callback);

@@ -67,7 +67,7 @@ class IslandDataEmitTask extends AsyncTask {
     public function __construct(TemplateIsland $island, ?array $chunks, ?\Closure $callback = null, ?\Closure $onerror = null) {
         $this->island = serialize($island);
         $this->chunks = serialize($chunks);
-        $this->path = IslandArchitect::getInstance()->getConfig()->get('island-data-folder', IslandArchitect::getInstance()->getDataFolder() . 'islands/');
+        $this->path = IslandArchitect::getInstance()->getDataFolder() . 'islands/';
 
         $this->storeLocal([$callback, $onerror]);
     }
