@@ -79,11 +79,6 @@ class PlayerSession {
      */
     private $export_lock = false;
 
-    /**
-     * @var array<int, int|string>|null
-     */
-    protected $last_edited_element = null;
-
     public function __construct(Player $player) {
         $this->player = $player;
     }

@@ -39,10 +39,12 @@ use czechpmdevs\buildertools\BuilderTools;
 use czechpmdevs\buildertools\editors\Printer;
 use room17\SkyBlock\command\presets\CreateCommand;
 use Clouria\IslandArchitect\sessions\PlayerSession;
+use Clouria\IslandArchitect\generator\TemplateIsland;
 use Clouria\IslandArchitect\internal\IslandArchitectCommand;
 use Clouria\IslandArchitect\generator\TemplateIslandGenerator;
 use Clouria\IslandArchitect\extended\buildertools\CustomPrinter;
 use Clouria\IslandArchitect\internal\IslandArchitectEventListener;
+use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use Clouria\IslandArchitect\internal\IslandArchitectPluginTickTask;
 use Clouria\IslandArchitect\extended\skyblock\CustomSkyBlockCreateCommand;
 use function is_a;
@@ -53,103 +55,53 @@ use function class_exists;
 
 class IslandArchitect extends PluginBase {
 
-    public const DEFAULT_REGEX = [
-        'Random ores' => [
-            Item::STONE . ':0' => 24,
-            Item::IRON_ORE . ':0' => 12,
-            Item::GOLD_ORE . ':0' => 2,
-            Item::DIAMOND_ORE . ':0' => 1,
-            Item::LAPIS_ORE . ':0' => 2,
-            Item::REDSTONE_ORE . ':0' => 4,
-            Item::COAL_ORE . ':0' => 12,
-            Item::EMERALD_ORE . ':0' => 1
-        ],
-        'Random chest directions' => [
-            Item::CHEST . ':0' => 1,
-            Item::CHEST . ':2' => 1,
-            Item::CHEST . ':4' => 1,
-            Item::CHEST . ':5' => 1
-        ],
-        'Random flowers' => [
-            // This does not follow generation rate of bone-mealing grass in PocketMine-MP
-            Item::TALLGRASS . ':1' => 4,
-            Item::AIR . ':0' => 8,
-            Item::YELLOW_FLOWER . ':0' => 1,
-            Item::RED_FLOWER . ':0' => 1
-        ],
-        'Random wool colours' => [
-            Item::WOOL . ':0' => 1,
-            Item::WOOL . ':1' => 1,
-            Item::WOOL . ':2' => 1,
-            Item::WOOL . ':3' => 1,
-            Item::WOOL . ':4' => 1,
-            Item::WOOL . ':5' => 1,
-            Item::WOOL . ':6' => 1,
-            Item::WOOL . ':7' => 1,
-            Item::WOOL . ':8' => 1,
-            Item::WOOL . ':9' => 1,
-            Item::WOOL . ':10' => 1,
-            Item::WOOL . ':11' => 1,
-            Item::WOOL . ':12' => 1,
-            Item::WOOL . ':13' => 1,
-            Item::WOOL . ':14' => 1,
-            Item::WOOL . ':15' => 1,
-        ],
-        'Random terracotta colours' => [
-            Item::TERRACOTTA . ':0' => 1,
-            Item::TERRACOTTA . ':1' => 1,
-            Item::TERRACOTTA . ':2' => 1,
-            Item::TERRACOTTA . ':3' => 1,
-            Item::TERRACOTTA . ':4' => 1,
-            Item::TERRACOTTA . ':5' => 1,
-            Item::TERRACOTTA . ':6' => 1,
-            Item::TERRACOTTA . ':7' => 1,
-            Item::TERRACOTTA . ':8' => 1,
-            Item::TERRACOTTA . ':9' => 1,
-            Item::TERRACOTTA . ':10' => 1,
-            Item::TERRACOTTA . ':11' => 1,
-            Item::TERRACOTTA . ':12' => 1,
-            Item::TERRACOTTA . ':13' => 1,
-            Item::TERRACOTTA . ':14' => 1,
-            Item::TERRACOTTA . ':15' => 1,
-        ],
-        'Random concrete colours' => [
-            Item::CONCRETE . ':0' => 1,
-            Item::CONCRETE . ':1' => 1,
-            Item::CONCRETE . ':2' => 1,
-            Item::CONCRETE . ':3' => 1,
-            Item::CONCRETE . ':4' => 1,
-            Item::CONCRETE . ':5' => 1,
-            Item::CONCRETE . ':6' => 1,
-            Item::CONCRETE . ':7' => 1,
-            Item::CONCRETE . ':8' => 1,
-            Item::CONCRETE . ':9' => 1,
-            Item::CONCRETE . ':10' => 1,
-            Item::CONCRETE . ':11' => 1,
-            Item::CONCRETE . ':12' => 1,
-            Item::CONCRETE . ':13' => 1,
-            Item::CONCRETE . ':14' => 1,
-            Item::CONCRETE . ':15' => 1,
-        ],
-        'Random concrete powder colours' => [
-            Item::CONCRETE_POWDER . ':0' => 1,
-            Item::CONCRETE_POWDER . ':1' => 1,
-            Item::CONCRETE_POWDER . ':2' => 1,
-            Item::CONCRETE_POWDER . ':3' => 1,
-            Item::CONCRETE_POWDER . ':4' => 1,
-            Item::CONCRETE_POWDER . ':5' => 1,
-            Item::CONCRETE_POWDER . ':6' => 1,
-            Item::CONCRETE_POWDER . ':7' => 1,
-            Item::CONCRETE_POWDER . ':8' => 1,
-            Item::CONCRETE_POWDER . ':9' => 1,
-            Item::CONCRETE_POWDER . ':10' => 1,
-            Item::CONCRETE_POWDER . ':11' => 1,
-            Item::CONCRETE_POWDER . ':12' => 1,
-            Item::CONCRETE_POWDER . ':13' => 1,
-            Item::CONCRETE_POWDER . ':14' => 1,
-            Item::CONCRETE_POWDER . ':15' => 1,
-        ],
-        'Random glazed terracotta colours' => [
+    private static $instance = null;
+
+    /**
+     * @var PlayerSession[]
+     */
+    private $sessions = [];
+
+    /**
+     * @var string
+     */
+    private $generator_class = TemplateIslandGenerator::class;
+
+    /**
+     * PHPStorm, this is NOT a DUPLICATED CODE FRAGMENT
+     * @return array<string, int>[]
+     */
+    public static function getBuiltInDefaultRegex() : array {
+        $d = [
+            'Random ores' => [
+                Item::STONE . ':0' => 24,
+                Item::IRON_ORE . ':0' => 12,
+                Item::GOLD_ORE . ':0' => 2,
+                Item::DIAMOND_ORE . ':0' => 1,
+                Item::LAPIS_ORE . ':0' => 2,
+                Item::REDSTONE_ORE . ':0' => 4,
+                Item::COAL_ORE . ':0' => 12,
+                Item::EMERALD_ORE . ':0' => 1
+            ],
+            'Random chest directions' => [
+                Item::CHEST . ':0' => 1,
+                Item::CHEST . ':2' => 1,
+                Item::CHEST . ':4' => 1,
+                Item::CHEST . ':5' => 1
+            ],
+            'Random flowers' => [
+                // This does not follow generation rate of bone-mealing grass in PocketMine-MP
+                Item::TALLGRASS . ':1' => 4,
+                Item::AIR . ':0' => 8,
+                Item::YELLOW_FLOWER . ':0' => 1,
+                Item::RED_FLOWER . ':0' => 1
+            ]
+        ];
+        for ($i = 0; $i <= 15; $i++) $d['Random wool colours'][] = Item::WOOL . ':' . $i;
+        for ($i = 0; $i <= 15; $i++) $d['Random terracotta colours'][] = Item::TERRACOTTA . ':' . $i;
+        for ($i = 0; $i <= 15; $i++) $d['Random concrete colours'][] = Item::CONCRETE . ':' . $i;
+        for ($i = 0; $i <= 15; $i++) $d['Random concrete powder colours'][] = Item::CONCRETE_POWDER . ':' . $i;
+        $d['Random glazed terracotta colours'] = [
             Item::PURPLE_GLAZED_TERRACOTTA . ':0' => 1,
             Item::WHITE_GLAZED_TERRACOTTA . ':0' => 1,
             Item::ORANGE_GLAZED_TERRACOTTA . ':0' => 1,
@@ -166,20 +118,9 @@ class IslandArchitect extends PluginBase {
             Item::GREEN_GLAZED_TERRACOTTA . ':0' => 1,
             Item::RED_GLAZED_TERRACOTTA . ':0' => 1,
             Item::BLACK_GLAZED_TERRACOTTA . ':0' => 1
-        ]
-    ];
-
-    private static $instance = null;
-
-    /**
-     * @var PlayerSession[]
-     */
-    private $sessions = [];
-
-    /**
-     * @var string
-     */
-    private $generator_class = TemplateIslandGenerator::class;
+        ];
+        return $d;
+    }
 
     public static function getInstance() : ?self {
         return self::$instance;
@@ -214,7 +155,7 @@ class IslandArchitect extends PluginBase {
                                                                                                                  ->warning('Island data files are now forced to be inside ' . $this->getDataFolder() . 'islands/ in order to let the new template island generator to work properly!');
 
         $conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
-        $conf->set('default-regex', (array)($all['default-regex'] ?? self::DEFAULT_REGEX));
+        $conf->set('default-regex', (array)($all['default-regex'] ?? static::getBuiltInDefaultRegex()));
         $conf->set('default-generator', (string)($all['default-generator'] ?? 'Shelly'));
 
         $conf->save();
@@ -327,6 +268,18 @@ class IslandArchitect extends PluginBase {
         if (!is_a($class, TemplateIslandGenerator::class, true)) return false;
         $this->generator_class = $class;
         return true;
+    }
+
+    public function addDefaultRandomRegex(TemplateIsland $is) : void {
+        foreach ((array)IslandArchitect::getInstance()->getConfig()->get('default-regex', IslandArchitect::getBuiltInDefaultRegex()) as $label => $regex) {
+            $r = new RandomGeneration;
+            foreach ((array)$regex as $element => $chance) {
+                $element = explode(':', $element);
+                $r->setElementChance((int)$element[0], (int)($element[1] ?? 0), $chance);
+            }
+            $regexid = $is->addRandom($r);
+            $is->setRandomLabel($regexid, $label);
+        }
     }
 
 }
