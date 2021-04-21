@@ -28,6 +28,7 @@ namespace Clouria\IslandArchitect\internal;
 
 use pocketmine\Player;
 use pocketmine\Server;
+use pocketmine\level\Level;
 use pocketmine\math\Vector3;
 use pocketmine\level\Position;
 use pocketmine\command\Command;
@@ -40,14 +41,8 @@ use Clouria\IslandArchitect\generator\TemplateIsland;
 use Clouria\IslandArchitect\generator\tasks\IslandDataLoadTask;
 use Clouria\IslandArchitect\events\TemplateIslandCheckOutEvent;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
-use function round;
-use function basename;
-use function in_array;
-use function microtime;
 use function strtolower;
-use function preg_match;
 use function class_exists;
-use function array_search;
 
 class IslandArchitectCommand extends Command {
 
@@ -154,6 +149,27 @@ class IslandArchitectCommand extends Command {
                 } else $checkout();
                 break;
 
+            case 'random':
+            case 'regex':
+            case 'r':
+                if (PlayerSession::errorCheckOutRequired($sender, $s = IslandArchitect::getInstance()->getSession($sender))) break;
+                if (isset($args[1])) {
+                    if (empty(preg_replace('/[0-9]+/i', '', $args[1]))) $regexid = (int)$args[1];
+                    else foreach ($s->getIsland()->getRandomLabels() as $rid => $label) if (stripos($label, $args[1]) !== false) {
+                        $regexid = $rid;
+                        break;
+                    }
+                    $s->editRandom($regexid ?? null);
+                } else $s->listRandoms();
+                break;
+
+            case 'export':
+            case 'convert':
+            case 'e':
+                if (PlayerSession::errorCheckOutRequired($sender, $s = IslandArchitect::getInstance()->getSession($sender))) break;
+                $s->exportIsland();
+                break;
+
             case 'setspawn':
             case 'spawn':
             case 's':
@@ -203,12 +219,31 @@ class IslandArchitectCommand extends Command {
                 $sender->sendForm($form);
                 break;
 
+            case 'yoffset':
+            case 'y-offset':
+            case 'y':
+                if (PlayerSession::errorCheckOutRequired($sender, $s = IslandArchitect::getInstance()->getSession($sender))) break;
+                if (!isset($args[1]) or (int)$args[1] < 0) {
+                    $sender->sendMessage(TF::BOLD . TF::RED . 'Please enter a valid Y offset value!');
+                    break;
+                }
+                if (($sc = $s->getIsland()->getStartCoord()) !== null and ($ec = $s->getIsland()
+                                                                                   ->getEndCoord()) !== null) if ((int)$args[1] + (max($sc->getFloorY(), $ec->getFloorY()) - min($sc->getFloorY(), $ec->getFloorY())) > Level::Y_MAX) {
+                    $sender->sendMessage(TF::BOLD . TF::RED . 'Please enter a valid Y offset value!');
+                    break;
+                }
+                $s->getIsland()->setYOffset((int)$args[1]);
+                $sender->sendMessage(TF::YELLOW . 'Island Y offset set to ' . TF::GOLD . $args[1]);
+                break;
+
             default:
                 $cmds[] = 'help ' . TF::ITALIC . TF::GRAY . '(Display available subcommands)';
                 $cmds[] = 'island <Island data file name: string> ' . TF::ITALIC . TF::GRAY . '(Check out or create an island)';
-                $cmds[] = 'pos [xyz: int] [Start or end coordinate: int]' . TF::ITALIC . TF::GRAY . '(Set the start coordinate of the island)';
+                $cmds[] = 'export ' . TF::ITALIC . TF::GRAY . '(Export the checked out island into template island data file)';
+                $cmds[] = 'random [Random regex ID: int] ' . TF::ITALIC . TF::GRAY . '(Setup random blocks generation)';
                 $cmds[] = 'setspawn ' . TF::ITALIC . TF::GRAY . '(Set the island world spawn)';
                 $cmds[] = 'level [Level folder name] ' . TF::ITALIC . TF::GRAY . '(Update the level of the island)';
+                $cmds[] = 'yoffset <Offset value> ' . TF::ITALIC . TF::GRAY . '(Update the level of the island)';
                 $sender->sendMessage(TF::BOLD . TF::GOLD . 'Available subcommands: ' . ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $cmds ?? ['help']));
                 break;
         }
