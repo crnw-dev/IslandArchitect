@@ -547,15 +547,7 @@ class PlayerSession {
                     if (!$this->getPlayer()->isOnline()) return;
                     if (!isset($is)) {
                         $is = new TemplateIsland($isname);
-                        foreach ((array)IslandArchitect::getInstance()->getConfig()->get('default-regex', IslandArchitect::DEFAULT_REGEX) as $label => $regex) {
-                            $r = new RandomGeneration;
-                            foreach ((array)$regex as $element => $chance) {
-                                $element = explode(':', $element);
-                                $r->increaseElementChance((int)$element[0], (int)($element[1] ?? 0), $chance);
-                            }
-                            $regexid = $is->addRandom($r);
-                            $is->setRandomLabel($regexid, $label);
-                        }
+                        IslandArchitect::getInstance()->addDefaultRandomRegex($is);
                         $is->noMoreChanges();
                         $this->getPlayer()->sendMessage(TF::BOLD . TF::GOLD . 'Created' . TF::GREEN . ' new island "' . $is->getName() . '"!');
                     } else $this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . 's)');
@@ -573,7 +565,11 @@ class PlayerSession {
                 $task = new IslandDataLoadTask($isname, $callback);
                 Server::getInstance()->getAsyncPool()->submitTask($task);
             });
-            // TODO: $form
+            $content = '';
+            if ($noperm) $content .= TF::BOLD . TF::RED . 'You don\' have permission to access this island!';
+            if ($invalidname) $content .= TF::BOLD . TF::RED . 'Invalid island name pattern! (0-9 / a-z / -_)';
+            $form->addLabel($content);
+            $form->addInput(TF::BOLD . TF::GOLD . 'Island name:', empty($name) ? 'Island name' : $name, $name);
             $this->getPlayer()->sendForm($form);
         }
         return true;
