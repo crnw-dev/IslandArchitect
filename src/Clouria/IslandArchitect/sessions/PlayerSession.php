@@ -468,4 +468,20 @@ class PlayerSession {
             $this->getIsland()->setRandomSymbolic($regexid, $item->getId(), $item->getDamage());
         });
     }
+
+    public function hideFloatingTexts() : void {
+        foreach ([
+                     self::FLOATINGTEXT_SPAWN,
+                     self::FLOATINGTEXT_STARTCOORD,
+                     self::FLOATINGTEXT_ENDCOORD
+                 ] as $ft) $this->hideFloatingText($ft);
+    }
+
+    public function showFloatingTexts() : void {
+        foreach ([
+                     self::FLOATINGTEXT_SPAWN,
+                     self::FLOATINGTEXT_STARTCOORD,
+                     self::FLOATINGTEXT_ENDCOORD
+                 ] as $ft) $this->showFloatingText($ft);
+    }
 }
