@@ -57,9 +57,6 @@ use function spl_object_id;
 
 class PlayerSession {
 
-    public const FLOATINGTEXT_SPAWN = 0;
-    public const FLOATINGTEXT_STARTCOORD = 1;
-    public const FLOATINGTEXT_ENDCOORD = 2;
     /**
      * @var array<mixed, FloatingTextParticle>
      */
@@ -106,13 +103,6 @@ class PlayerSession {
             return;
         }
         $this->island = $island;
-
-        $spawn = $island->getSpawn();
-        if ($spawn === null) return;
-        $spawn = $spawn->floor()->add(0.5, 0.5, 0.5);
-        $ft = $this->getFloatingText(self::FLOATINGTEXT_SPAWN, true);
-        $ft->setComponents($spawn->getX(), $spawn->getY(), $spawn->getZ());
-        $ft->setText(TF::BOLD . TF::GOLD . 'Island spawn' . "\n" . TF::RESET . TF::GREEN . $spawn->getFloorX() . ', ' . $spawn->getFloorY() . ', ' . $spawn->getFloorZ());
     }
 
     public function getPlayer() : Player {
@@ -467,21 +457,5 @@ class PlayerSession {
             }
             $this->getIsland()->setRandomSymbolic($regexid, $item->getId(), $item->getDamage());
         });
-    }
-
-    public function hideFloatingTexts() : void {
-        foreach ([
-                     self::FLOATINGTEXT_SPAWN,
-                     self::FLOATINGTEXT_STARTCOORD,
-                     self::FLOATINGTEXT_ENDCOORD
-                 ] as $ft) $this->hideFloatingText($ft);
-    }
-
-    public function showFloatingTexts() : void {
-        foreach ([
-                     self::FLOATINGTEXT_SPAWN,
-                     self::FLOATINGTEXT_STARTCOORD,
-                     self::FLOATINGTEXT_ENDCOORD
-                 ] as $ft) $this->showFloatingText($ft);
     }
 }

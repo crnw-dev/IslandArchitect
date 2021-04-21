@@ -27,7 +27,6 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\internal;
 
-use pocketmine\Player;
 use room17\SkyBlock\SkyBlock;
 use pocketmine\nbt\tag\IntTag;
 use pocketmine\event\Listener;
@@ -46,7 +45,6 @@ use pocketmine\event\entity\EntityExplodeEvent;
 use pocketmine\event\server\QueryRegenerateEvent;
 use pocketmine\event\inventory\InventoryOpenEvent;
 use Clouria\IslandArchitect\sessions\PlayerSession;
-use pocketmine\event\entity\EntityLevelChangeEvent;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use Clouria\IslandArchitect\events\RandomGenerationBlockUpdateEvent;
 use function class_exists;
@@ -201,19 +199,5 @@ class IslandArchitectEventListener implements Listener {
         if (($r = array_search($this, $pl = $ev->getPlugins())) === false) return;
         unset($pl[$r]);
         $ev->setPlugins($pl);
-    }
-
-    /**
-     * @priority MONITOR
-     * @ignoreCancelled
-     */
-    public function onEntityLevelChange(EntityLevelChangeEvent $ev) : void {
-        if ($this->isDisabled()) return;
-        $p = $ev->getEntity();
-        if (!$p instanceof Player) return;
-        $s = IslandArchitect::getInstance()->getSession($p);
-        if ($s === null or $s->getIsland() === null or $s->getIsland()->getLevel() === null) return;
-        if ($ev->getOrigin()->getFolderName() === $s->getIsland()->getLevel()) $s->hideFloatingTexts();
-        if ($ev->getTarget()->getFolderName() === $s->getIsland()->getLevel()) $s->showFloatingTexts();
     }
 }
