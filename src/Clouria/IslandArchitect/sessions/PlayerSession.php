@@ -34,13 +34,16 @@ use pocketmine\item\Item;
 use muqsit\invmenu\InvMenu;
 use pocketmine\level\Level;
 use pocketmine\math\Vector3;
+use pocketmine\nbt\tag\ByteTag;
 use jojoe77777\FormAPI\ModalForm;
 use jojoe77777\FormAPI\SimpleForm;
 use jojoe77777\FormAPI\CustomForm;
 use pocketmine\utils\TextFormat as TF;
 use Clouria\IslandArchitect\IslandArchitect;
+use muqsit\invmenu\transaction\InvMenuTransaction;
 use pocketmine\level\particle\FloatingTextParticle;
 use Clouria\IslandArchitect\generator\TemplateIsland;
+use muqsit\invmenu\transaction\InvMenuTransactionResult;
 use Clouria\IslandArchitect\events\TemplateIslandExportEvent;
 use Clouria\IslandArchitect\generator\tasks\IslandDataEmitTask;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
@@ -339,7 +342,7 @@ class PlayerSession {
             $elements = array_keys($elements);
             $element = $elements[$d] ?? null;
             if (!isset($element)) {
-                new SubmitBlockSession($this, function(Item $item) use ($regex) : void {
+                $this->submitBlockSession(function(Item $item) use ($regex) : void {
                     if ($item->getId() === Item::AIR) {
                         if ($regex->getElementChance(Item::AIR) < 1) {
                             $regex->setElementChance(Item::AIR, 0, 1);
@@ -387,7 +390,7 @@ class PlayerSession {
             $chance = (int)$d[class_exists(InvMenu::class) ? 3 : 2];
             $regex->setElementChance($id, $meta, $chance < 1 ? 0 : $chance);
             if (class_exists(InvMenu::class) and $d[2]) {
-                new SubmitBlockSession($this, function(Item $item) use ($regex, $id, $meta) : void {
+                $this->submitBlockSession(function(Item $item) use ($regex, $id, $meta) : void {
                     if ($item->getId() !== Item::AIR) {
                         if ($item->getBlock()->getId() === Item::AIR) {
                             $this->errorInvalidBlock(function(Player $p, bool $d) use ($regex, $id, $meta) : void {
@@ -442,7 +445,7 @@ class PlayerSession {
     }
 
     public function editRandomSymbolic(int $regexid) : void {
-        new SubmitBlockSession($this, function(Item $item) use ($regexid) : void {
+        $this->submitBlockSession(function(Item $item) use ($regexid) : void {
             if ($item->getId() === Item::AIR) {
                 $this->editRandom($regexid);
                 return;
@@ -457,5 +460,68 @@ class PlayerSession {
             }
             $this->getIsland()->setRandomSymbolic($regexid, $item->getId(), $item->getDamage());
         });
+    }
+
+    public function submitBlockSession(?\Closure $callback = null, ?Item $default = null, bool $convert = true) : bool {
+        if (!class_exists(InvMenu::class)) {
+            $callback($default ?? Item::get(Item::AIR));
+            return false;
+        }
+        $menu = InvMenu::create(InvMenu::TYPE_HOPPER);
+        $menu->setName(TF::BOLD . TF::DARK_BLUE . 'Please submit a block');
+        $menu->setListener(function(InvMenuTransaction $transaction) use ($convert) : InvMenuTransactionResult {
+            $out = $transaction->getOut();
+            if ($convert) $out = static::inputConversion($out);
+            if (
+                ($nbt = $out->getNamedTagEntry('action')) instanceof ByteTag and
+                $nbt->getValue() === 0
+            ) return $transaction->discard();
+            return $transaction->continue();
+        });
+        $menu->setInventoryCloseListener(function() use ($callback, $menu) : void {
+            $item = $menu->getInventory()->getItem(2);
+            $this->getPlayer()->getInventory()->addItem($item);
+            $callback($item);
+        });
+
+        $inv = $menu->getInventory();
+        $item = Item::get(Item::INVISIBLEBEDROCK);
+        $item->setCustomName(TF::RESET);
+        $item->setNamedTagEntry(new ByteTag('action', 0));
+        for ($slot = 0; $slot < 5; $slot++) {
+            if ($slot !== 2) $inv->setItem($slot, $item, false);
+            elseif (isset($this->default)) $inv->setItem($slot, $this->default, false);
+        }
+
+        $menu->send($this->getPlayer());
+        return true;
+    }
+
+    protected static function inputConversion(Item $item, &$succeed = false) : Item {
+        $succeed = false;
+        $count = $item->getCount();
+        $nbt = $item->getNamedTag();
+        switch (true) {
+            case $item->getId() === Item::BUCKET and $item->getDamage() === 8:
+            case $item->getId() === Item::POTION and $item->getDamage() === 0:
+                $item = Item::get(Item::WATER);
+                $succeed = true;
+                break;
+
+            case $item->getId() === Item::BUCKET and $item->getDamage() === 10:
+                $item = Item::get(Item::LAVA);
+                $succeed = true;
+                break;
+
+            case $item->getId() === Item::BUCKET and $item->getDamage() === 0:
+            case $item->getId() === Item::GLASS_BOTTLE and $item->getDamage() === 0:
+            case $item->getId() === Item::BOWL and $item->getDamage() === 0:
+                $item = Item::get(Item::AIR);
+                $succeed = true;
+                break;
+        }
+        $item->setCount($count);
+        foreach ($nbt as $tag) $item->setNamedTagEntry($tag);
+        return $item;
     }
 }

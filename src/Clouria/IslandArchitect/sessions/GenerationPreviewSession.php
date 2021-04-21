@@ -96,7 +96,7 @@ class GenerationPreviewSession {
                 $transaction->then(function() use ($nbt) : void {
                     if (!($id = $nbt[0]) instanceof ShortTag) return;
                     $meta = $nbt[1];
-                    $this->getSession()->editRandomElement($this->getRegex(), (int)$id->getValue(), (int)($meta instanceof ByteTag ? $meta->getValue() : 0));
+                    $this->getSession()->editRandomElement($this->getRegex(), (int)$id->getValue(), $meta instanceof ByteTag ? $meta->getValue() : 0);
                 });
             }
         }));
