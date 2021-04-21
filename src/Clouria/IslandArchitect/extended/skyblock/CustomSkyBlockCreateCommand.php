@@ -41,12 +41,13 @@ use room17\SkyBlock\utils\message\MessageContainer;
 use Clouria\IslandArchitect\generator\TemplateIsland;
 use Clouria\IslandArchitect\events\IslandWorldPreCreateEvent;
 use Clouria\IslandArchitect\generator\tasks\IslandDataLoadTask;
+use function explode;
+use function serialize;
 use function strtolower;
+use function array_keys;
+use function array_reverse;
 
 class CustomSkyBlockCreateCommand extends CreateCommand {
-
-    public const FILE_PATH = 0;
-    public const ISLAND_DATA_ARRAY = 1;
 
     public function onCommand(Session $session, array $args) : void {
         if ($this->checkIslandAvailability($session) or $this->checkIslandCreationCooldown($session)) return;
@@ -143,12 +144,16 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
      */
     public static function createTemplateIslandWorldAsync(string $identifier, string $type, \Closure $callback) : void {
         $task = new IslandDataLoadTask($type, function(TemplateIsland $is, string $file) use ($identifier, $callback, $type) : void {
-            $settings = ['preset' => serialize([self::FILE_PATH, $file]), 'IslandArchitect' => serialize([self::ISLAND_DATA_ARRAY, $is->dump()])]; // TODO: Add a tool feature to change the template island of a generated island level
+            $settings = ['IslandArchitect' => serialize($is->dump())];
             Server::getInstance()->generateLevel($identifier,
                 null, IslandArchitect::getInstance()->getTemplateIslandGenerator(), $settings ?? []);
             Server::getInstance()->loadLevel($identifier);
             $level = Server::getInstance()->getLevelByName($identifier);
-
+            if (isset($settings['IslandArchitect']['structure'])) {
+                $sc = explode(':', array_keys($settings['IslandArchitect']['structure'])[0]);
+                $ec = explode(':', array_reverse(array_keys($settings['IslandArchitect']['structure']))[0]);
+                for ($x = (int)$sc[0] >> 4; $x <= ((int)$ec[0] >> 4); $x++) for ($z = (int)$sc[2] >> 4; $z <= ((int)$ec[2] >> 4); $z++) $level->getChunk($x, $z, true);
+            }
             if ($is->getSpawn() !== null) {
                 $spawn = $is->getSpawn();
                 $spawn = $spawn->add(0, $is->getYOffset(), 0);
