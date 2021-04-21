@@ -52,7 +52,7 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
     public function onCommand(Session $session, array $args) : void {
         if ($this->checkIslandAvailability($session) or $this->checkIslandCreationCooldown($session)) return;
 
-        $generator = strtolower($args[0] ?? "Shelly");
+        $generator = strtolower($args[0] ?? (string)IslandArchitect::getInstance()->getConfig()->get('default-generator', 'Shelly'));
         if ((SkyBlock::getInstance()->getGeneratorManager()->isGenerator($generator) or IslandArchitect::getInstance()->mapGeneratorType($generator) !== null) and $this->hasPermission($session, $generator)) {
             static::createIslandFor($session, $generator);
             $session->sendTranslatedMessage(new MessageContainer("SUCCESSFULLY_CREATED_A_ISLAND"));

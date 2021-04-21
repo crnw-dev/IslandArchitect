@@ -215,6 +215,7 @@ class IslandArchitect extends PluginBase {
 
         $conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
         $conf->set('default-regex', (array)($all['default-regex'] ?? self::DEFAULT_REGEX));
+        $conf->set('default-generator', (string)($all['default-generator'] ?? 'Shelly'));
 
         $conf->save();
         $conf->reload();
