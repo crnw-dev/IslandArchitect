@@ -46,6 +46,8 @@ use Clouria\IslandArchitect\generator\TemplateIsland;
 use muqsit\invmenu\transaction\InvMenuTransactionResult;
 use Clouria\IslandArchitect\events\TemplateIslandExportEvent;
 use Clouria\IslandArchitect\generator\tasks\IslandDataEmitTask;
+use Clouria\IslandArchitect\events\TemplateIslandCheckOutEvent;
+use Clouria\IslandArchitect\generator\tasks\IslandDataLoadTask;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use function max;
 use function min;
@@ -525,8 +527,55 @@ class PlayerSession {
         return $item;
     }
 
-    public function overviewIsland() : bool {
+    public function overviewIsland(string $name = '', bool $noperm = false, bool $invalidname = false) : bool {
         if (class_exists(SimpleForm::class)) return false;
+        if ($this->getIsland() === null) {
+            $form = new CustomForm(function(Player $p, array $d = null) use ($noperm, $invalidname, $name) : void {
+                if (empty($d[1])) $isname = $name;
+                else $isname = $d[1];
+                if (!preg_match('/[0-9a-z-_]+/i', '', $d[1])) {
+                    $this->overviewIsland($isname, false, true);
+                    return;
+                }
+                if (!$this->getPlayer()->hasPermission('island-architect.convert') and !$this->getPlayer()->hasPermission('island-architect.convert.' . $isname)) {
+                    $this->overviewIsland($d[1], true, false);
+                    return;
+                }
+                $time = microtime(true);
+                $this->getPlayer()->sendMessage(TF::YELLOW . 'Loading island ' . TF::GOLD . '"' . $isname . '"...');
+                $callback = function(?TemplateIsland $is, string $filepath) use ($time, $isname) : void {
+                    if (!$this->getPlayer()->isOnline()) return;
+                    if (!isset($is)) {
+                        $is = new TemplateIsland($isname);
+                        foreach ((array)IslandArchitect::getInstance()->getConfig()->get('default-regex', IslandArchitect::DEFAULT_REGEX) as $label => $regex) {
+                            $r = new RandomGeneration;
+                            foreach ((array)$regex as $element => $chance) {
+                                $element = explode(':', $element);
+                                $r->increaseElementChance((int)$element[0], (int)($element[1] ?? 0), $chance);
+                            }
+                            $regexid = $is->addRandom($r);
+                            $is->setRandomLabel($regexid, $label);
+                        }
+                        $is->noMoreChanges();
+                        $this->getPlayer()->sendMessage(TF::BOLD . TF::GOLD . 'Created' . TF::GREEN . ' new island "' . $is->getName() . '"!');
+                    } else $this->getPlayer()->sendMessage(TF::BOLD . TF::GREEN . 'Checked out island "' . $is->getName() . '"! ' . TF::ITALIC . TF::GRAY . '(' . round(microtime(true) - $time, 2) . 's)');
+                    $this->checkOutIsland($is);
+                    $ev = new TemplateIslandCheckOutEvent($this, $is);
+                    $ev->call();
+                };
+                foreach (IslandArchitect::getInstance()->getSessions() as $s) if (
+                    ($i = $s->getIsland()) !== null and
+                    $i->getName() === $isname
+                ) {
+                    $callback($i, IslandArchitect::getInstance()->getDataFolder() . $i->getName());
+                    return;
+                }
+                $task = new IslandDataLoadTask($isname, $callback);
+                Server::getInstance()->getAsyncPool()->submitTask($task);
+            });
+            // TODO: $form
+            $this->getPlayer()->sendForm($form);
+        }
         return true;
     }
 }
