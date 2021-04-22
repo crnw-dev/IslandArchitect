@@ -624,7 +624,7 @@ class PlayerSession {
                         $this->overviewIsland();
                     });
                     $form->setTitle(TF::BOLD . TF::RED . 'Island Deletion');
-                    $form->setContent(TF::YELLOW . 'Are you sure to ' . TF::BOLD . TF::RED . 'delete' . TF::RESET . TF::YELLLOW . ' template island ' . TF::BOLD . TF::GOLD . '"' . $this->getIsland()->getName() . '"' . TF::RESET .
+                    $form->setContent(TF::YELLOW . 'Are you sure to ' . TF::BOLD . TF::RED . 'delete' . TF::RESET . TF::YELLOW . ' template island ' . TF::BOLD . TF::GOLD . '"' . $this->getIsland()->getName() . '"' . TF::RESET .
                         TF::YELLOW . ', the file will be directly ' . TF::BOLD . TF::RED . 'unlink' . TF::RESET . TF::YELLOW . ' from the file system and this action cannot be undone!');
                     $form->setButton1('gui.yes');
                     $form->setButton1('gui.no');
@@ -661,6 +661,49 @@ class PlayerSession {
         $form->setContent(TF::YELLOW . 'All the other settings of the template island will be ' . TF::BOLD . TF::RED . 'reset' . TF::RESET . TF::YELLOW . ' after changing island level, are you sure to proceed?');
         $form->setButton1('gui.yes');
         $form->setButton2('gui.no');
+        $this->getPlayer()->sendForm($form);
+    }
+
+    public function updateIslandSettings() : void {
+        $form = new CustomForm(function(Player $p, array $d = null) : void {
+            if ($d === null) {
+                $this->overviewIsland();
+                return;
+            }
+
+            if ((int)$d[0] === 0) $vec = new Vector3((int)$d[1], (int)$d[2], (int)$d[3]);
+            elseif ($this->getPlayer()->getLevel()->getFolderName() === $this->getIsland()->getLevel()) $vec = $this->getPlayer()->asVector3();
+            else return; // TODO: Error
+            if (!$vec->equals($this->getIsland()->getStartCoord())) $this->getIsland()->setStartCoord($vec);
+
+            if ((int)$d[4] === 0) $vec = new Vector3((int)$d[5], (int)$d[6], (int)$d[7]);
+            elseif ($this->getPlayer()->getLevel()->getFolderName() === $this->getIsland()->getLevel()) $vec = $this->getPlayer()->asVector3();
+            else return;
+            if (!$vec->equals($this->getIsland()->getEndCoord())) $this->getIsland()->setEndCoord($vec);
+
+            // TODO: Y offset validation
+            if ($this->getIsland()->getYOffset() !== (int)$d[8]) $this->getIsland()->setYOffset((int)$d[8]);
+        });
+        $form->addDropdown(TF::BOLD . TF::GOLD . 'Start coordinate: ', [
+            TF::BLUE . 'Update coordinate to: ',
+            ($this->getPlayer()->getLevel()->getFolderName() === $this->getIsland()->getLevel() ? TF::BLUE : TF::GRAY) . 'Update coordinate to player position'
+        ]);
+        $vec = $this->getIsland()->getStartCoord() ?? new Vector3(0, 0, 0);
+        $form->addInput(TF::AQUA . 'X: ', (string)$vec->getFloorX(), (string)$vec->getFloorX());
+        $form->addInput(TF::AQUA . 'Y: ', (string)$vec->getFloorY(), (string)$vec->getFloorY());
+        $form->addInput(TF::AQUA . 'Z: ', (string)$vec->getFloorZ(), (string)$vec->getFloorZ());
+
+        $form->addDropdown(TF::BOLD . TF::GOLD . 'End coordinate: ', [
+            TF::BLUE . 'Update coordinate to: ',
+            ($this->getPlayer()->getLevel()->getFolderName() === $this->getIsland()->getLevel() ? TF::BLUE : TF::GRAY) . 'Update coordinate to player position'
+        ]);
+        $vec = $this->getIsland()->getEndCoord() ?? new Vector3(0, 0, 0);
+        $form->addInput(TF::AQUA . 'X: ', (string)$vec->getFloorX(), (string)$vec->getFloorX());
+        $form->addInput(TF::AQUA . 'Y: ', (string)$vec->getFloorY(), (string)$vec->getFloorY());
+        $form->addInput(TF::AQUA . 'Z: ', (string)$vec->getFloorZ(), (string)$vec->getFloorZ());
+
+        $form->addInput(TF::BOLD . TF::GOLD . 'Y offset: ', (string)$this->getIsland()->getYOffset(), (string)$this->getIsland()->getYOffset());
+
         $this->getPlayer()->sendForm($form);
     }
 }
