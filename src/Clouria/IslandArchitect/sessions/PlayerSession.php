@@ -524,9 +524,4 @@ class PlayerSession {
         foreach ($nbt as $tag) $item->setNamedTagEntry($tag);
         return $item;
     }
-
-    public function overviewIsland() : bool {
-        if (class_exists(SimpleForm::class)) return false;
-        return true;
-    }
 }
