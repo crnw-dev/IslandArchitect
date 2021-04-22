@@ -53,10 +53,12 @@ use function max;
 use function min;
 use function count;
 use function round;
+use function unlink;
 use function explode;
 use function get_class;
 use function microtime;
 use function array_keys;
+use function is_callable;
 use function class_exists;
 use function spl_object_id;
 
@@ -102,7 +104,7 @@ class PlayerSession {
         return true;
     }
 
-    public function checkOutIsland(TemplateIsland $island) : void {
+    public function checkOutIsland(?TemplateIsland $island = null) : void {
         if ($this->export_lock) {
             $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'An island is exporting in background, please wait until the island export is finished!');
             return;
@@ -234,11 +236,14 @@ class PlayerSession {
         return true;
     }
 
-    public function listRandoms() : void {
+    public function listRandoms(?\Closure $callback = null) : void {
         if ($this->getIsland() === null) return;
         if (class_exists(SimpleForm::class)) {
-            $f = new SimpleForm(function(Player $p, int $d = null) : void {
-                if ($d === null) return;
+            $f = new SimpleForm(function(Player $p, int $d = null) use ($callback) : void {
+                if ($d === null) {
+                    if (is_callable($callback)) $callback();
+                    return;
+                }
                 if ($d <= count($this->getIsland()->getRandoms()) or count($this->getIsland()->getRandoms()) < 0x7fffffff) {
                     if ($this->getIsland()->getRandomById($d) === null) $this->editRandom();
                     else $this->editRandom($d);
@@ -527,10 +532,11 @@ class PlayerSession {
         return $item;
     }
 
-    public function overviewIsland(string $name = '', bool $noperm = false, bool $invalidname = false) : bool {
+    public function overviewIsland(string $name = '', bool $noperm = false, bool $invalidname = false, bool $nochange = false) : bool {
         if (class_exists(SimpleForm::class)) return false;
         if ($this->getIsland() === null) {
             $form = new CustomForm(function(Player $p, array $d = null) use ($noperm, $invalidname, $name) : void {
+                if ($d === null) return;
                 if (empty($d[1])) $isname = $name;
                 else $isname = $d[1];
                 if (!preg_match('/[0-9a-z-_]+/i', '', $d[1])) {
@@ -554,6 +560,7 @@ class PlayerSession {
                     $this->checkOutIsland($is);
                     $ev = new TemplateIslandCheckOutEvent($this, $is);
                     $ev->call();
+                    $this->overviewIsland();
                 };
                 foreach (IslandArchitect::getInstance()->getSessions() as $s) if (
                     ($i = $s->getIsland()) !== null and
@@ -572,6 +579,88 @@ class PlayerSession {
             $form->addInput(TF::BOLD . TF::GOLD . 'Island name:', empty($name) ? 'Island name' : $name, $name);
             $this->getPlayer()->sendForm($form);
         }
+        $form = new SimpleForm(function(Player $p, int $d = null) : void {
+            if ($d === null) return;
+            switch ($d) {
+
+                case 0:
+                    $this->updateIslandSettings();
+                    break;
+
+                case 1:
+                    $this->listRandoms(function() : void {
+                        $this->overviewIsland();
+                    });
+                    break;
+
+                case 2:
+                    $this->changeIslandLevel();
+                    break;
+
+                case 3:
+                    if (!$this->getIsland()->hasChanges()) $this->overviewIsland('', false, false, true);
+                    else {
+                        $this->saveIsland();
+                        $this->overviewIsland();
+                    }
+                    break;
+
+                case 4:
+                    $this->saveIsland();
+                    $this->checkOutIsland();
+                    $this->overviewIsland();
+                    break;
+
+                case 5:
+                    $form = new ModalForm(function(Player $p, bool $d) : void {
+                        if (!$d) {
+                            $this->overviewIsland();
+                            return;
+                        }
+                        $this->saveIsland();
+                        $name = $this->getIsland()->getName();
+                        $this->checkOutIsland();
+                        @unlink(IslandArchitect::getInstance()->getDataFolder() . 'islands/' . $name . '.json');
+                        $this->overviewIsland();
+                    });
+                    $form->setTitle(TF::BOLD . TF::RED . 'Island Deletion');
+                    $form->setContent(TF::YELLOW . 'Are you sure to ' . TF::BOLD . TF::RED . 'delete' . TF::RESET . TF::YELLLOW . ' template island ' . TF::BOLD . TF::GOLD . '"' . $this->getIsland()->getName() . '"' . TF::RESET .
+                        TF::YELLOW . ', the file will be directly ' . TF::BOLD . TF::RED . 'unlink' . TF::RESET . TF::YELLOW . ' from the file system and this action cannot be undone!');
+                    $form->setButton1('gui.yes');
+                    $form->setButton1('gui.no');
+                    $this->getPlayer()->sendForm($form);
+                    break;
+            }
+        });
+        $form->addButton(TF::BOLD . TF::DARK_BLUE . 'Update island settings');
+        $form->addButton(TF::BOLD . TF::DARK_BLUE . 'Modify random' . "\n" . 'generation regex');
+        $form->addButton(TF::BOLD . TF::DARK_BLUE . 'Change island level');
+        $form->addButton(!$nochange ?
+            TF::BOLD . ($this->getIsland()->hasChanges() ? TF::DARK_GREEN : TF::GRAY) . 'Save island' :
+            TF::BOLD . TF::ITALIC . TF::GRAY . 'No changes' . "\n" . 'to save');
+        $form->addButton(TF::BOLD . TF::DARK_RED . 'Exit island' . "\n" . TF::RESET . TF::ITALIC . TF::RED . '(Auto save)');
+        $form->addButton(TF::BOLD . TF::DARK_RED . 'Delete island');
         return true;
+    }
+
+    public function changeIslandLevel(?string $level = null) : void {
+        if ($level === null) {
+            return;
+        }
+        $is = $this->getIsland();
+        $form = new ModalForm(function(Player $p, bool $d) use ($is, $level) : void {
+            if (!$d) return;
+            $is->setLevel($level);
+            $is->setStartCoord(null);
+            $is->setEndCoord(null);
+            $is->setSpawn(null);
+            $is->setYOffset(null);
+            $this->getPlayer()->sendMessage(TF::YELLOW . 'Island level set to ' . TF::GOLD . '"' . $level . '"');
+        });
+        $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Change Confirmation');
+        $form->setContent(TF::YELLOW . 'All the other settings of the template island will be ' . TF::BOLD . TF::RED . 'reset' . TF::RESET . TF::YELLOW . ' after changing island level, are you sure to proceed?');
+        $form->setButton1('gui.yes');
+        $form->setButton2('gui.no');
+        $this->getPlayer()->sendForm($form);
     }
 }
