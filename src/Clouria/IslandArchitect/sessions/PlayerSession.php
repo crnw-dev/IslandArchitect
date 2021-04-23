@@ -54,7 +54,6 @@ use function round;
 use function explode;
 use function get_class;
 use function microtime;
-use function array_keys;
 use function class_exists;
 use function spl_object_id;
 
@@ -84,6 +83,11 @@ class PlayerSession {
      * @var bool
      */
     private $export_lock = false;
+
+    /**
+     * @var int[]|null
+     */
+    protected $last_edited_element = null;
 
     public function __construct(Player $player) {
         $this->player = $player;
@@ -254,174 +258,44 @@ class PlayerSession {
         }
     }
 
+    /**
+     * @param int|null $regexid
+     * @return bool false = The number of random generation regex in the template island has reached the limit (2147483647)
+     */
     public function editRandom(?int $regexid = null) : bool {
-        if ($regexid === null and count($this->getIsland()->getRandoms()) < 0x7fffffff) $regexid = $this->getIsland()->addRandom(new RandomGeneration);
+        if (($regexid === null or $this->getIsland()->getRandomById($regexid) === null) and count($this->getIsland()->getRandoms()) < 0x7fffffff) $regexid = $this->getIsland()->addRandom(new RandomGeneration);
         // 2147483647, max limit of int tag value and random generation regex number
         elseif ($regexid === null) return false;
-        $form = new SimpleForm(function(Player $p, int $d = null) use ($regexid) : void {
-            if ($d === null) {
-                $this->listRandoms();
-                return;
-            }
-            $r = $this->getIsland()->getRandomById($regexid);
-            if ($r === null) {
-                $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'The target random generation regex has been removed!');
-                return;
-            }
-            switch ($d) {
-                case 0:
-                    $this->listRandomElements($r);
-                    break;
-
-                case 1:
-                    $this->editRandomLabel($regexid);
-                    break;
-
-                case 2:
-                    $this->editRandomSymbolic($regexid);
-                    break;
-
-                case 3:
-                    $this->getPlayer()->getInventory()->addItem($r->getRandomGenerationItem($this->getIsland()->getRandomSymbolicItem($regexid)));
-                    $this->getPlayer()->sendMessage(TF::BOLD . TF::YELLOW . 'The random generation block item has been added to your inventory');
-                    break;
-
-                case 4:
-                    if (!class_exists(InvMenu::class)) {
-                        $form = new ModalForm(function(Player $p, bool $d) use ($regexid) : void {
-                            $this->editRandom($regexid);
-                        });
-                        $form->setTitle(TF::BOLD . TF::RED . 'Error');
-                        $form->setContent(TF::BOLD . TF::RED . 'Cannot preview generation due to required virion "InvMenu v4"' . TF::ITALIC . TF::GRAY . '(https://github.com/Muqsit/InvMenu) ' . TF::RESET . TF::BOLD . TF::RED . 'is not installed!');
-                        $this->getPlayer()->sendForm($form);
-                        break;
-                    }
-                    new GenerationPreviewSession($this, $r, function() use ($regexid) : void {
-                        $this->editRandom($regexid);
-                    });
-                    break;
-
-                case 5:
-                    $form = new ModalForm(function(Player $p, bool $d) use ($regexid) : void {
-                        if ($d) {
-                            $this->getIsland()->removeRandomById($regexid);
-                            $this->listRandoms();
-                        } else $this->editRandom($regexid);
-                    });
-                    $form->setTitle(TF::BOLD . TF::DARK_RED . 'Delete Confirmation');
-                    $form->setContent(TF::YELLOW . 'Are you sure to ' . TF::BOLD . TF::RED . 'remove' . TF::RESET . TF::YELLOW . ' random generation regex ' . TF::GOLD . '#' . $regexid .
-                        (($label = $this->getIsland()->getRandomLabel($regexid, true)) === null ? '' : TF::ITALIC . ' (' . $label . ')') . TF::RESET . TF::YELLOW .
-                        ' from your current checked out island ' . TF::BOLD . TF::GOLD . '"' . $this->getIsland()->getName() . '"' . TF::RESET . TF::YELLOW . ' and all the random generation blocks around the world? ' . TF::BOLD . TF::RED
-                        . 'This action cannot be undo!'
-                    );
-                    $form->setButton1('gui.yes');
-                    $form->setButton2('gui.no');
-                    $this->getPlayer()->sendForm($form);
-                    break;
-            }
+        $r = $this->getIsland()->getRandomById($regexid);
+        $form = new CustomForm(function(Player $p, array $d = null) : void {
+            if ($d === null) $this->listRandoms();
         });
+        $totalchance = $r->getTotalChance();
+        foreach ($r->getAllElements() as $element => $chance) {
+            $element = explode(':', $element);
+            $totalchanceNonZero = $totalchance == 0 ? $chance : $totalchance;
+            $elements[] = (new Item((int)$element[0], (int)$element[1]))->getVanillaName() . ' (' . (int)$element[0] . ':' . (int)$element[1] . '): ' . TF::BOLD . TF::GOLD . $chance . ' (' . round($chance / $totalchanceNonZero * 100, 2)
+                . '%%)';
+        }
         $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Modify Regex #' . $regexid);
-        $form->addButton(TF::DARK_BLUE . 'Modify content');
-        $form->addButton(TF::DARK_BLUE . 'Update label');
-        $form->addButton(TF::DARK_BLUE . 'Change symbolic');
-        $form->addButton(TF::BLUE . 'Claim random' . "\n" . 'generation block');
-        $form->addButton((class_exists(InvMenu::class) ? TF::BLUE : TF::ITALIC . TF::GRAY) . 'Preview generation');
-        $form->addButton(TF::BOLD . TF::DARK_RED . 'Remove regex');
+        $form->addLabel(isset($elements) ?
+            TF::BOLD . TF::GOLD . 'Elements:' . ($glue = "\n" . TF::RESET . ' - ' . TF::YELLOW) . implode($glue, $elements) :
+            TF::BOLD . TF::ITALIC . TF::GRAY . 'No elements have been added yet!'
+        );
+        $form->addInput(TF::BOLD . TF::GOLD . 'Element item ID:', 'Element item ID', isset($this->last_edited_element) ? (string)$this->last_edited_element[0] : '');
+        $form->addInput(TF::AQUA . 'Element item meta:', 'Element item meta', isset($this->last_edited_element) ? (string)($this->last_edited_element[1] ?? 0) : '');
+        $form->addInput(TF::BOLD . TF::GOLD . 'Element chance:', 'Element chance', isset($this->last_edited_element) ?
+            (string)(($chance = $r->getElementChance($this->last_edited_element[0], $this->last_edited_element[1])) === 0 ? '' : $chance) : '');
+        $form->addInput(TF::BOLD . TF::GOLD . 'Regex label:', $this->getIsland()->getRandomLabel($regexid), $this->getIsland()->getRandomLabel($regexid, true) ?? '');
+        $form->addDropdown(TF::AQUA . 'Action:', [
+            TF::BOLD . TF::DARK_GREEN . 'Done',
+            TF::DARK_BLUE . 'Apply',
+            TF::BLUE . 'Add element from inventory',
+            TF::BLUE . 'Update regex symbolic',
+            TF::DARK_RED . 'Remove regex'
+        ]);
         $this->getPlayer()->sendForm($form);
         return true;
-    }
-
-    public function listRandomElements(RandomGeneration $regex) : void {
-        $elements = $regex->getAllElements();
-        $form = new SimpleForm(function(Player $p, int $d = null) use ($elements, $regex) : void {
-            if ($d === null) {
-                $rid = $this->getIsland()->getRegexId($regex);
-                if ($rid !== null) $this->editRandom($rid);
-                return;
-            }
-            $elements = array_keys($elements);
-            $element = $elements[$d] ?? null;
-            if (!isset($element)) {
-                $this->submitBlockSession(function(Item $item) use ($regex) : void {
-                    if ($item->getId() === Item::AIR) {
-                        if ($regex->getElementChance(Item::AIR) < 1) {
-                            $regex->setElementChance(Item::AIR, 0, 1);
-                            $this->editRandomElement($regex, Item::AIR);
-                        } else $this->listRandomElements($regex);
-                        return;
-                    }
-                    if ($item->getBlock()->getId() === Item::AIR) {
-                        $this->errorInvalidBlock(function(Player $p, bool $d) use ($regex) : void {
-                            $this->listRandomElements($regex);
-                        });
-                        return;
-                    }
-                    $regex->setElementChance($item->getId(), $item->getDamage(), $item->getCount());
-                    $this->editRandomElement($regex, $item->getId(), $item->getDamage());
-                });
-                return;
-            }
-            $element = explode(':', $element);
-            $this->editRandomElement($regex, (int)$element[0], (int)$element[1]);
-        });
-        $rid = $this->getIsland()->getRegexId($regex);
-        $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Elements of Regex' . (isset($rid) ? ' #' . $rid : ''));
-        $totalchance = $regex->getTotalChance();
-        foreach ($elements as $element => $chance) {
-            $element = explode(':', $element);
-            $item = Item::get((int)$element[0], (int)$element[1]);
-            $form->addButton(TF::DARK_BLUE . $item->getVanillaName() . ' (' . $element[0] . ':' . $element[1] . ') ' . "\n" . TF::BLUE . ' Chance: ' . $chance . ' (' .
-
-                $chance . ' / ' . ($totalchanceNonZero = $totalchance == 0 ? $chance : $totalchance) . ', ' . round($chance / $totalchanceNonZero * 100, 2) . '%%)');
-        }
-        $form->addButton(TF::BOLD . TF::DARK_GREEN . 'Add Element');
-        $this->getPlayer()->sendForm($form);
-    }
-
-    public function editRandomElement(RandomGeneration $regex, int $id, int $meta = 0) : void {
-        $form = new CustomForm(function(Player $p, array $d = null) use ($id, $meta, $regex) : void {
-            if ($d === null) {
-                $this->listRandomElements($regex);
-                return;
-            }
-            $regex->setElementChance($id, $meta, 0); // Reset element chance or element will be duplicated if the ID or meta has changed from form
-            $id = (int)$d[0];
-            $meta = (int)$d[1];
-            $chance = (int)$d[class_exists(InvMenu::class) ? 3 : 2];
-            $regex->setElementChance($id, $meta, $chance < 1 ? 0 : $chance);
-            if (class_exists(InvMenu::class) and $d[2]) {
-                $this->submitBlockSession(function(Item $item) use ($regex, $id, $meta) : void {
-                    if ($item->getId() !== Item::AIR) {
-                        if ($item->getBlock()->getId() === Item::AIR) {
-                            $this->errorInvalidBlock(function(Player $p, bool $d) use ($regex, $id, $meta) : void {
-                                $this->editRandomElement($regex, $id, $meta);
-                            });
-                            return;
-                        }
-                        $regex->setElementChance($id, $meta, 0);
-                        $id = $item->getId();
-                        $meta = $item->getDamage();
-                        $chance = $item->getCount();
-                        $regex->setElementChance($id, $meta, $chance);
-                    }
-                    $this->editRandomElement($regex, $id, $meta);
-                }, Item::get($id, $meta, min(max(1, $chance), 64)));
-            } else $this->editRandomElement($regex, $id, $meta);
-        });
-        $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Edit Element');
-        $form->addInput(TF::AQUA . 'ID', (string)$id, (string)$id);
-        $form->addInput(TF::AQUA . 'Meta', (string)$meta, (string)$meta);
-        if (class_exists(InvMenu::class)) $form->addToggle(TF::GREEN . 'Open submit block panel');
-        $chance = $regex->getElementChance($id, $meta);
-        $form->addInput(TF::BOLD . TF::GOLD . 'Chance' . ($chance > 0 ? TF::YELLOW . TF::ITALIC . ' (' .
-
-                $chance . ' / ' . ($totalchanceNonZero = ($totalchance = $regex->getTotalChance()) == 0 ? $chance : $totalchance) . ', ' . round($chance / $totalchanceNonZero * 100, 2) . '%%)' :
-                TF::RED . TF::ITALIC . ' (ELEMENT REMOVED, make the chance higher than 0 to keep this element)'
-            ),
-
-            (string)$chance, (string)$chance);
-        $form->addLabel(TF::ITALIC . TF::AQUA . '(Set chance 0 or lower to remove this element)');
-        $this->getPlayer()->sendForm($form);
     }
 
     protected function errorInvalidBlock(?\Closure $callback = null) : void {
