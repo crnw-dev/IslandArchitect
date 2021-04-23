@@ -35,6 +35,7 @@ use muqsit\invmenu\InvMenu;
 use pocketmine\level\Level;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\ByteTag;
+use pocketmine\item\ItemFactory;
 use jojoe77777\FormAPI\ModalForm;
 use jojoe77777\FormAPI\SimpleForm;
 use jojoe77777\FormAPI\CustomForm;
@@ -51,9 +52,11 @@ use function max;
 use function min;
 use function count;
 use function round;
+use function strpos;
 use function explode;
 use function get_class;
 use function microtime;
+use function str_replace;
 use function class_exists;
 use function spl_object_id;
 
@@ -85,7 +88,7 @@ class PlayerSession {
     private $export_lock = false;
 
     /**
-     * @var int[]|null
+     * @var array<int, int|string>|null
      */
     protected $last_edited_element = null;
 
@@ -267,8 +270,53 @@ class PlayerSession {
         // 2147483647, max limit of int tag value and random generation regex number
         elseif ($regexid === null) return false;
         $r = $this->getIsland()->getRandomById($regexid);
-        $form = new CustomForm(function(Player $p, array $d = null) : void {
-            if ($d === null) $this->listRandoms();
+        $form = new CustomForm(function(Player $p, array $d = null) use ($r, $regexid) : void {
+            if ($d === null) {
+                $this->listRandoms();
+                return;
+            }
+            if (!empty($d[1])) $this->last_edited_element = [$d[1], $d[2]];
+            switch ((int)$d[5]) {
+
+                case 0:
+                case 1:
+                    $string = str_replace(', ', ',', $d[1]);
+                    if (!empty($string)) {
+                        if (strpos($string, ',') !== false) {
+                            if (preg_match('/[^0-9,:]+/i', $string)) try {
+                                $items = ItemFactory::fromString($string, true);
+                                foreach ($items as $item) {
+                                    $bulkitem[] = $item->getId();
+                                    if ($item->getDamage() !== 0) $bulkmeta[] = $item->getDamage();
+                                }
+                            } catch (\InvalidArgumentException $err) {
+                                break; // TODO: Display error message
+                            } else {
+                                $ids = explode(',', $string);
+                                foreach ($ids as $id) {
+                                    $id = explode(':', $id);
+                                    $bulkitem[] = (int)$id[0];
+                                    if (isset($id[1])) $bulkmeta[] = (int)$id[1];
+                                }
+                            }
+                            if (!isset($bulkmeta)) {
+                                $bulkmeta = explode(',', str_replace(' ', '', $d[2]));
+                                if (count($bulkmeta) > 1 and count($bulkmeta) !== count($bulkitem ?? [])) break; // TODO: Error
+                            }
+                            $bulkchance = explode(',', str_replace(' ', '', $d[3]));
+                            if (count($bulkchance) > 1 and count($bulkchance) !== count($bulkitem ?? [])) break; // TODO: Error
+
+                            foreach ($bulkitem ?? [] as $i => $id) $r->setElementChance(
+                                (int)$id,
+                                $meta = (int)($bulkmeta[$i] ?? $bulkmeta[0] ?? 0),
+                                (int)($bulkmeta[$i] ?? $bulkmeta[0] ?? $r->getElementChance((int)$id, $meta))
+                            );
+                        } elseif ($r->getElementChance((int)$string, (int)$d[2]) !== (int)$d[3]) $r->setElementChance((int)$string, (int)$d[2], (int)$d[3]);
+                    }
+                    if ((int)$d[5] === 0) $this->listRandoms();
+                    else $this->editRandom($regexid);
+                    break;
+            }
         });
         $totalchance = $r->getTotalChance();
         foreach ($r->getAllElements() as $element => $chance) {
@@ -285,7 +333,7 @@ class PlayerSession {
         $form->addInput(TF::BOLD . TF::GOLD . 'Element item ID:', 'Element item ID', isset($this->last_edited_element) ? (string)$this->last_edited_element[0] : '');
         $form->addInput(TF::AQUA . 'Element item meta:', 'Element item meta', isset($this->last_edited_element) ? (string)($this->last_edited_element[1] ?? 0) : '');
         $form->addInput(TF::BOLD . TF::GOLD . 'Element chance:', 'Element chance', isset($this->last_edited_element) ?
-            (string)(($chance = $r->getElementChance($this->last_edited_element[0], $this->last_edited_element[1])) === 0 ? '' : $chance) : '');
+            (string)(preg_match('/[0-9]+/i', $this->last_edited_element[0]) and ($chance = $r->getElementChance((int)$this->last_edited_element[0], (int)$this->last_edited_element[1])) === 0 ? '' : $chance) : '');
         $form->addInput(TF::BOLD . TF::GOLD . 'Regex label:', $this->getIsland()->getRandomLabel($regexid), $this->getIsland()->getRandomLabel($regexid, true) ?? '');
         $form->addDropdown(TF::AQUA . 'Action:', [
             TF::BOLD . TF::DARK_GREEN . 'Done',

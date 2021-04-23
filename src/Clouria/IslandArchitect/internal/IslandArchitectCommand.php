@@ -93,7 +93,7 @@ class IslandArchitectCommand extends Command {
             case 'checkout':
             case 'check-out':
             case 'i':
-                if (!isset($args[1]) or !preg_match('/[0-9a-z-_]+/i', '', $args[1])) {
+                if (!isset($args[1]) or preg_match('/[^0-9a-z-_]+/', $args[1])) {
                     $sender->sendMessage(TF::BOLD . TF::RED . 'Invalid island name or island name argument missing!');
                     break;
                 }
