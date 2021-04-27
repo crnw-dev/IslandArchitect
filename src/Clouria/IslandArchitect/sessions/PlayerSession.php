@@ -35,10 +35,7 @@ use muqsit\invmenu\InvMenu;
 use pocketmine\level\Level;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\ByteTag;
-use pocketmine\item\ItemFactory;
 use jojoe77777\FormAPI\ModalForm;
-use jojoe77777\FormAPI\SimpleForm;
-use jojoe77777\FormAPI\CustomForm;
 use pocketmine\utils\TextFormat as TF;
 use Clouria\IslandArchitect\IslandArchitect;
 use muqsit\invmenu\transaction\InvMenuTransaction;
@@ -47,16 +44,11 @@ use Clouria\IslandArchitect\generator\TemplateIsland;
 use muqsit\invmenu\transaction\InvMenuTransactionResult;
 use Clouria\IslandArchitect\events\TemplateIslandExportEvent;
 use Clouria\IslandArchitect\generator\tasks\IslandDataEmitTask;
-use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use function max;
 use function min;
-use function count;
 use function round;
-use function strpos;
-use function explode;
 use function get_class;
 use function microtime;
-use function str_replace;
 use function class_exists;
 use function spl_object_id;
 
@@ -239,149 +231,11 @@ class PlayerSession {
         return true;
     }
 
-    public function listRandoms() : void {
-        if ($this->getIsland() === null) return;
-        if (class_exists(SimpleForm::class)) {
-            $f = new SimpleForm(function(Player $p, int $d = null) : void {
-                if ($d === null) return;
-                if ($d <= count($this->getIsland()->getRandoms()) or count($this->getIsland()->getRandoms()) < 0x7fffffff) {
-                    if ($this->getIsland()->getRandomById($d) === null) $this->editRandom();
-                    else $this->editRandom($d);
-                }
-            });
-            foreach ($this->getIsland()->getRandoms() as $i => $r) $f->addButton(TF::BOLD . TF::DARK_BLUE . $this->getIsland()
-                                                                                                                 ->getRandomLabel($i) . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY . '(' . count($r->getAllElements()) . ' elements)');
-            $f->setTitle(TF::BOLD . TF::DARK_AQUA . 'Regex List');
-            $f->addButton(count($this->getIsland()->getRandoms()) < 0x7fffffff ? TF::BOLD . TF::DARK_GREEN . 'New Regex' : TF::BOLD . TF::DARK_GRAY . 'Max limit reached' . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(2147483647 regex)');
-            $this->getPlayer()->sendForm($f);
-        } else {
-            $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'Cannot edit random generation regex due to required virion dependency "libFormAPI"' . TF::ITALIC . TF::GRAY . '(https://github.com/Infernus101/FormAPI) ' . TF::RESET .
-                TF::BOLD . TF::RED . 'is not installed. ' . TF::YELLOW . 'An empty regex has been added to the template island data, please edit it manually with an text editor!');
-            $this->getIsland()->addRandom(new RandomGeneration);
-        }
-    }
-
-    /**
-     * @param int|null $regexid
-     * @return bool false = The number of random generation regex in the template island has reached the limit (2147483647)
-     */
-    public function editRandom(?int $regexid = null) : bool {
-        if (($regexid === null or $this->getIsland()->getRandomById($regexid) === null) and count($this->getIsland()->getRandoms()) < 0x7fffffff) $regexid = $this->getIsland()->addRandom(new RandomGeneration);
-        // 2147483647, max limit of int tag value and random generation regex number
-        elseif ($regexid === null) return false;
-        $r = $this->getIsland()->getRandomById($regexid);
-        $form = new CustomForm(function(Player $p, array $d = null) use ($r, $regexid) : void {
-            if ($d === null) {
-                $this->listRandoms();
-                return;
-            }
-            if (!empty($d[1])) $this->last_edited_element = [$d[1], $d[2]];
-            switch ((int)$d[5]) {
-
-                case 0:
-                case 1:
-                    $string = str_replace(', ', ',', $d[1]);
-                    if (!empty($string)) {
-                        if (strpos($string, ',') !== false) {
-                            if (preg_match('/[^0-9,:]+/i', $string)) try {
-                                $items = ItemFactory::fromString($string, true);
-                                foreach ($items as $item) {
-                                    $bulkitem[] = $item->getId();
-                                    if ($item->getDamage() !== 0) $bulkmeta[] = $item->getDamage();
-                                }
-                            } catch (\InvalidArgumentException $err) {
-                                break; // TODO: Display error message
-                            } else {
-                                $ids = explode(',', $string);
-                                foreach ($ids as $id) {
-                                    $id = explode(':', $id);
-                                    $bulkitem[] = (int)$id[0];
-                                    if (isset($id[1])) $bulkmeta[] = (int)$id[1];
-                                }
-                            }
-                            if (!isset($bulkmeta)) {
-                                $bulkmeta = explode(',', str_replace(' ', '', $d[2]));
-                                if (count($bulkmeta) > 1 and count($bulkmeta) !== count($bulkitem ?? [])) break; // TODO: Error
-                            }
-                            $bulkchance = explode(',', str_replace(' ', '', $d[3]));
-                            if (count($bulkchance) > 1 and count($bulkchance) !== count($bulkitem ?? [])) break; // TODO: Error
-
-                            foreach ($bulkitem ?? [] as $i => $id) $r->setElementChance(
-                                (int)$id,
-                                $meta = (int)($bulkmeta[$i] ?? $bulkmeta[0] ?? 0),
-                                (int)($bulkmeta[$i] ?? $bulkmeta[0] ?? $r->getElementChance((int)$id, $meta))
-                            );
-                        } elseif ($r->getElementChance((int)$string, (int)$d[2]) !== (int)$d[3]) $r->setElementChance((int)$string, (int)$d[2], (int)$d[3]);
-                    }
-                    if ((int)$d[5] === 0) $this->listRandoms();
-                    else $this->editRandom($regexid);
-                    break;
-            }
-        });
-        $totalchance = $r->getTotalChance();
-        foreach ($r->getAllElements() as $element => $chance) {
-            $element = explode(':', $element);
-            $totalchanceNonZero = $totalchance == 0 ? $chance : $totalchance;
-            $elements[] = (new Item((int)$element[0], (int)$element[1]))->getVanillaName() . ' (' . (int)$element[0] . ':' . (int)$element[1] . '): ' . TF::BOLD . TF::GOLD . $chance . ' (' . round($chance / $totalchanceNonZero * 100, 2)
-                . '%%)';
-        }
-        $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Modify Regex #' . $regexid);
-        $form->addLabel(isset($elements) ?
-            TF::BOLD . TF::GOLD . 'Elements:' . ($glue = "\n" . TF::RESET . ' - ' . TF::YELLOW) . implode($glue, $elements) :
-            TF::BOLD . TF::ITALIC . TF::GRAY . 'No elements have been added yet!'
-        );
-        $form->addInput(TF::BOLD . TF::GOLD . 'Element item ID:', 'Element item ID', isset($this->last_edited_element) ? (string)$this->last_edited_element[0] : '');
-        $form->addInput(TF::AQUA . 'Element item meta:', 'Element item meta', isset($this->last_edited_element) ? (string)($this->last_edited_element[1] ?? 0) : '');
-        $form->addInput(TF::BOLD . TF::GOLD . 'Element chance:', 'Element chance', isset($this->last_edited_element) ?
-            (string)(preg_match('/[0-9]+/i', $this->last_edited_element[0]) and ($chance = $r->getElementChance((int)$this->last_edited_element[0], (int)$this->last_edited_element[1])) === 0 ? '' : $chance) : '');
-        $form->addInput(TF::BOLD . TF::GOLD . 'Regex label:', $this->getIsland()->getRandomLabel($regexid), $this->getIsland()->getRandomLabel($regexid, true) ?? '');
-        $form->addDropdown(TF::AQUA . 'Action:', [
-            TF::BOLD . TF::DARK_GREEN . 'Done',
-            TF::DARK_BLUE . 'Apply',
-            TF::BLUE . 'Add element from inventory',
-            TF::BLUE . 'Update regex symbolic',
-            TF::DARK_RED . 'Remove regex'
-        ]);
-        $this->getPlayer()->sendForm($form);
-        return true;
-    }
-
     protected function errorInvalidBlock(?\Closure $callback = null) : void {
         $form = new ModalForm($callback ?? null);
         $form->setTitle(TF::BOLD . TF::DARK_RED . 'Error');
         $form->setContent(TF::GOLD . 'Submitted item must be a valid block item!');
         $this->getPlayer()->sendForm($form);
-    }
-
-    public function editRandomLabel(int $regexid) : void {
-        $form = new CustomForm(function(Player $p, array $d = null) use ($regexid) : void {
-            if ($d === null) {
-                $this->editRandom($regexid);
-                return;
-            }
-            $this->getIsland()->setRandomLabel($regexid, (string)$d[0]);
-        });
-        $label = (string)$this->getIsland()->getRandomLabel($regexid);
-        $form->addInput(TF::BOLD . TF::GOLD . 'Label', $label, $label);
-        $this->getPlayer()->sendForm($form);
-    }
-
-    public function editRandomSymbolic(int $regexid) : void {
-        $this->submitBlockSession(function(Item $item) use ($regexid) : void {
-            if ($item->getId() === Item::AIR) {
-                $this->editRandom($regexid);
-                return;
-            }
-            if ($item->getBlock()->getId() === Item::AIR) {
-                $form = new ModalForm(function(Player $p, bool $d) use ($regexid) : void {
-                    $this->editRandom($regexid);
-                });
-                $form->setTitle(TF::BOLD . TF::DARK_RED . 'Error');
-                $form->setContent(TF::GOLD . 'Submitted item must be a valid block item!');
-                $this->getPlayer()->sendForm($form);
-            }
-            $this->getIsland()->setRandomSymbolic($regexid, $item->getId(), $item->getDamage());
-        });
     }
 
     public function submitBlockSession(?\Closure $callback = null, ?Item $default = null, bool $convert = true) : bool {
