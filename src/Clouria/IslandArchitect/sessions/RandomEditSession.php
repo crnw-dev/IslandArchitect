@@ -30,11 +30,9 @@ namespace Clouria\IslandArchitect\sessions;
 use pocketmine\Player;
 use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
-use jojoe77777\FormAPI\SimpleForm;
 use jojoe77777\FormAPI\CustomForm;
 use pocketmine\utils\TextFormat as TF;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
-use function class_exists;
 
 class RandomEditSession {
     /**
@@ -53,32 +51,10 @@ class RandomEditSession {
     /**
      * RandomEditSession constructor.
      */
-    public function __construct(PlayerSession $session, ?RandomGeneration $regex = null) {
+    public function __construct(PlayerSession $session, ?RandomGeneration $regex = null, ?int $id = null, ?int $meta = null) {
         $this->session = $session;
         $this->regex = $regex;
-    }
-
-    public function listRandoms() : void {
-        $p = $this->getSession()->getPlayer();
-        $is = $this->getSession()->getIsland();
-        if ($is === null) return;
-        if (!class_exists(SimpleForm::class)) {
-            $p->sendMessage(TF::BOLD . TF::RED . 'Cannot edit random generation regex due to required virion dependency "libFormAPI"' . TF::ITALIC . TF::GRAY . '(https://github.com/Infernus101/FormAPI) ' . TF::RESET .
-                TF::BOLD . TF::RED . 'is not installed. ' . TF::YELLOW . 'An empty regex has been added to the template island data, please edit it manually with an text editor!');
-            $is->addRandom(new RandomGeneration);
-        }
-        $f = new SimpleForm(function(Player $p, int $d = null) use ($is) : void {
-            if ($d === null) return;
-            if ($d <= count($is->getRandoms()) or count($is->getRandoms()) < 0x7fffffff) {
-                if ($is->getRandomById($d) === null) $this->editRandom();
-                else $this->listRandoms();
-            }
-        });
-        foreach ($is->getRandoms() as $i => $r) $f->addButton(TF::BOLD . TF::DARK_BLUE . $is->getRandomLabel($i) . "\n" . TF::RESET . TF::ITALIC . TF::DARK_GRAY .
-            '(' . count($this->getRegex()->getAllElements()) . ' elements)');
-        $f->setTitle(TF::BOLD . TF::DARK_AQUA . 'Regex List');
-        $f->addButton(count($is->getRandoms()) < 0x7fffffff ? TF::BOLD . TF::DARK_GREEN . 'New Regex' : TF::BOLD . TF::DARK_GRAY . 'Max limit reached' . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(2147483647 regex)');
-        $p->sendForm($f);
+        if (isset($id)) $this->last_edited_element = [$id, $meta];
     }
 
     /**
@@ -96,8 +72,8 @@ class RandomEditSession {
             if (!empty($d[1])) $this->last_edited_element = [$d[1], $d[2]];
             switch ((int)$d[5]) {
 
-                case 0:
                 case 1:
+                case 2:
                     $string = str_replace(', ', ',', $d[1]);
                     if (!empty($string)) {
                         if (strpos($string, ',') !== false) {
@@ -144,10 +120,11 @@ class RandomEditSession {
                 . '%%)';
         }
         $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Modify Regex #' . $regexid);
-        $form->addLabel(isset($elements) ?
-            TF::BOLD . TF::GOLD . 'Elements:' . ($glue = "\n" . TF::RESET . ' - ' . TF::YELLOW) . implode($glue, $elements) :
-            TF::BOLD . TF::ITALIC . TF::GRAY . 'No elements have been added yet!'
-        );
+
+        $i = -1;
+        foreach ($is->getRandoms() as $i => $random) $rs[] = TF::DARK_BLUE . '#' . $i . (($l = $is->getRandomLabel($i, true)) === null ? '' : TF::BLUE . ' ' . $l . '');
+        $rs[] = TF::DARK_GRAY . '#' . $i . TF::BOLD . TF::DARK_GREEN . ' Create new regex';
+        $form->addDropdown(TF::BOLD . TF::AQUA . 'Select regex to modify', $rs,);
         $form->addInput(TF::BOLD . TF::GOLD . 'Element item ID:', 'Element item ID', isset($this->last_edited_element) ? (string)$this->last_edited_element[0] : '');
         $form->addInput(TF::AQUA . 'Element item meta:', 'Element item meta', isset($this->last_edited_element) ? (string)($this->last_edited_element[1] ?? 0) : '');
         $form->addInput(TF::BOLD . TF::GOLD . 'Element chance:', 'Element chance', isset($this->last_edited_element) ?
@@ -178,10 +155,6 @@ class RandomEditSession {
     public function getLastEditedElementMeta() : ?int {
         if (isset($this->last_edited_element[0])) return (int)$this->last_edited_element[0];
         return null;
-    }
-
-    public function setElement(int $id, int $meta) {
-        $this->last_edited_element = [$id, $meta];
     }
 
 }
