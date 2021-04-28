@@ -33,7 +33,10 @@ use pocketmine\item\ItemFactory;
 use jojoe77777\FormAPI\CustomForm;
 use pocketmine\utils\TextFormat as TF;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
+use function is_int;
 use function explode;
+use function array_keys;
+use function str_replace;
 use function array_search;
 
 class RandomEditSession {
@@ -64,28 +67,67 @@ class RandomEditSession {
         if (isset($id)) $this->last_edited_element = $id . ':' . $meta;
     }
 
-    /**
-     * @return PlayerSession
-     */
-    public function getSession() : PlayerSession {
-        return $this->session;
-    }
-
     public function editRandom() : void {
         $p = $this->getSession()->getPlayer();
         $is = $this->getSession()->getIsland();
         $regexid = $is->getRegexId($this->getRegex());
-        $form = new CustomForm(function(Player $p, array $d = null) : void {
+        $regs = $is->getRandoms();
+        $elements = $this->getRegex()->getAllElements();
+        $form = new CustomForm(function(Player $p, array $d = null) use ($regexid, $regs, $is, $elements) : void {
+            if ($d === null) return;
+            $pickedregex = (int)$d[0];
+            if ($pickedregex !== $regexid and ($this->getRegex() !== null and $regexid === null and $pickedregex !== count($regs))) {
+                if (isset($regs[$pickedregex])) $this->setRegex($regexid);
+                else {
+                    $regex = new RandomGeneration;
+                    $pickedregex = $is->addRandom($regex);
+                    $this->setRegex($regex);
+                }
+            }
+            $is->setRandomLabel($pickedregex, (string)$d[3]);
+            if (is_int($d[1])) switch ($d[1]) {
+
+                case count($elements):
+                    break;
+
+                case count($elements) + 1:
+                    $this->create_new_element = true;
+                    break;
+
+                case count($elements) + 2:
+                    $this->getSession()->submitBlockSession(function(Item $item) : void {
+                        $this->getRegex()->setElementChance($item->getId(), $item->getDamage(), $item->getCount());
+                        $this->last_edited_element = $item->getId() . ':' . $item->getDamage();
+                        $this->editRandom();
+                    });
+                    return;
+
+                default:
+                    $element = array_keys($elements)[$d[1]] ?? null;
+                    if (!isset($element)) break;
+                    $this->last_edited_element = $element;
+                    $element = explode(':', $element);
+                    $this->getRegex()->setElementChance($element[0], $element[1], (int)$d[2]);
+                    break;
+            } else {
+                $item = ItemFactory::fromString($d[1], true);
+                $chance = explode(',', str_replace(', ', ',', $d[2]));
+                if (count($chance) !== 1 and count($chance) !== count($item)) return; // TODO: Error
+                if (count($item) === 1) $this->last_edited_element = $item[0]->getId() . ':' . $item[0]->getDamage();
+                foreach ($item as $i => $si) $this->getRegex()->setElementChance($si->getId(), $si->getDamage(), count($chance) === 1 ? (int)$chance[0] : (int)($chance[$i] ?? 0));
+            }
+            $this->editRandom();
         });
         $totalchance = $this->getRegex()->getTotalChance();
         $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Modify Regex #' . $regexid);
 
         $i = -1;
-        foreach ($is->getRandoms() as $i => $random) $rs[] = TF::DARK_BLUE . '#' . $i . (($l = $is->getRandomLabel($i, true)) === null ? '' : TF::BLUE . ' ' . $l . '');
+        foreach ($regs as $i => $random) $rs[] = TF::DARK_BLUE . '#' . $i . (($l = $is->getRandomLabel($i, true)) === null ? '' : TF::BLUE . ' ' . $l . '');
         $rs[] = TF::DARK_GRAY . '#' . $i . TF::BOLD . TF::DARK_GREEN . ' Create new regex';
+        if ($this->getRegex() !== null and $regexid === null) $rs[] = TF::ITALIC . TF::DARK_GRAY . 'External regex';
         $form->addDropdown(TF::BOLD . TF::GOLD . 'Select regex to modify:', $rs, $regexid ?? 0);
         if (!$this->isCreateNewElement()) {
-            foreach ($this->getRegex()->getAllElements() as $element => $chance) {
+            foreach ($elements as $element => $chance) {
                 $element = explode(':', $element);
                 $item = Item::get((int)$element[0], (int)$element[1]);
                 $totalchanceNonZero = $totalchance == 0 ? $chance : $totalchance;
@@ -96,14 +138,21 @@ class RandomEditSession {
             $es[] = TF::BOLD . TF::DARK_GREEN . 'Enter element ID manually (Create element)';
             $es[] = TF::BOLD . TF::DARK_AQUA . 'Add element from inventory';
             $item = $this->getLastEditedElementAsItem();
-            if ($item !== null) $elementoption = array_search($item->getId() . ':' . $item->getDamage(), $this->getRegex()->getAllElements(), true);
-            $form->addDropdown(TF::BOLD . TF::GOLD . 'Select element to edit:', $es, (!isset($elementoption) or $elementoption === false) ? count($this->getRegex()->getAllElements()) + 1 : $elementoption);
-        } else $form->addInput(TF::BOLD . TF::GOLD . 'Element ID:', '<ID / NamespaceID>:[meta]');
+            if ($item !== null) $elementoption = array_search($item->getId() . ':' . $item->getDamage(), $elements, true);
+            $form->addDropdown(TF::BOLD . TF::GOLD . 'Select element to edit:', $es, (!isset($elementoption) or $elementoption === false) ? count($elements) + 1 : $elementoption);
+        } else $form->addInput(TF::BOLD . TF::GOLD . 'Element ID:', '<ID / NamespaceID>:[meta], ...');
         $item = $this->getLastEditedElementAsItem();
         if ($item !== null) $chance = $this->getRegex()->getElementChance($item->getId(), $item->getDamage());
-        $form->addInput(TF::BOLD . TF::GOLD . 'Element chance:', 'Element chance', (string)($chance ?? ''));
+        $form->addInput(TF::BOLD . TF::GOLD . 'Element chance:', '<chance>, ...', (string)($chance ?? ''));
         $form->addInput(TF::BOLD . TF::GOLD . 'Regex label:', $is->getRandomLabel($regexid), $is->getRandomLabel($regexid, true) ?? '');
         $p->sendForm($form);
+    }
+
+    /**
+     * @return PlayerSession
+     */
+    public function getSession() : PlayerSession {
+        return $this->session;
     }
 
     /**
@@ -113,13 +162,11 @@ class RandomEditSession {
         return $this->regex;
     }
 
-    public function getLastEditedElementAsItem() : ?Item {
-        if (!isset($this->last_edited_element)) return null;
-        try {
-            return ItemFactory::fromStringSingle($this->last_edited_element);
-        } catch (\InvalidArgumentException $err) {
-        }
-        return null;
+    /**
+     * @param RandomGeneration|null $regex
+     */
+    public function setRegex(?RandomGeneration $regex) : void {
+        $this->regex = $regex;
     }
 
     /**
@@ -127,6 +174,15 @@ class RandomEditSession {
      */
     public function isCreateNewElement() : bool {
         return $this->create_new_element;
+    }
+
+    public function getLastEditedElementAsItem() : ?Item {
+        if (!isset($this->last_edited_element)) return null;
+        try {
+            return ItemFactory::fromStringSingle($this->last_edited_element);
+        } catch (\InvalidArgumentException $err) {
+        }
+        return null;
     }
 
 }

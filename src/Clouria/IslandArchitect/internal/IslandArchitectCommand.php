@@ -112,7 +112,7 @@ class IslandArchitectCommand extends Command {
                                 $r = new RandomGeneration;
                                 foreach ((array)$regex as $element => $chance) {
                                     $element = explode(':', $element);
-                                    $r->increaseElementChance((int)$element[0], (int)($element[1] ?? 0), $chance);
+                                    $r->setElementChance((int)$element[0], (int)($element[1] ?? 0), $chance);
                                 }
                                 $regexid = $is->addRandom($r);
                                 $is->setRandomLabel($regexid, $label);

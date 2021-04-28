@@ -42,7 +42,10 @@ use const SORT_NUMERIC;
 
 class RandomGeneration {
 
-    protected $blocks = [];
+    /**
+     * @var array<string, int>
+     */
+    protected $elements = [];
     /**
      * @var bool
      */
@@ -50,34 +53,8 @@ class RandomGeneration {
 
     public static function fromNBT(ListTag $nbt) : self {
         $self = new self;
-        foreach ($nbt as $block) if ($block instanceof CompoundTag) $self->increaseElementChance($block->getShort('id'), $block->getByte('meta', 0), $block->getShort('chance'));
+        foreach ($nbt as $block) if ($block instanceof CompoundTag) $self->setElementChance($block->getShort('id'), $block->getByte('meta', 0), $block->getShort('chance'));
         return $self;
-    }
-
-    public function increaseElementChance(int $id, int $meta = 0, int $chance = 1) : bool {
-        if (($this->blocks[$id . ':' . $meta] ?? 0) + $chance > 32767) return false;
-        if (!isset($this->blocks[$id . ':' . $meta])) $this->blocks[$id . ':' . $meta] = 0;
-        $this->blocks[$id . ':' . $meta] += $chance;
-        $this->changed = true;
-        return true;
-    }
-
-    /**
-     * @param int $id
-     * @param int $meta
-     * @param int|null $chance Null to set the chance to 0
-     * @return bool
-     */
-    public function decreaseElementChance(int $id, int $meta = 0, ?int $chance = null) : bool {
-        if (!isset($chance)) {
-            unset($this->blocks[$id . ':' . $meta]);
-            return true;
-        }
-        if (($this->blocks[$id . ':' . $meta] ?? 0) - $chance <= 0) return false;
-        if (!isset($this->blocks[$id . ':' . $meta])) $this->blocks[$id . ':' . $meta] = 0;
-        $this->blocks[$id . ':' . $meta] -= $chance;
-        $this->changed = true;
-        return true;
     }
 
     /**
@@ -88,8 +65,8 @@ class RandomGeneration {
      */
     public function setElementChance(int $id, int $meta = 0, ?int $chance = null) : bool {
         if ($chance > 32767) return false;
-        if ($chance > 0) $this->blocks[$id . ':' . $meta] = $chance;
-        elseif (isset($this->blocks[$id . ':' . $meta])) unset($this->blocks[$id . ':' . $meta]);
+        if ($chance > 0) $this->elements[$id . ':' . $meta] = $chance;
+        elseif (isset($this->elements[$id . ':' . $meta])) unset($this->elements[$id . ':' . $meta]);
         $this->changed = true;
         return true;
     }
@@ -99,11 +76,10 @@ class RandomGeneration {
     }
 
     /**
-     * @return int[]
+     * @return array<string, int>
      */
     public function getAllElements() : array {
-        foreach ($this->blocks as $block => $chance) $blocks[$block] = $chance;
-        return $blocks ?? [];
+        return $this->elements;
     }
 
     public function randomElementItem(Random $random) : Item {
@@ -206,7 +182,7 @@ class RandomGeneration {
             $elements[$block] = $chance / $chances[0];
             if ($elements[$block] !== $chance) $changed = true;
         }
-        $this->blocks = $elements ?? null;
+        $this->elements = $elements ?? null;
         if ($changed ?? false) $this->changed = true;
         return $changed ?? false;
     }

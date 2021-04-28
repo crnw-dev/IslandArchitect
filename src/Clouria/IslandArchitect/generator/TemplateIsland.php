@@ -221,7 +221,7 @@ class TemplateIsland {
             foreach ($regexdata as $element => $chance) {
                 $element = explode(':', $element);
                 if ((int)$chance < 1) continue;
-                $regex->increaseElementChance((int)$element[0], (int)($element[1] ?? 0), (int)$chance);
+                $regex->setElementChance((int)$element[0], (int)($element[1] ?? 0), (int)$chance);
             }
             $self->randoms[] = $regex;
         }
@@ -355,8 +355,19 @@ class TemplateIsland {
         return $this->random_labels[$regex] ?? ($nullable ? null : 'Regex #' . $regex);
     }
 
-    public function setRandomLabel(int $regex, string $label) : void {
+    public function setRandomLabel(int $regex, ?string $label) : bool {
+        if ($label === null or empty($label)) {
+            if (isset($this->random_labels[$label])) {
+                unset($this->random_labels[$regex]);
+                $this->changed = true;
+                return true;
+            }
+            return false;
+        }
+        if (!isset($this->random_labels[$regex]) and $this->random_labels[$regex] === $label) return false;
         $this->random_labels[$regex] = $label;
+        $this->changed = true;
+        return true;
     }
 
     public function resetRandomLabel(int $regex) : bool {
