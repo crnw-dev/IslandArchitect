@@ -35,7 +35,6 @@ use pocketmine\utils\TextFormat as TF;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use function is_int;
 use function explode;
-use function var_dump;
 use function array_keys;
 use function str_replace;
 use function array_search;
@@ -62,6 +61,14 @@ class RandomEditSession {
      * @var \Closure|null
      */
     private $callback;
+    /**
+     * @var bool
+     */
+    protected $error_invalid_item = false;
+    /**
+     * @var bool
+     */
+    protected $error_bulk_count_mismatch = false;
 
     /**
      * @return \Closure|null
@@ -106,11 +113,11 @@ class RandomEditSession {
                     $this->setRegex($regex);
                 }
             }
-            var_dump($d);
             if (!isset($regchanged)) $is->setRandomLabel($pickedregex, $d[($this->last_edited_element !== null or $this->isCreateNewElement()) ? 4 : 3]);
             if (is_int($d[2])) switch ($d[2]) {
 
                 case count($elements):
+                    $this->last_edited_element = null;
                     break;
 
                 case count($elements) + 1:
@@ -134,11 +141,25 @@ class RandomEditSession {
                     if ($ori !== null or $this->isCreateNewElement()) $this->getRegex()->setElementChance((int)$element[0], (int)$element[1], (int)$d[3]);
                     break;
             } else {
-                $item = ItemFactory::fromString($d[1], true);
-                $chance = explode(',', str_replace(', ', ',', $d[4]));
-                if (count($chance) !== 1 and count($chance) !== count($item)) return; // TODO: Error
+                try {
+                    $item = ItemFactory::fromString($d[2], true);
+                } catch (\InvalidArgumentException $err) {
+                    $this->error_invalid_item = true;
+                    $this->last_edited_element = $d[2];
+                    $this->editRandom();
+                    return;
+                }
+                $chance = explode(',', str_replace(', ', ',', $d[3]));
+                if (count($chance) !== 1 and count($chance) !== count($item)) {
+                    $this->error_bulk_count_mismatch = true;
+                    $this->last_edited_element = $d[2];
+                    $this->editRandom();
+                    return;
+                }
                 if (count($item) === 1) $this->last_edited_element = $item[0]->getId() . ':' . $item[0]->getDamage();
+                else $this->last_edited_element = null;
                 foreach ($item as $i => $si) $this->getRegex()->setElementChance($si->getId(), $si->getDamage(), count($chance) === 1 ? (int)$chance[0] : (int)($chance[$i] ?? 0));
+                $this->create_new_element = false;
             }
             $this->editRandom();
         });
@@ -150,9 +171,11 @@ class RandomEditSession {
         $rs[] = TF::DARK_GRAY . '#' . ($i + 1) . TF::BOLD . TF::DARK_GREEN . ' Create new regex';
         if ($this->getRegex() !== null and $regexid === null) $rs[] = TF::ITALIC . TF::DARK_GRAY . 'External regex';
         $msg = '';
+        if ($this->error_bulk_count_mismatch) $msg .= TF::BOLD . TF::RED . 'Error: The count of given chance does not match the count of given item IDs!' . "\n";
+        if ($this->error_invalid_item) $msg .= TF::BOLD . TF::RED . 'Error: Invalid item ID given!' . "\n";
         if (isset($this->last_edited_element) and !isset($elements[$this->last_edited_element])) {
             $ri = $this->getLastEditedElementAsItem();
-            $msg .= TF::YELLOW . 'Removed element: ' . TF::BOLD . TF::GOLD . $ri->getVanillaName() . ' (' . $ri->getId() . ':' . $ri->getDamage() . ')';
+            if ($ri !== null) $msg .= TF::YELLOW . 'Removed element: ' . TF::BOLD . TF::GOLD . $ri->getVanillaName() . ' (' . $ri->getId() . ':' . $ri->getDamage() . ')';
         }
         $form->addLabel($msg);
         $form->addDropdown(TF::BOLD . TF::GOLD . 'Select regex to modify:', $rs, $regexid ?? 0);
@@ -170,12 +193,13 @@ class RandomEditSession {
             $es[] = TF::BOLD . TF::AQUA . 'Add element from inventory';
             if ($li !== null) $searched = array_search($li->getId() . ':' . $li->getDamage(), array_keys($elements), true);
             $form->addDropdown(TF::BOLD . TF::GOLD . 'Select element to edit:', $es, (!isset($searched) or $searched === false) ? count($elements) : $searched);
-        } else $form->addInput(TF::BOLD . TF::GOLD . 'Element ID:', '<ID / NamespaceID>:[meta], ...');
+        } else $form->addInput(TF::BOLD . TF::GOLD . 'Element ID:', '<ID / NamespaceID>:[meta], ...', $this->last_edited_element ?? '');
         if ($li !== null) $chance = $this->getRegex()->getElementChance($li->getId(), $li->getDamage());
         if ($this->last_edited_element !== null or $this->isCreateNewElement()) $form->addInput(TF::BOLD . TF::GOLD . 'Element chance:', '<chance>, ...', (string)($chance ?? ''));
         $l = $is->getRandomLabel($regexid, true);
         if ($this->getRegex() !== null) $form->addInput(TF::BOLD . TF::GOLD . 'Regex label:', $is->getRandomLabel($regexid) === null ? 'Leave here empty to remove label' : $l, $l ?? '');
         $p->sendForm($form);
+        $this->resetErrorFlags();
     }
 
     /**
@@ -213,6 +237,11 @@ class RandomEditSession {
         } catch (\InvalidArgumentException $err) {
         }
         return null;
+    }
+
+    protected function resetErrorFlags() : void {
+        $this->error_invalid_item = false;
+        $this->error_bulk_count_mismatch = false;
     }
 
 }
