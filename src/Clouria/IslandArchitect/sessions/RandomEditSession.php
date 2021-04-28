@@ -35,6 +35,7 @@ use pocketmine\utils\TextFormat as TF;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use function is_int;
 use function explode;
+use function var_dump;
 use function array_keys;
 use function str_replace;
 use function array_search;
@@ -94,17 +95,20 @@ class RandomEditSession {
                 if ($this->getCallback() !== null) $this->getCallback()();
                 return;
             }
-            $pickedregex = (int)$d[0];
+            $pickedregex = (int)$d[1];
             if ($pickedregex !== $regexid or ($this->getRegex() === null and $pickedregex !== count($regs))) {
-                if (isset($regs[$pickedregex])) $this->setRegex($regs[$regexid]);
-                else {
+                if (isset($regs[$pickedregex])) {
+                    $this->setRegex($regs[$pickedregex]);
+                    $regchanged = true;
+                } else {
                     $regex = new RandomGeneration;
                     $pickedregex = $is->addRandom($regex);
                     $this->setRegex($regex);
                 }
             }
-            $is->setRandomLabel($pickedregex, (string)$d[3]);
-            if (is_int($d[1])) switch ($d[1]) {
+            var_dump($d);
+            if (!isset($regchanged)) $is->setRandomLabel($pickedregex, $d[($this->last_edited_element !== null or $this->isCreateNewElement()) ? 4 : 3]);
+            if (is_int($d[2])) switch ($d[2]) {
 
                 case count($elements):
                     break;
@@ -122,15 +126,16 @@ class RandomEditSession {
                     return;
 
                 default:
-                    $element = array_keys($elements)[$d[1]] ?? null;
+                    $element = array_keys($elements)[$d[2]] ?? null;
                     if (!isset($element)) break;
+                    $ori = $this->last_edited_element;
                     $this->last_edited_element = $element;
                     $element = explode(':', $element);
-                    $this->getRegex()->setElementChance($element[0], $element[1], (int)$d[2]);
+                    if ($ori !== null or $this->isCreateNewElement()) $this->getRegex()->setElementChance((int)$element[0], (int)$element[1], (int)$d[3]);
                     break;
             } else {
                 $item = ItemFactory::fromString($d[1], true);
-                $chance = explode(',', str_replace(', ', ',', $d[2]));
+                $chance = explode(',', str_replace(', ', ',', $d[4]));
                 if (count($chance) !== 1 and count($chance) !== count($item)) return; // TODO: Error
                 if (count($item) === 1) $this->last_edited_element = $item[0]->getId() . ':' . $item[0]->getDamage();
                 foreach ($item as $i => $si) $this->getRegex()->setElementChance($si->getId(), $si->getDamage(), count($chance) === 1 ? (int)$chance[0] : (int)($chance[$i] ?? 0));
@@ -144,26 +149,32 @@ class RandomEditSession {
         foreach ($regs as $i => $random) $rs[] = TF::DARK_BLUE . '#' . $i . (($l = $is->getRandomLabel($i, true)) === null ? '' : TF::BLUE . ' ' . $l . '');
         $rs[] = TF::DARK_GRAY . '#' . ($i + 1) . TF::BOLD . TF::DARK_GREEN . ' Create new regex';
         if ($this->getRegex() !== null and $regexid === null) $rs[] = TF::ITALIC . TF::DARK_GRAY . 'External regex';
+        $msg = '';
+        if (isset($this->last_edited_element) and !isset($elements[$this->last_edited_element])) {
+            $ri = $this->getLastEditedElementAsItem();
+            $msg .= TF::YELLOW . 'Removed element: ' . TF::BOLD . TF::GOLD . $ri->getVanillaName() . ' (' . $ri->getId() . ':' . $ri->getDamage() . ')';
+        }
+        $form->addLabel($msg);
         $form->addDropdown(TF::BOLD . TF::GOLD . 'Select regex to modify:', $rs, $regexid ?? 0);
+        $li = $this->getLastEditedElementAsItem();
         if (!$this->isCreateNewElement()) {
             if (isset($totalchance)) foreach ($elements as $element => $chance) {
                 $element = explode(':', $element);
                 $item = Item::get((int)$element[0], (int)$element[1]);
                 $totalchanceNonZero = $totalchance == 0 ? $chance : $totalchance;
-                $es[] = TF::DARK_BLUE . $item->getVanillaName() . TF::BLUE . ' (' . $item->getId() . ':' . $item->getDamage() . ')' .
-                    TF::DARK_BLUE . 'Chance: ' . $chance . TF::BLUE . ' (' . round($chance / $totalchanceNonZero * 100, 2) . '%%)';
+                $es[] = TF::DARK_BLUE . $item->getVanillaName() . ' (' . $item->getId() . ':' . $item->getDamage() . ') ' .
+                    TF::BLUE . 'Chance: ' . $chance . ' (' . round($chance / $totalchanceNonZero * 100, 2) . '%%)';
             }
             $es[] = TF::BOLD . TF::GRAY . 'Do nothing';
             $es[] = TF::BOLD . TF::GREEN . 'Enter element ID manually (Create element)';
             $es[] = TF::BOLD . TF::AQUA . 'Add element from inventory';
-            $item = $this->getLastEditedElementAsItem();
-            if ($item !== null) $elementoption = array_search($item->getId() . ':' . $item->getDamage(), $elements, true);
-            $form->addDropdown(TF::BOLD . TF::GOLD . 'Select element to edit:', $es, (!isset($elementoption) or $elementoption === false) ? count($elements) : $elementoption);
+            if ($li !== null) $searched = array_search($li->getId() . ':' . $li->getDamage(), array_keys($elements), true);
+            $form->addDropdown(TF::BOLD . TF::GOLD . 'Select element to edit:', $es, (!isset($searched) or $searched === false) ? count($elements) : $searched);
         } else $form->addInput(TF::BOLD . TF::GOLD . 'Element ID:', '<ID / NamespaceID>:[meta], ...');
-        $item = $this->getLastEditedElementAsItem();
-        if ($item !== null) $chance = $this->getRegex()->getElementChance($item->getId(), $item->getDamage());
-        $form->addInput(TF::BOLD . TF::GOLD . 'Element chance:', '<chance>, ...', (string)($chance ?? ''));
-        $form->addInput(TF::BOLD . TF::GOLD . 'Regex label:', $is->getRandomLabel($regexid) ?? 'Leave here empty to remove label', $is->getRandomLabel($regexid, true) ?? '');
+        if ($li !== null) $chance = $this->getRegex()->getElementChance($li->getId(), $li->getDamage());
+        if ($this->last_edited_element !== null or $this->isCreateNewElement()) $form->addInput(TF::BOLD . TF::GOLD . 'Element chance:', '<chance>, ...', (string)($chance ?? ''));
+        $l = $is->getRandomLabel($regexid, true);
+        if ($this->getRegex() !== null) $form->addInput(TF::BOLD . TF::GOLD . 'Regex label:', $is->getRandomLabel($regexid) === null ? 'Leave here empty to remove label' : $l, $l ?? '');
         $p->sendForm($form);
     }
 

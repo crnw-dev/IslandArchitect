@@ -363,7 +363,7 @@ class TemplateIsland {
 
     public function setRandomLabel(int $regex, ?string $label) : bool {
         if ($label === null or empty($label)) {
-            if (isset($this->random_labels[$label])) {
+            if (isset($this->random_labels[$regex])) {
                 unset($this->random_labels[$regex]);
                 $this->changed = true;
                 return true;
@@ -587,7 +587,7 @@ class TemplateIsland {
     }
 
     public function hasChanges() : bool {
-        if ($this->changed) return $this->changed;
+        if ($this->changed) return true;
         foreach ($this->randoms as $r) if ($r->hasChanges()) return true;
         foreach ($this->chests as $c) if ($c->hasChanges()) return true;
         return false;
