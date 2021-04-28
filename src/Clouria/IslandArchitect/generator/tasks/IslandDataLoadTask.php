@@ -56,7 +56,7 @@ class IslandDataLoadTask extends AsyncTask {
      */
     public function __construct(string $islandname, ?\Closure $callback = null, ?\Closure $onerror = null) {
         $this->islandname = $islandname;
-        $this->path = IslandArchitect::getInstance()->getDataFolder();
+        $this->path = IslandArchitect::getInstance()->getDataFolder() . 'islands/';
 
         $this->storeLocal([$callback, $onerror]);
     }

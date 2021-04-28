@@ -95,8 +95,8 @@ class RandomEditSession {
                 return;
             }
             $pickedregex = (int)$d[0];
-            if ($pickedregex !== $regexid and ($this->getRegex() !== null and $regexid === null and $pickedregex !== count($regs))) {
-                if (isset($regs[$pickedregex])) $this->setRegex($regexid);
+            if ($pickedregex !== $regexid or ($this->getRegex() === null and $pickedregex !== count($regs))) {
+                if (isset($regs[$pickedregex])) $this->setRegex($regs[$regexid]);
                 else {
                     $regex = new RandomGeneration;
                     $pickedregex = $is->addRandom($regex);
@@ -142,7 +142,7 @@ class RandomEditSession {
 
         $i = -1;
         foreach ($regs as $i => $random) $rs[] = TF::DARK_BLUE . '#' . $i . (($l = $is->getRandomLabel($i, true)) === null ? '' : TF::BLUE . ' ' . $l . '');
-        $rs[] = TF::DARK_GRAY . '#' . $i . TF::BOLD . TF::DARK_GREEN . ' Create new regex';
+        $rs[] = TF::DARK_GRAY . '#' . ($i + 1) . TF::BOLD . TF::DARK_GREEN . ' Create new regex';
         if ($this->getRegex() !== null and $regexid === null) $rs[] = TF::ITALIC . TF::DARK_GRAY . 'External regex';
         $form->addDropdown(TF::BOLD . TF::GOLD . 'Select regex to modify:', $rs, $regexid ?? 0);
         if (!$this->isCreateNewElement()) {
@@ -153,12 +153,12 @@ class RandomEditSession {
                 $es[] = TF::DARK_BLUE . $item->getVanillaName() . TF::BLUE . ' (' . $item->getId() . ':' . $item->getDamage() . ')' .
                     TF::DARK_BLUE . 'Chance: ' . $chance . TF::BLUE . ' (' . round($chance / $totalchanceNonZero * 100, 2) . '%%)';
             }
-            $es[] = TF::BOLD . TF::DARK_GRAY . 'Do nothing';
-            $es[] = TF::BOLD . TF::DARK_GREEN . 'Enter element ID manually (Create element)';
-            $es[] = TF::BOLD . TF::DARK_AQUA . 'Add element from inventory';
+            $es[] = TF::BOLD . TF::GRAY . 'Do nothing';
+            $es[] = TF::BOLD . TF::GREEN . 'Enter element ID manually (Create element)';
+            $es[] = TF::BOLD . TF::AQUA . 'Add element from inventory';
             $item = $this->getLastEditedElementAsItem();
             if ($item !== null) $elementoption = array_search($item->getId() . ':' . $item->getDamage(), $elements, true);
-            $form->addDropdown(TF::BOLD . TF::GOLD . 'Select element to edit:', $es, (!isset($elementoption) or $elementoption === false) ? count($elements) + 1 : $elementoption);
+            $form->addDropdown(TF::BOLD . TF::GOLD . 'Select element to edit:', $es, (!isset($elementoption) or $elementoption === false) ? count($elements) : $elementoption);
         } else $form->addInput(TF::BOLD . TF::GOLD . 'Element ID:', '<ID / NamespaceID>:[meta], ...');
         $item = $this->getLastEditedElementAsItem();
         if ($item !== null) $chance = $this->getRegex()->getElementChance($item->getId(), $item->getDamage());

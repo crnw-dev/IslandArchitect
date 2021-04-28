@@ -240,7 +240,7 @@ class IslandArchitect extends PluginBase {
     }
 
     public function mapGeneratorType(string $type) : ?string {
-        return file_exists($path = $this->getDataFolder() . 'islands/' . $type . '.isarch-templis') ? $path : null;
+        return file_exists($path = $this->getDataFolder() . 'islands/' . $type . '.json') ? $path : null;
     }
 
     /**

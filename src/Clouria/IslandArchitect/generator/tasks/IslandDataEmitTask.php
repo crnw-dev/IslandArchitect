@@ -80,7 +80,7 @@ class IslandDataEmitTask extends AsyncTask {
         else $data = $island->export($chunks);
         $path = Utils::cleanPath($this->path);
         @mkdir($path);
-        $path = $path . ($path[-1] === '/' ? '' : '/') . $island->getName() . '.isarch-templis';
+        $path = $path . ($path[-1] === '/' ? '' : '/') . $island->getName() . '.json';
         if (file_put_contents($path, $data)) @unlink(substr($path, 22) . 'json');
 
         $this->setResult($path);
