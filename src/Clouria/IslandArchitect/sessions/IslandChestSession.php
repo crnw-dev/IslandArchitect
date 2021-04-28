@@ -75,6 +75,7 @@ class IslandChestSession {
     /**
      * IslandChestSession constructor.
      * @param PlayerSession $session
+     * @param IslandChest $chest
      * @param \Closure|null $callback
      */
     public function __construct(PlayerSession $session, IslandChest $chest, ?\Closure $callback = null) {

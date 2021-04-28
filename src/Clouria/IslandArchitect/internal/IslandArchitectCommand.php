@@ -38,6 +38,7 @@ use pocketmine\command\CommandSender;
 use Clouria\IslandArchitect\IslandArchitect;
 use Clouria\IslandArchitect\sessions\PlayerSession;
 use Clouria\IslandArchitect\generator\TemplateIsland;
+use Clouria\IslandArchitect\sessions\RandomEditSession;
 use Clouria\IslandArchitect\generator\tasks\IslandDataLoadTask;
 use Clouria\IslandArchitect\events\TemplateIslandCheckOutEvent;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
@@ -152,15 +153,16 @@ class IslandArchitectCommand extends Command {
             case 'random':
             case 'regex':
             case 'r':
-                if (PlayerSession::errorCheckOutRequired($sender, $s = IslandArchitect::getInstance()->getSession($sender))) break;
+                $s = IslandArchitect::getInstance()->getSession($sender);
+                if (PlayerSession::errorCheckOutRequired($sender, $s)) break;
                 if (isset($args[1])) {
-                    if (empty(preg_replace('/[0-9]+/i', '', $args[1]))) $regexid = (int)$args[1];
+                    if (empty(preg_replace('/[0-9]+/i', '', $args[1]))) new RandomEditSession($s, $s->getIsland()->getRandomById((int)$args[1]));
                     else foreach ($s->getIsland()->getRandomLabels() as $rid => $label) if (stripos($label, $args[1]) !== false) {
-                        $regexid = $rid;
-                        break;
+                        new RandomEditSession($s, $s->getIsland()->getRandomById($rid));
+                        break 2;
                     }
-                    $s->editRandom($regexid ?? null);
-                } else $s->listRandoms();
+                }
+                new RandomEditSession($s);
                 break;
 
             case 'export':

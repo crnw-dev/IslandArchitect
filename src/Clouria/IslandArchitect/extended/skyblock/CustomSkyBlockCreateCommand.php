@@ -156,7 +156,7 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
             }
             if ($is->getSpawn() !== null) {
                 $spawn = $is->getSpawn();
-                $spawn = $spawn->add(0, $is->getYOffset(), 0);
+                $spawn = $spawn->add(0, $is->getYOffset());
             }
             $level->setSpawnLocation($spawn ?? new Vector3(0, $is->getYOffset(), 0));
             $callback($level);

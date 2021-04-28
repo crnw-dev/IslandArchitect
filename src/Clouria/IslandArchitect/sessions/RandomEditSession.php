@@ -57,14 +57,27 @@ class RandomEditSession {
      * @var RandomGeneration|null
      */
     private $regex;
+    /**
+     * @var \Closure|null
+     */
+    private $callback;
+
+    /**
+     * @return \Closure|null
+     */
+    public function getCallback() : ?\Closure {
+        return $this->callback;
+    }
 
     /**
      * RandomEditSession constructor.
      */
-    public function __construct(PlayerSession $session, ?RandomGeneration $regex = null, ?int $id = null, ?int $meta = null) {
+    public function __construct(PlayerSession $session, ?RandomGeneration $regex = null, ?int $id = null, ?int $meta = null, ?\Closure $callback = null) {
         $this->session = $session;
         $this->regex = $regex;
-        if (isset($id)) $this->last_edited_element = $id . ':' . $meta;
+        if (isset($id)) $this->last_edited_element = $id . (isset($meta) ? ':' . $meta : '');
+        $this->callback = $callback;
+        $this->editRandom();
     }
 
     public function editRandom() : void {
@@ -74,7 +87,10 @@ class RandomEditSession {
         $regs = $is->getRandoms();
         $elements = $this->getRegex()->getAllElements();
         $form = new CustomForm(function(Player $p, array $d = null) use ($regexid, $regs, $is, $elements) : void {
-            if ($d === null) return;
+            if ($d === null) {
+                if ($this->getCallback() !== null) $this->getCallback()();
+                return;
+            }
             $pickedregex = (int)$d[0];
             if ($pickedregex !== $regexid and ($this->getRegex() !== null and $regexid === null and $pickedregex !== count($regs))) {
                 if (isset($regs[$pickedregex])) $this->setRegex($regexid);
