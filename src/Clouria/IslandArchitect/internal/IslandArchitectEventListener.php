@@ -101,8 +101,7 @@ class IslandArchitectEventListener implements Listener {
             !($nbt = $nbt->getTag('regex', ListTag::class)) instanceof ListTag or
             !RandomGeneration::fromNBT($nbt)->equals($regex)
         ) {
-            $i = $regex->getRandomGenerationItem($s->getIsland()->getRandomSymbolicItem($r));
-            $i->setCount(64);
+            $i = $regex->getRandomGenerationItem($s->getIsland()->getRandomSymbolicItem($r), $r);
             $s->getPlayer()->getInventory()->addItem($i);
         }
     }

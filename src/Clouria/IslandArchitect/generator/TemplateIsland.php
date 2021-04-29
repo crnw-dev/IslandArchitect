@@ -52,7 +52,7 @@ use function array_values;
 class TemplateIsland {
 
     public const DEFAULT_YOFFSET = 60;
-    protected const SYMBOLICS = [
+    public const SYMBOLICS = [
         [Item::PURPLE_GLAZED_TERRACOTTA],
         [Item::WHITE_GLAZED_TERRACOTTA],
         [Item::ORANGE_GLAZED_TERRACOTTA],

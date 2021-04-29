@@ -33,10 +33,12 @@ use pocketmine\item\ItemFactory;
 use jojoe77777\FormAPI\ModalForm;
 use jojoe77777\FormAPI\CustomForm;
 use pocketmine\utils\TextFormat as TF;
+use Clouria\IslandArchitect\generator\TemplateIsland;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use function is_int;
 use function explode;
 use function array_keys;
+use function array_rand;
 use function str_replace;
 use function array_search;
 
@@ -131,6 +133,11 @@ class RandomEditSession {
                     return;
 
                 case count($elements) + 2:
+                    $item = $this->getRegex()->getRandomGenerationItem($regexid !== null ? $is->getRandomSymbolicItem($regexid) : Item::get(TemplateIsland::SYMBOLICS[array_rand(TemplateIsland::SYMBOLICS)][0]), $regexid ?? null);
+                    $p->getInventory()->addItem($item);
+                    return;
+
+                case count($elements) + 3:
                     if (isset($regexid)) $this->removeConfirmation();
                     else $this->editRandom();
                     return;
@@ -193,6 +200,7 @@ class RandomEditSession {
             }
             $es[] = TF::BOLD . TF::GREEN . 'Enter element ID manually';
             $es[] = TF::BOLD . TF::AQUA . 'Add element from inventory';
+            $es[] = TF::BOLD . TF::AQUA . 'Obtain random generation block item';
             if (isset($regexid)) $es[] = TF::BOLD . TF::RED . 'Remove regex';
             if ($li !== null) $searched = array_search($li->getId() . ':' . $li->getDamage(), array_keys($elements), true);
             if ($this->getRegex() !== null) $form->addDropdown(TF::BOLD . TF::GOLD . 'Select an action or element to edit:', $es, (!isset($searched) or $searched === false) ? count($elements) + 1 : $searched);
