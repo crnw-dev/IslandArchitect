@@ -37,7 +37,7 @@ final class DummyWorldGenerator extends Generator {
     public function __construct(array $settings = []) { }
 
     public function generateChunk(int $chunkX, int $chunkZ) : void {
-        $this->level->getChunk($chunkX, $chunkZ)->setGenerated(true);
+        // $this->level->getChunk($chunkX, $chunkZ)->setGenerated(true);
     }
 
     public function populateChunk(int $chunkX, int $chunkZ) : void { }

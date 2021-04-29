@@ -41,7 +41,7 @@ use room17\SkyBlock\command\presets\CreateCommand;
 use Clouria\IslandArchitect\sessions\PlayerSession;
 use Clouria\IslandArchitect\generator\TemplateIsland;
 use Clouria\IslandArchitect\internal\IslandArchitectCommand;
-use Clouria\IslandArchitect\generator\TemplateIslandGenerator;
+use Clouria\IslandArchitect\generator\StructureGeneratorTask;
 use Clouria\IslandArchitect\extended\buildertools\CustomPrinter;
 use Clouria\IslandArchitect\internal\IslandArchitectEventListener;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
@@ -66,7 +66,7 @@ class IslandArchitect extends PluginBase {
     /**
      * @var string
      */
-    private $generator_class = TemplateIslandGenerator::class;
+    private $generator_class = StructureGeneratorTask::class;
 
     /**
      * PHPStorm, this is NOT a DUPLICATED CODE FRAGMENT
@@ -215,7 +215,7 @@ class IslandArchitect extends PluginBase {
                         if ($class !== null) {
                             $this->getLogger()->error('Some plugins do not compatible with IslandArchitect, IslandArchitect cannot register the template island generator!');
                             $this->getLogger()->debug('(One of the plugin has already registered a generator("' .
-                                get_class($class) . '") that does not extends ' . TemplateIslandGenerator::class .
+                                get_class($class) . '") that does not extends ' . StructureGeneratorTask::class .
                                 ' and uses the same name as template island generator ("' . DummyIslandGenerator::GENERATOR_NAME . '")');
                             break;
                         }
@@ -229,11 +229,11 @@ class IslandArchitect extends PluginBase {
     }
 
     /**
-     * @return class-string<TemplateIslandGenerator>
+     * @return class-string<StructureGeneratorTask>
      */
     public function getTemplateIslandGenerator() {
-        if (is_a($this->generator_class, TemplateIslandGenerator::class, true) and is_string($this->generator_class)) return $this->generator_class;
-        return TemplateIslandGenerator::class;
+        if (is_a($this->generator_class, StructureGeneratorTask::class, true) and is_string($this->generator_class)) return $this->generator_class;
+        return StructureGeneratorTask::class;
     }
 
     public function getSession(Player $player, bool $nonnull = false) : ?PlayerSession {
@@ -265,10 +265,10 @@ class IslandArchitect extends PluginBase {
     }
 
     /**
-     * @param class-string<TemplateIslandGenerator> $class
+     * @param class-string<StructureGeneratorTask> $class
      */
     public function setTemplateIslandGenerator(string $class) : bool {
-        if (!is_a($class, TemplateIslandGenerator::class, true)) return false;
+        if (!is_a($class, StructureGeneratorTask::class, true)) return false;
         $this->generator_class = $class;
         return true;
     }
