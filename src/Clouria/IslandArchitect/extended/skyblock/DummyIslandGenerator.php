@@ -29,8 +29,12 @@ namespace Clouria\IslandArchitect\extended\skyblock;
 
 use pocketmine\math\Vector3;
 use room17\SkyBlock\island\generator\IslandGenerator;
+use Clouria\IslandArchitect\extended\pocketmine\DummyWorldGenerator;
 
-class DummyIslandGenerator extends IslandGenerator {
+final class DummyIslandGenerator extends IslandGenerator {
+
+    public const GENERATOR_NAME = DummyWorldGenerator::GENERATOR_NAME;
+    public const LEGACY_GENERATOR_NAME = 'templateislandgenerator';
 
     public static function getWorldSpawn() : Vector3 {
         return new Vector3(0, 0, 0);
@@ -45,6 +49,6 @@ class DummyIslandGenerator extends IslandGenerator {
     }
 
     public function getName() : string {
-        return 'islandarchitect-generator';
+        return self::GENERATOR_NAME;
     }
 }

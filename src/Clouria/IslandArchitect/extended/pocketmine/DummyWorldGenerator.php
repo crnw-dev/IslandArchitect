@@ -30,7 +30,9 @@ namespace Clouria\IslandArchitect\extended\pocketmine;
 use pocketmine\math\Vector3;
 use pocketmine\level\generator\Generator;
 
-class DummyWorldGenerator extends Generator {
+final class DummyWorldGenerator extends Generator {
+
+    public const GENERATOR_NAME = 'isarch-generator';
 
     public function __construct(array $settings = []) { }
 
@@ -45,7 +47,7 @@ class DummyWorldGenerator extends Generator {
     }
 
     public function getName() : string {
-        return 'islandarchitect-generator';
+        return self::GENERATOR_NAME;
     }
 
     public function getSpawn() : Vector3 {

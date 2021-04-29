@@ -46,6 +46,7 @@ use Clouria\IslandArchitect\extended\buildertools\CustomPrinter;
 use Clouria\IslandArchitect\internal\IslandArchitectEventListener;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use Clouria\IslandArchitect\internal\IslandArchitectPluginTickTask;
+use Clouria\IslandArchitect\extended\skyblock\DummyIslandGenerator;
 use Clouria\IslandArchitect\extended\skyblock\CustomSkyBlockCreateCommand;
 use function is_a;
 use function get_class;
@@ -210,15 +211,17 @@ class IslandArchitect extends PluginBase {
                 }
                 switch (true) {
                     default:
-                        $class = $pl->getGeneratorManager()->getGenerator($this->getTemplateIslandGenerator()::GENERATOR_NAME);
+                        $class = $pl->getGeneratorManager()->getGenerator(DummyIslandGenerator::GENERATOR_NAME);
                         if ($class !== null) {
                             $this->getLogger()->error('Some plugins do not compatible with IslandArchitect, IslandArchitect cannot register the template island generator!');
-                            $this->getLogger()
-                                 ->debug('(One of the plugin has already registered a generator("' . get_class($class) . '") that does not extends ' . TemplateIslandGenerator::class . ' and uses the same name as template island generator ("' .
-                                     $this->getTemplateIslandGenerator()::GENERATOR_NAME . '")' . CustomSkyBlockCreateCommand::class . ')');
+                            $this->getLogger()->debug('(One of the plugin has already registered a generator("' .
+                                get_class($class) . '") that does not extends ' . TemplateIslandGenerator::class .
+                                ' and uses the same name as template island generator ("' . DummyIslandGenerator::GENERATOR_NAME . '")');
                             break;
                         }
-                        $pl->getGeneratorManager()->registerGenerator($this->getTemplateIslandGenerator()::GENERATOR_NAME, $this->getTemplateIslandGenerator());
+                        $pl->getGeneratorManager()->registerGenerator(DummyIslandGenerator::GENERATOR_NAME, DummyIslandGenerator::class);
+                        $class = $pl->getGeneratorManager()->getGenerator(DummyIslandGenerator::LEGACY_GENERATOR_NAME);
+                        if ($class === null) $pl->getGeneratorManager()->registerGenerator(DummyIslandGenerator::LEGACY_GENERATOR_NAME, DummyIslandGenerator::class);
                         break;
                 }
                 break;
