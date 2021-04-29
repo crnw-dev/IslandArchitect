@@ -258,12 +258,12 @@ class TemplateIsland {
             $this->symbolic = array_values($symbolic);
         }
 
-        while (($level = Server::getInstance()->getLevelByName($this->getLevel())) === null) {
+        if ($this->getLevel() !== null) while (($level = Server::getInstance()->getLevelByName($this->getLevel())) === null) {
             if ($wlock ?? false) break;
             Server::getInstance()->loadLevel($this->getLevel());
             $wlock = true;
         }
-        if ($level !== null) {
+        if (isset($level)) {
             $block = Block::get(Item::AIR);
             foreach ($remove ?? [] as $pos) {
                 $pos = explode(':', $pos);
