@@ -108,8 +108,8 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
             $level->setSpawnLocation($generator::getWorldSpawn());
         } else {
             Server::getInstance()->generateLevel($identifier,
-                null, IslandArchitect::getInstance()->getStructureGeneratorTaskClass());
-            @copy(IslandArchitect::getInstance()->getDataFolder() . 'islands/' . $type . '.json', Server::getInstance()->getDataPath() . 'worlds/' . $identifier . '/' . $type . '.json');
+                null, DummyIslandGenerator::class);
+            copy($type, Server::getInstance()->getDataPath() . 'worlds/' . $identifier . '/' . 'isarch-structure.json');
             Server::getInstance()->loadLevel($identifier);
             $level = Server::getInstance()->getLevelByName($identifier);
         }
