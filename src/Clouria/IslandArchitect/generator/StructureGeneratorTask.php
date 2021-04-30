@@ -35,6 +35,7 @@ use pocketmine\level\format\Chunk;
 use pocketmine\scheduler\AsyncTask;
 use function filesize;
 use function file_exists;
+use function is_callable;
 use function file_get_contents;
 
 class StructureGeneratorTask extends AsyncTask {
@@ -92,5 +93,7 @@ class StructureGeneratorTask extends AsyncTask {
         $result = $this->getResult();
         $level = $fridge[1];
         if ($level instanceof Level) $level->setChunk((int)$fridge[2], (int)$fridge[3], $result[0]);
+        $callback = $fridge[4];
+        if (is_callable($callback)) $callback(...$result);
     }
 }

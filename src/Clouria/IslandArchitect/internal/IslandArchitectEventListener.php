@@ -27,6 +27,8 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\internal;
 
+use pocketmine\Server;
+use pocketmine\utils\Random;
 use room17\SkyBlock\SkyBlock;
 use pocketmine\nbt\tag\IntTag;
 use pocketmine\event\Listener;
@@ -41,12 +43,16 @@ use pocketmine\event\block\BlockBreakEvent;
 use Clouria\IslandArchitect\IslandArchitect;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\event\plugin\PluginEnableEvent;
+use pocketmine\event\level\ChunkPopulateEvent;
 use pocketmine\event\entity\EntityExplodeEvent;
 use pocketmine\event\server\QueryRegenerateEvent;
 use pocketmine\event\inventory\InventoryOpenEvent;
 use Clouria\IslandArchitect\sessions\PlayerSession;
+use Clouria\IslandArchitect\generator\StructureGeneratorTask;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
+use Clouria\IslandArchitect\extended\skyblock\DummyIslandGenerator;
 use Clouria\IslandArchitect\events\RandomGenerationBlockUpdateEvent;
+use Clouria\IslandArchitect\extended\pocketmine\DummyWorldGenerator;
 use function class_exists;
 
 class IslandArchitectEventListener implements Listener {
@@ -198,5 +204,18 @@ class IslandArchitectEventListener implements Listener {
         if (($r = array_search($this, $pl = $ev->getPlugins())) === false) return;
         unset($pl[$r]);
         $ev->setPlugins($pl);
+    }
+
+    public function onChunkPopulate(ChunkPopulateEvent $ev) : void {
+        $gen = $ev->getLevel()->getProvider()->getGenerator();
+        if ($gen !== DummyWorldGenerator::GENERATOR_NAME and !(class_exists(SkyBlock::class) and DummyIslandGenerator::LEGACY_GENERATOR_NAME)) return;
+        if ($ev->getChunk()->isGenerated()) return;
+        Server::getInstance()->getAsyncPool()->submitTask(new StructureGeneratorTask(
+            $ev->getLevel()->getProvider()->getPath() . 'isarch-structure.json',
+            new Random($ev->getLevel()->getProvider()->getSeed()),
+            $ev->getLevel(),
+            $ev->getChunk()->getX(),
+            $ev->getChunk()->getZ()
+        ));
     }
 }
