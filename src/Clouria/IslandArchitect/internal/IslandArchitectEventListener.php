@@ -48,7 +48,6 @@ use pocketmine\event\entity\EntityExplodeEvent;
 use pocketmine\event\server\QueryRegenerateEvent;
 use pocketmine\event\inventory\InventoryOpenEvent;
 use Clouria\IslandArchitect\sessions\PlayerSession;
-use Clouria\IslandArchitect\generator\StructureGeneratorTask;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use Clouria\IslandArchitect\extended\skyblock\DummyIslandGenerator;
 use Clouria\IslandArchitect\events\RandomGenerationBlockUpdateEvent;
@@ -210,7 +209,8 @@ class IslandArchitectEventListener implements Listener {
         $gen = $ev->getLevel()->getProvider()->getGenerator();
         if ($gen !== DummyWorldGenerator::GENERATOR_NAME and !(class_exists(SkyBlock::class) and DummyIslandGenerator::LEGACY_GENERATOR_NAME)) return;
         if ($ev->getChunk()->isGenerated()) return;
-        Server::getInstance()->getAsyncPool()->submitTask(new StructureGeneratorTask(
+        $class = IslandArchitect::getInstance()->getStructureGeneratorTaskClass();
+        Server::getInstance()->getAsyncPool()->submitTask(new $class(
             $ev->getLevel()->getProvider()->getPath() . 'isarch-structure.json',
             new Random($ev->getLevel()->getProvider()->getSeed()),
             $ev->getLevel(),

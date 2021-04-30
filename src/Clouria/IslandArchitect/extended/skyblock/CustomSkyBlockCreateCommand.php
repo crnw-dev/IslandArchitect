@@ -41,6 +41,7 @@ use room17\SkyBlock\utils\message\MessageContainer;
 use Clouria\IslandArchitect\generator\TemplateIsland;
 use Clouria\IslandArchitect\events\IslandWorldPreCreateEvent;
 use Clouria\IslandArchitect\generator\tasks\IslandDataLoadTask;
+use Clouria\IslandArchitect\extended\pocketmine\DummyWorldGenerator;
 use function explode;
 use function serialize;
 use function strtolower;
@@ -101,7 +102,7 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
         $islandManager = SkyBlock::getInstance()->getIslandManager();
         $callback = function(Level $w) use ($session, $islandManager, $identifier) : void {
             if (!$session->getPlayer()->isOnline()) return;
-            $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, IslandArchitect::getInstance()->getTemplateIslandGenerator()::GENERATOR_NAME,
+            $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, DummyWorldGenerator::GENERATOR_NAME,
                 $w, 0);
 
             $session->setIsland($island = $islandManager->getIsland($identifier));
@@ -146,7 +147,7 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
         $task = new IslandDataLoadTask($type, function(TemplateIsland $is, string $file) use ($identifier, $callback, $type) : void {
             $settings = ['IslandArchitect' => serialize($is->dump())];
             Server::getInstance()->generateLevel($identifier,
-                null, IslandArchitect::getInstance()->getTemplateIslandGenerator(), $settings ?? []);
+                null, IslandArchitect::getInstance()->getStructureGeneratorTaskClass(), $settings ?? []);
             Server::getInstance()->loadLevel($identifier);
             $level = Server::getInstance()->getLevelByName($identifier);
             if (isset($settings['IslandArchitect']['structure'])) {

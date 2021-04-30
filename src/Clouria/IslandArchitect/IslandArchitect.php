@@ -231,7 +231,7 @@ class IslandArchitect extends PluginBase {
     /**
      * @return class-string<StructureGeneratorTask>
      */
-    public function getTemplateIslandGenerator() {
+    public function getStructureGeneratorTaskClass() {
         if (is_a($this->generator_class, StructureGeneratorTask::class, true) and is_string($this->generator_class)) return $this->generator_class;
         return StructureGeneratorTask::class;
     }
@@ -267,7 +267,7 @@ class IslandArchitect extends PluginBase {
     /**
      * @param class-string<StructureGeneratorTask> $class
      */
-    public function setTemplateIslandGenerator(string $class) : bool {
+    public function setStructureGeneratorTaskClass(string $class) : bool {
         if (!is_a($class, StructureGeneratorTask::class, true)) return false;
         $this->generator_class = $class;
         return true;
