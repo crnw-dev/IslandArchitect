@@ -400,8 +400,8 @@ class TemplateIsland {
     public function getProcessedBlock(int $x, int $y, int $z, Random $random) : ?array {
         $y -= $this->getYOffset();
         $block = $this->structure[$x . ':' . $y . ':' . $z] ?? null;
+        if (!isset($block)) return null;
         $block = explode(':', $block);
-        if (!isset($block[1])) return null;
         switch ((int)$block[0]) {
             case 1:
                 $block = $this->getRandomById((int)$block[1])->randomElementArray($random);

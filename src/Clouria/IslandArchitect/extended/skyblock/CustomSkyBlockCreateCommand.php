@@ -109,7 +109,7 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
         } else {
             Server::getInstance()->generateLevel($identifier,
                 null, DummyIslandGenerator::class);
-            copy($type, Server::getInstance()->getDataPath() . 'worlds/' . $identifier . '/' . 'isarch-structure.json');
+            @copy($type, Server::getInstance()->getDataPath() . 'worlds/' . $identifier . '/' . 'isarch-structure.json');
             Server::getInstance()->loadLevel($identifier);
             $level = Server::getInstance()->getLevelByName($identifier);
         }

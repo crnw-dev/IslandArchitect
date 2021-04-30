@@ -72,6 +72,7 @@ class StructureGeneratorTask extends AsyncTask {
         $reflect = new \ReflectionProperty($this->worker, 'memoryLimit');
         $reflect->setAccessible(true);
         $memlimit = $reflect->getValue($this->worker);
+        $memlimit = $memlimit * 1024 * 1024;
         if (filesize($file) > $memlimit) {
             $this->setResult(null);
             return;
@@ -84,12 +85,14 @@ class StructureGeneratorTask extends AsyncTask {
             for ($z = $this->chunkZ << 4; $z < ($this->chunkZ + 1) << 4; $z++)
                 for ($y = 0; $y <= Level::Y_MAX; $y++) {
                     $block = $struct->getProcessedBlock($x, $y, $z, $random);
+                    if (!isset($block)) continue;
                     $chunk->setBlock($x, $y, $z, $block[0], $block[1]);
                 }
         $this->setResult([$chunk, $random, $struct->getSpawn()]);
     }
 
     public function onCompletion(Server $server) : void {
+        // TODO: Handle error if failed to generate structure
         $fridge = $this->fetchLocal();
         $result = $this->getResult();
         $level = $fridge[1];

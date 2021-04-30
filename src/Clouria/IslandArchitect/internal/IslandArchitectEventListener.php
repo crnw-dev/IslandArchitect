@@ -205,9 +205,12 @@ class IslandArchitectEventListener implements Listener {
         $ev->setPlugins($pl);
     }
 
+    /**
+     * @priority MONITOR
+     */
     public function onChunkLoad(ChunkLoadEvent $ev) : void {
         $gen = $ev->getLevel()->getProvider()->getGenerator();
-        if ($gen !== DummyWorldGenerator::GENERATOR_NAME and !(class_exists(SkyBlock::class) and DummyIslandGenerator::LEGACY_GENERATOR_NAME)) return;
+        if ($gen !== DummyWorldGenerator::GENERATOR_NAME or !(class_exists(SkyBlock::class) and DummyIslandGenerator::LEGACY_GENERATOR_NAME)) return;
         if ($ev->isNewChunk()) return;
         $class = IslandArchitect::getInstance()->getStructureGeneratorTaskClass();
         Server::getInstance()->getAsyncPool()->submitTask(new $class(
