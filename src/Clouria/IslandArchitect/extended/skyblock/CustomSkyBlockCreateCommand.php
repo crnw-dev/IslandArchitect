@@ -28,8 +28,6 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\extended\skyblock;
 
 use pocketmine\Server;
-use pocketmine\level\Level;
-use pocketmine\math\Vector3;
 use room17\SkyBlock\SkyBlock;
 use room17\SkyBlock\island\RankIds;
 use room17\SkyBlock\session\Session;
@@ -38,15 +36,9 @@ use Clouria\IslandArchitect\IslandArchitect;
 use room17\SkyBlock\command\presets\CreateCommand;
 use room17\SkyBlock\event\island\IslandCreateEvent;
 use room17\SkyBlock\utils\message\MessageContainer;
-use Clouria\IslandArchitect\generator\TemplateIsland;
 use Clouria\IslandArchitect\events\IslandWorldPreCreateEvent;
-use Clouria\IslandArchitect\generator\tasks\IslandDataLoadTask;
 use Clouria\IslandArchitect\extended\pocketmine\DummyWorldGenerator;
-use function explode;
-use function serialize;
 use function strtolower;
-use function array_keys;
-use function array_reverse;
 
 class CustomSkyBlockCreateCommand extends CreateCommand {
 
@@ -100,21 +92,6 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
 
         $type = $ev->getType();
         $islandManager = SkyBlock::getInstance()->getIslandManager();
-        $callback = function(Level $w) use ($session, $islandManager, $identifier) : void {
-            if (!$session->getPlayer()->isOnline()) return;
-            $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, DummyWorldGenerator::GENERATOR_NAME,
-                $w, 0);
-
-            $session->setIsland($island = $islandManager->getIsland($identifier));
-            $session->setRank(RankIds::FOUNDER);
-            $session->setLastIslandCreationTime(microtime(true));
-            $session->getPlayer()->teleport($island->getSpawnLocation());
-
-            $session->save();
-            $island->save();
-
-            (new IslandCreateEvent($island))->call();
-        };
 
         if ($mapped === null) {
             $generatorManager = SkyBlock::getInstance()->getGeneratorManager();
@@ -129,40 +106,30 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
             $server->loadLevel($identifier);
             $level = $server->getLevelByName($identifier);
             $level->setSpawnLocation($generator::getWorldSpawn());
+        } else {
+            Server::getInstance()->generateLevel($identifier,
+                null, IslandArchitect::getInstance()->getStructureGeneratorTaskClass());
+            @copy(IslandArchitect::getInstance()->getDataFolder() . 'islands/' . $type . '.json', Server::getInstance()->getDataPath() . 'worlds/' . $identifier . '/' . $type . '.json');
+            Server::getInstance()->loadLevel($identifier);
+            $level = Server::getInstance()->getLevelByName($identifier);
+        }
+        if (!$session->getPlayer()->isOnline()) return;
+        $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, DummyWorldGenerator::GENERATOR_NAME,
+            $level, 0);
 
-            $callback($level);
-        } else static::createTemplateIslandWorldAsync($identifier, $type, $callback);
+        $session->setIsland($island = $islandManager->getIsland($identifier));
+        $session->setRank(RankIds::FOUNDER);
+        $session->setLastIslandCreationTime(microtime(true));
+        $session->getPlayer()->teleport($island->getSpawnLocation());
+
+        $session->save();
+        $island->save();
+
+        (new IslandCreateEvent($island))->call();
     }
 
     protected static function createIslandIdentifier() : string {
         return uniqid("sb-");
-    }
-
-    /**
-     * @param string $identifier
-     * @param string $type
-     * @param \Closure $callback Should compatible with <code>function(<@link Level> $level) {}</code>
-     */
-    public static function createTemplateIslandWorldAsync(string $identifier, string $type, \Closure $callback) : void {
-        $task = new IslandDataLoadTask($type, function(TemplateIsland $is, string $file) use ($identifier, $callback, $type) : void {
-            $settings = ['IslandArchitect' => serialize($is->dump())];
-            Server::getInstance()->generateLevel($identifier,
-                null, IslandArchitect::getInstance()->getStructureGeneratorTaskClass(), $settings ?? []);
-            Server::getInstance()->loadLevel($identifier);
-            $level = Server::getInstance()->getLevelByName($identifier);
-            if (isset($settings['IslandArchitect']['structure'])) {
-                $sc = explode(':', array_keys($settings['IslandArchitect']['structure'])[0]);
-                $ec = explode(':', array_reverse(array_keys($settings['IslandArchitect']['structure']))[0]);
-                for ($x = (int)$sc[0] >> 4; $x <= ((int)$ec[0] >> 4); $x++) for ($z = (int)$sc[2] >> 4; $z <= ((int)$ec[2] >> 4); $z++) $level->getChunk($x, $z, true);
-            }
-            if ($is->getSpawn() !== null) {
-                $spawn = $is->getSpawn();
-                $spawn = $spawn->add(0, $is->getYOffset());
-            }
-            $level->setSpawnLocation($spawn ?? new Vector3(0, $is->getYOffset(), 0));
-            $callback($level);
-        });
-        Server::getInstance()->getAsyncPool()->submitTask($task);
     }
 
 }

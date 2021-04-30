@@ -31,6 +31,7 @@ namespace Clouria\IslandArchitect\generator;
 use pocketmine\Server;
 use pocketmine\level\Level;
 use pocketmine\utils\Random;
+use pocketmine\math\Vector3;
 use pocketmine\level\format\Chunk;
 use pocketmine\scheduler\AsyncTask;
 use function filesize;
@@ -85,14 +86,18 @@ class StructureGeneratorTask extends AsyncTask {
                     $block = $struct->getProcessedBlock($x, $y, $z, $random);
                     $chunk->setBlock($x, $y, $z, $block[0], $block[1]);
                 }
-        $this->setResult([$chunk, $random]);
+        $this->setResult([$chunk, $random, $struct->getSpawn()]);
     }
 
     public function onCompletion(Server $server) : void {
         $fridge = $this->fetchLocal();
         $result = $this->getResult();
         $level = $fridge[1];
-        if ($level instanceof Level) $level->setChunk((int)$fridge[2], (int)$fridge[3], $result[0]);
+        if ($level instanceof Level) {
+            $level->setChunk((int)$fridge[2], (int)$fridge[3], $result[0]);
+            $spawn = $result[2];
+            if ($spawn instanceof Vector3 and !$spawn->equals($level->getSpawnLocation())) $level->setSpawnLocation($spawn);
+        }
         $callback = $fridge[4];
         if (is_callable($callback)) $callback(...$result);
     }
