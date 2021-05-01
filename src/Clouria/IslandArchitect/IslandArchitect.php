@@ -69,6 +69,7 @@ class IslandArchitect extends PluginBase {
      * @var string
      */
     private $generator_class = StructureGeneratorTask::class;
+    private $leveltype = [];
 
     public static function getSafeBuilderToolsInstance() : BuilderTools {
         foreach (Server::getInstance()->getPluginManager()->getPlugins() as $pl) if ($pl instanceof BuilderTools) return $pl;
@@ -302,6 +303,18 @@ class IslandArchitect extends PluginBase {
             $regexid = $is->addRandom($r);
             $is->setRandomLabel($regexid, $label);
         }
+    }
+
+    public function setLevelStructureType(string $level, string $type) : bool {
+        if (isset($this->leveltype[$level])) return false;
+        $this->leveltype[$level] = $type;
+        return true;
+    }
+
+    public function getLevelStructureType(string $level) : ?string {
+        $type = $this->leveltype[$level] ?? null;
+        if (isset($type)) unset($this->leveltype[$level]);
+        return $type;
     }
 
 }
