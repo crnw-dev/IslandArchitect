@@ -407,8 +407,12 @@ class TemplateIsland {
                 $block = $this->getRandomById((int)$block[1])->randomElementArray($random);
                 if ($block[0] === Item::AIR) return null;
                 else return $block;
+
+            default:
+                $block = [(int)$block[1], (int)($block[2] ?? 0)];
+                if ($block[0] === Item::AIR) return null;
+                return $block;
         }
-        return null;
     }
 
     public function getYOffset() : int {

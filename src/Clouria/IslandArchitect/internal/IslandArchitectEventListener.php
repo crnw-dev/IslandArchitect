@@ -44,6 +44,7 @@ use pocketmine\event\block\BlockBreakEvent;
 use Clouria\IslandArchitect\IslandArchitect;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\event\plugin\PluginEnableEvent;
+use pocketmine\event\level\ChunkPopulateEvent;
 use pocketmine\event\entity\EntityExplodeEvent;
 use pocketmine\event\server\QueryRegenerateEvent;
 use pocketmine\event\inventory\InventoryOpenEvent;
@@ -209,10 +210,10 @@ class IslandArchitectEventListener implements Listener {
     /**
      * @priority MONITOR
      */
-    public function onChunkLoad(ChunkLoadEvent $ev) : void {
+    public function onChunkPopulate(ChunkPopulateEvent $ev) : void {
         $gen = $ev->getLevel()->getProvider()->getGenerator();
         if ($gen !== DummyWorldGenerator::GENERATOR_NAME or !(class_exists(SkyBlock::class) and DummyIslandGenerator::LEGACY_GENERATOR_NAME)) return;
-        if (!$ev->isNewChunk()) return;
+        // if (!$ev->isNewChunk()) return;
         if (!file_exists($path = $ev->getLevel()->getProvider()->getPath() . 'isarch-structure.json')) {
             $type = IslandArchitect::getInstance()->getLevelStructureType($ev->getLevel()->getFolderName());
             if (isset($type)) @copy($type, $path);

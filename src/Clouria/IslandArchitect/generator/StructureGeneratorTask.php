@@ -34,9 +34,9 @@ use pocketmine\utils\Random;
 use pocketmine\math\Vector3;
 use pocketmine\level\format\Chunk;
 use pocketmine\scheduler\AsyncTask;
+use pocketmine\scheduler\ClosureTask;
 use Clouria\IslandArchitect\IslandArchitect;
 use function filesize;
-use function var_dump;
 use function file_exists;
 use function is_callable;
 use function array_shift;
@@ -61,6 +61,10 @@ class StructureGeneratorTask extends AsyncTask {
      * @var Random
      */
     protected $random;
+    /**
+     * @var Chunk|null
+     */
+    protected $chunk;
 
     public function __construct(string $file, Random $random, Level $level, int $chunkX, int $chunkZ, ?\Closure $callback = null) {
         $this->storeLocal([$file, $level, $chunkX, $chunkZ, $callback]);
@@ -68,6 +72,7 @@ class StructureGeneratorTask extends AsyncTask {
         $this->random = $random;
         $this->chunkX = $chunkX;
         $this->chunkZ = $chunkZ;
+        $this->chunk = $level->getChunk($chunkX, $chunkZ, true)->fastSerialize();
     }
 
     public function onRun() {
@@ -85,21 +90,24 @@ class StructureGeneratorTask extends AsyncTask {
             return;
         }
         $struct = TemplateIsland::load(file_get_contents($file));
-        $chunk = new Chunk($this->chunkX, $this->chunkZ);
+        $chunk = Chunk::fastDeserialize($this->chunk);
         $chunk->setGenerated(true);
 
         $cx = $this->chunkX;
         $cz = $this->chunkZ;
-        var_dump('chunk: ' . $cx . ':' . $cz);
         $random = $this->random;
-        for ($x = $cx << 4; $x < ($cx + 1) << 4; $x++)
-            for ($z = $cz << 4; $z < ($cz + 1) << 4; $z++)
-                for ($y = 0; $y <= Level::Y_MAX; $y++) {
+        for ($y = 0; $y <= Level::Y_MAX; $y++) {
+            $subchunk = $chunk->getSubChunk($y >> 4, true);
+            $blocks = 0;
+            for ($x = $cx << 4; $x < ($cx + 1) << 4; $x++)
+                for ($z = $cz << 4; $z < ($cz + 1) << 4; $z++) {
                     $block = $struct->getProcessedBlock($x, $y, $z, $random);
-                    if ($this->chunkX === 1 and $this->chunkZ === 0) var_dump($x . ':' . $y . ':' . $z, $block);
                     if (!isset($block)) continue;
-                    $chunk->setBlock($x, $y, $z, $block[0], $block[1]);
+                    $r = $subchunk->setBlock($x & 0x0f, $y & 0x0f, $z & 0x0f, $block[0], $block[1]);
+                    if ($r) $blocks++;
                 }
+        }
+
         $this->setResult([self::SUCCEED, $chunk, $random, $struct->getSpawn()]);
     }
 
@@ -120,8 +128,10 @@ class StructureGeneratorTask extends AsyncTask {
         }
         $level = $fridge[1];
         if ($level instanceof Level) {
-            var_dump('done');
-            $level->setChunk((int)$fridge[2], (int)$fridge[3], $result[1]);
+            $chunk = $result[1];
+            if ($chunk instanceof Chunk) IslandArchitect::getInstance()->getScheduler()->scheduleDelayedTask(new ClosureTask(function(int $ct) use ($fridge, $chunk, $level) : void {
+                    $level->setChunk((int)$fridge[2], (int)$fridge[3], $chunk);
+                }), 5 * 20);
             $spawn = $result[3];
             if ($spawn instanceof Vector3 and !$spawn->equals($level->getSpawnLocation())) {
                 $level->setSpawnLocation($spawn);

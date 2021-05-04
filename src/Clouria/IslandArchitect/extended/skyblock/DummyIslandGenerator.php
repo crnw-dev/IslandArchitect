@@ -45,7 +45,7 @@ final class DummyIslandGenerator extends IslandGenerator {
     }
 
     public function generateChunk(int $chunkX, int $chunkZ) : void {
-        // $this->level->getChunk($chunkX, $chunkZ)->setGenerated(true);
+        $this->level->getChunk($chunkX, $chunkZ)->setGenerated(true);
     }
 
     public function getName() : string {
