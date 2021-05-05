@@ -27,6 +27,8 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\internal;
 
+use pocketmine\Server;
+use pocketmine\utils\Random;
 use room17\SkyBlock\SkyBlock;
 use pocketmine\nbt\tag\IntTag;
 use pocketmine\event\Listener;
@@ -36,17 +38,22 @@ use pocketmine\utils\SingletonTrait;
 use pocketmine\utils\TextFormat as TF;
 use czechpmdevs\buildertools\BuilderTools;
 use pocketmine\event\level\LevelSaveEvent;
+use pocketmine\event\level\ChunkLoadEvent;
 use pocketmine\event\block\BlockPlaceEvent;
 use pocketmine\event\block\BlockBreakEvent;
 use Clouria\IslandArchitect\IslandArchitect;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\event\plugin\PluginEnableEvent;
+use pocketmine\event\level\ChunkPopulateEvent;
 use pocketmine\event\entity\EntityExplodeEvent;
 use pocketmine\event\server\QueryRegenerateEvent;
 use pocketmine\event\inventory\InventoryOpenEvent;
 use Clouria\IslandArchitect\sessions\PlayerSession;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
+use Clouria\IslandArchitect\extended\skyblock\DummyIslandGenerator;
 use Clouria\IslandArchitect\events\RandomGenerationBlockUpdateEvent;
+use Clouria\IslandArchitect\extended\pocketmine\DummyWorldGenerator;
+use function file_exists;
 use function class_exists;
 
 class IslandArchitectEventListener implements Listener {
@@ -101,8 +108,7 @@ class IslandArchitectEventListener implements Listener {
             !($nbt = $nbt->getTag('regex', ListTag::class)) instanceof ListTag or
             !RandomGeneration::fromNBT($nbt)->equals($regex)
         ) {
-            $i = $regex->getRandomGenerationItem($s->getIsland()->getRandomSymbolicItem($r));
-            $i->setCount(64);
+            $i = $regex->getRandomGenerationItem($s->getIsland()->getRandomSymbolicItem($r), $r);
             $s->getPlayer()->getInventory()->addItem($i);
         }
     }
@@ -199,5 +205,26 @@ class IslandArchitectEventListener implements Listener {
         if (($r = array_search($this, $pl = $ev->getPlugins())) === false) return;
         unset($pl[$r]);
         $ev->setPlugins($pl);
+    }
+
+    /**
+     * @priority MONITOR
+     */
+    public function onChunkPopulate(ChunkPopulateEvent $ev) : void {
+        $gen = $ev->getLevel()->getProvider()->getGenerator();
+        if ($gen !== DummyWorldGenerator::GENERATOR_NAME or !(class_exists(SkyBlock::class) and DummyIslandGenerator::LEGACY_GENERATOR_NAME)) return;
+        // if (!$ev->isNewChunk()) return;
+        if (!file_exists($path = $ev->getLevel()->getProvider()->getPath() . 'isarch-structure.json')) {
+            $type = IslandArchitect::getInstance()->getLevelStructureType($ev->getLevel()->getFolderName());
+            if (isset($type)) @copy($type, $path);
+        }
+        $class = IslandArchitect::getInstance()->getStructureGeneratorTaskClass();
+        Server::getInstance()->getAsyncPool()->submitTask(new $class(
+            $ev->getLevel()->getProvider()->getPath() . 'isarch-structure.json',
+            new Random($ev->getLevel()->getProvider()->getSeed()),
+            $ev->getLevel(),
+            $ev->getChunk()->getX(),
+            $ev->getChunk()->getZ()
+        ));
     }
 }

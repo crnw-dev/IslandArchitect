@@ -7,7 +7,7 @@ main: Clouria\IslandArchitect\IslandArchitect
 website: https://github.com/crnw-dev/IslandArchitect
 softdepend: [InvCrashFix, BuilderTools, SkyBlock]
 # Fuck stupid Altay don't follow the plugin dependency order to enable plugins
-load: POSTWORLD
+load: STARTUP
 
 permissions:
   island-architect:

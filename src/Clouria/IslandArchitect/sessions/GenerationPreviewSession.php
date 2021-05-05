@@ -96,7 +96,7 @@ class GenerationPreviewSession {
                 $transaction->then(function() use ($nbt) : void {
                     if (!($id = $nbt[0]) instanceof ShortTag) return;
                     $meta = $nbt[1];
-                    $this->getSession()->editRandomElement($this->getRegex(), (int)$id->getValue(), $meta instanceof ByteTag ? $meta->getValue() : 0);
+                    new RandomEditSession($this->getSession(), $this->getRegex(), (int)$id->getValue(), $meta instanceof ByteTag ? $meta->getValue() : 0);
                 });
             }
         }));
@@ -105,9 +105,7 @@ class GenerationPreviewSession {
             $this->getMenu()->setName(TF::BOLD . TF::DARK_BLUE . 'Preview regex' . (isset($rid) ? ' #' . $rid : ''));
         } else $this->getMenu()->setName(TF::BOLD . TF::DARK_RED . 'Error: Regex is empty');
         $this->getMenu()->setInventoryCloseListener(function() : void {
-            $rid = $this->getSession()->getIsland()->getRegexId($this->getRegex());
-            if (isset($rid)) $this->getSession()->editRandom($rid);
-            else $this->getSession()->listRandoms();
+            new RandomEditSession($this->getSession(), $this->getRegex());
         });
 
         if (($seed = IslandArchitect::getInstance()->getConfig()->get('panel-default-seed', null)) === null) try {

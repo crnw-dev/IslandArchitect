@@ -38,6 +38,7 @@ use pocketmine\command\CommandSender;
 use Clouria\IslandArchitect\IslandArchitect;
 use Clouria\IslandArchitect\sessions\PlayerSession;
 use Clouria\IslandArchitect\generator\TemplateIsland;
+use Clouria\IslandArchitect\sessions\RandomEditSession;
 use Clouria\IslandArchitect\generator\tasks\IslandDataLoadTask;
 use Clouria\IslandArchitect\events\TemplateIslandCheckOutEvent;
 use function strtolower;
@@ -73,10 +74,10 @@ class IslandArchitectCommand extends Command {
                     }
                 } else $s->getIsland()->setLevel($sender->getLevel()->getFolderName());
 
-                if ((isset($args[1]) and $args[1] === '1') or $s->getIsland()->getStartCoord() === null) {
+                if ((isset($args[1]) and ($args[1] === '1' or $args[1] === 'sc')) or $s->getIsland()->getStartCoord() === null) {
                     $sender->sendMessage(TF::YELLOW . 'Start coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
                     $s->getIsland()->setStartCoord($vec);
-                } elseif ((isset($args[1]) and $args[1] === '2') or $s->getIsland()->getEndCoord() === null) {
+                } elseif ((isset($args[1]) and ($args[1] === '2' or $args[1] === 'ec')) or $s->getIsland()->getEndCoord() === null) {
                     $sender->sendMessage(TF::YELLOW . 'End coordinate set to ' . TF::GREEN . $vec->getFloorX() . ', ' . $vec->getFloorY() . ', ' . $vec->getFloorZ() . '.');
                     $s->getIsland()->setEndCoord($vec);
                 } elseif ($s->getIsland()->getStartCoord()->distance($vec) <= $s->getIsland()->getEndCoord()->distance($vec)) {
@@ -92,12 +93,8 @@ class IslandArchitectCommand extends Command {
             case 'checkout':
             case 'check-out':
             case 'i':
-                if (!isset($args[1])) {
-                    if (!IslandArchitect::getInstance()->getSession($sender, true)->overviewIsland()) $sender->sendMessage(TF::BOLD . TF::RED . 'Please enter an island name!');
-                    break;
-                }
-                if (!preg_match('/[0-9a-z-_]+/i', '', $args[1])) {
-                    $sender->sendMessage(TF::BOLD . TF::RED . 'Invalid island name pattern! (0-9 / a-z / -_)');
+                if (!isset($args[1]) or preg_match('/[^0-9a-z-_]+/', $args[1])) {
+                    $sender->sendMessage(TF::BOLD . TF::RED . 'Invalid island name or island name argument missing!');
                     break;
                 }
                 if (!$sender->hasPermission('island-architect.convert') and !$sender->hasPermission('island-architect.convert.' . $args[1])) {
@@ -120,8 +117,8 @@ class IslandArchitectCommand extends Command {
                         $ev = new TemplateIslandCheckOutEvent($s, $is);
                         $ev->call();
                     };
-                    foreach (IslandArchitect::getInstance()->getSessions() as $s) if (
-                        ($i = $s->getIsland()) !== null and
+                    foreach (IslandArchitect::getInstance()->getSessions() as $ss) if (
+                        ($i = $ss->getIsland()) !== null and
                         $i->getName() === $args[1]
                     ) {
                         $callback($i, IslandArchitect::getInstance()->getDataFolder() . $i->getName());
@@ -147,15 +144,16 @@ class IslandArchitectCommand extends Command {
             case 'random':
             case 'regex':
             case 'r':
-                if (PlayerSession::errorCheckOutRequired($sender, $s = IslandArchitect::getInstance()->getSession($sender))) break;
+                $s = IslandArchitect::getInstance()->getSession($sender);
+                if (PlayerSession::errorCheckOutRequired($sender, $s)) break;
                 if (isset($args[1])) {
-                    if (empty(preg_replace('/[0-9]+/i', '', $args[1]))) $regexid = (int)$args[1];
+                    if (empty(preg_replace('/[0-9]+/i', '', $args[1]))) new RandomEditSession($s, $s->getIsland()->getRandomById((int)$args[1]));
                     else foreach ($s->getIsland()->getRandomLabels() as $rid => $label) if (stripos($label, $args[1]) !== false) {
-                        $regexid = $rid;
-                        break;
+                        new RandomEditSession($s, $s->getIsland()->getRandomById($rid));
+                        break 2;
                     }
-                    $s->editRandom($regexid ?? null);
-                } else $s->listRandoms();
+                }
+                new RandomEditSession($s);
                 break;
 
             case 'export':
@@ -214,24 +212,16 @@ class IslandArchitectCommand extends Command {
                 $sender->sendMessage(TF::YELLOW . 'Island Y offset set to ' . TF::GOLD . $args[1]);
                 break;
 
-            case 'help':
-                self::listSubCommands($sender);
-                break;
-
             default:
-                if (!IslandArchitect::getInstance()->getSession($sender, true)->overviewIsland()) self::listSubCommands($sender);
+                $cmds[] = 'island <Island data file name: string> ' . TF::ITALIC . TF::GRAY . '(Check out or create an island)';
+                $cmds[] = 'pos [1|2] [xyz: int] ' . TF::ITALIC . TF::GRAY . '(Set the start / end coordinate of the island)';
+                $cmds[] = 'random [Random regex ID: int|Random regex label: string] ' . TF::ITALIC . TF::GRAY . '(Setup random blocks generation)';
+                $cmds[] = 'setspawn ' . TF::ITALIC . TF::GRAY . '(Set the island world spawn)';
+                $cmds[] = 'yoffset <Offset value> ' . TF::ITALIC . TF::GRAY . '(Update the level of the island)';
+                $cmds[] = 'level [Level folder name] ' . TF::ITALIC . TF::GRAY . '(Update the level of the island)';
+                $cmds[] = 'export ' . TF::ITALIC . TF::GRAY . '(Export the checked out island into template island data file)';
+                $sender->sendMessage(TF::BOLD . TF::GOLD . 'Available subcommands: ' . ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $cmds ?? ['help']));
                 break;
         }
-    }
-
-    protected static function listSubCommands(CommandSender $sender) : void {
-        $cmds[] = 'help ' . TF::ITALIC . TF::GRAY . '(Display available subcommands)';
-        $cmds[] = 'island <Island data file name: string> ' . TF::ITALIC . TF::GRAY . '(Check out or create an island)';
-        $cmds[] = 'export ' . TF::ITALIC . TF::GRAY . '(Export the checked out island into template island data file)';
-        $cmds[] = 'random [Random regex ID: int] ' . TF::ITALIC . TF::GRAY . '(Setup random blocks generation)';
-        $cmds[] = 'setspawn ' . TF::ITALIC . TF::GRAY . '(Set the island world spawn)';
-        $cmds[] = 'level [Level folder name] ' . TF::ITALIC . TF::GRAY . '(Update the level of the island)';
-        $cmds[] = 'yoffset <Offset value> ' . TF::ITALIC . TF::GRAY . '(Update the level of the island)';
-        $sender->sendMessage(TF::BOLD . TF::GOLD . 'Available subcommands: ' . ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $cmds ?? ['help']));
     }
 }

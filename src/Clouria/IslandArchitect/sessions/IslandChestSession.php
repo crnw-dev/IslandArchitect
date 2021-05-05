@@ -75,6 +75,7 @@ class IslandChestSession {
     /**
      * IslandChestSession constructor.
      * @param PlayerSession $session
+     * @param IslandChest $chest
      * @param \Closure|null $callback
      */
     public function __construct(PlayerSession $session, IslandChest $chest, ?\Closure $callback = null) {
@@ -107,7 +108,7 @@ class IslandChestSession {
             else {
                 $r = $this->getSession()->getIsland()->getRandomById((int)$content[1]);
                 if ($r === null) continue;
-                $item = $r->getRandomGenerationItem($this->getSession()->getIsland()->getRandomSymbolicItem((int)$content[1]));
+                $item = $r->getRandomGenerationItem($this->getSession()->getIsland()->getRandomSymbolicItem((int)$content[1]), (int)$content[1]);
             }
             $this->getMenu()->getInventory()->setItem($slot, $item, false);
         }

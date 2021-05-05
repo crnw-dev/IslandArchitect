@@ -29,6 +29,7 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect;
 
 use pocketmine\Player;
+use pocketmine\Server;
 use pocketmine\item\Item;
 use pocketmine\utils\Utils;
 use room17\SkyBlock\SkyBlock;
@@ -41,11 +42,13 @@ use room17\SkyBlock\command\presets\CreateCommand;
 use Clouria\IslandArchitect\sessions\PlayerSession;
 use Clouria\IslandArchitect\generator\TemplateIsland;
 use Clouria\IslandArchitect\internal\IslandArchitectCommand;
-use Clouria\IslandArchitect\generator\TemplateIslandGenerator;
+use Clouria\IslandArchitect\generator\StructureGeneratorTask;
 use Clouria\IslandArchitect\extended\buildertools\CustomPrinter;
 use Clouria\IslandArchitect\internal\IslandArchitectEventListener;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use Clouria\IslandArchitect\internal\IslandArchitectPluginTickTask;
+use Clouria\IslandArchitect\extended\skyblock\DummyIslandGenerator;
+use Clouria\IslandArchitect\extended\pocketmine\DummyWorldGenerator;
 use Clouria\IslandArchitect\extended\skyblock\CustomSkyBlockCreateCommand;
 use function is_a;
 use function get_class;
@@ -65,7 +68,13 @@ class IslandArchitect extends PluginBase {
     /**
      * @var string
      */
-    private $generator_class = TemplateIslandGenerator::class;
+    private $generator_class = StructureGeneratorTask::class;
+    private $leveltype = [];
+
+    public static function getSafeBuilderToolsInstance() : BuilderTools {
+        foreach (Server::getInstance()->getPluginManager()->getPlugins() as $pl) if ($pl instanceof BuilderTools) return $pl;
+        throw new \InvalidStateException('BuilderTools is not installed');
+    }
 
     /**
      * PHPStorm, this is NOT a DUPLICATED CODE FRAGMENT
@@ -138,7 +147,7 @@ class IslandArchitect extends PluginBase {
         $this->getServer()->getCommandMap()->register($this->getName(), new IslandArchitectCommand);
 
         if (class_exists(SkyBlock::class) and SkyBlock::getInstance()->isEnabled()) $this->initDependency(SkyBlock::getInstance());
-        if (class_exists(BuilderTools::class) and BuilderTools::getInstance()->isEnabled()) $this->initDependency(BuilderTools::getInstance());
+        if (class_exists(BuilderTools::class) and static::getSafeBuilderToolsInstance()->isEnabled()) $this->initDependency(BuilderTools::getInstance());
 
         $this->getScheduler()->scheduleRepeatingTask(IslandArchitectPluginTickTask::getInstance(), IslandArchitectPluginTickTask::PERIOD);
     }
@@ -151,8 +160,8 @@ class IslandArchitect extends PluginBase {
         $conf->set('hide-plugin-in-query', (bool)($all['hide-plugin-in-query'] ?? false));
         $conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
 
-        if (Utils::cleanPath($conf->get('island-data-folder', '')) !== $this->getDataFolder() . 'islands/') $this->getLogger()
-                                                                                                                 ->warning('Island data files are now forced to be inside ' . $this->getDataFolder() . 'islands/ in order to let the new template island generator to work properly!');
+        if (Utils::cleanPath($conf->get('island-data-folder', $this->getDataFolder() . 'islands/')) !== $this->getDataFolder() . 'islands/') $this->getLogger()->warning(
+            'Island data files are now forced to be inside ' . $this->getDataFolder() . 'islands/ in order to let the new template island generator to work properly!');
 
         $conf->set('panel-default-seed', ($pds = $all['panel-default-seed'] ?? null) === null ? null : (int)$pds);
         $conf->set('default-regex', (array)($all['default-regex'] ?? static::getBuiltInDefaultRegex()));
@@ -210,15 +219,15 @@ class IslandArchitect extends PluginBase {
                 }
                 switch (true) {
                     default:
-                        $class = $pl->getGeneratorManager()->getGenerator($this->getTemplateIslandGenerator()::GENERATOR_NAME);
+                        $class = $pl->getGeneratorManager()->getGenerator($this->getGeneratorName());
                         if ($class !== null) {
                             $this->getLogger()->error('Some plugins do not compatible with IslandArchitect, IslandArchitect cannot register the template island generator!');
-                            $this->getLogger()
-                                 ->debug('(One of the plugin has already registered a generator("' . get_class($class) . '") that does not extends ' . TemplateIslandGenerator::class . ' and uses the same name as template island generator ("' .
-                                     $this->getTemplateIslandGenerator()::GENERATOR_NAME . '")' . CustomSkyBlockCreateCommand::class . ')');
+                            $this->getLogger()->debug('(One of the plugin has already registered a generator which uses the same name as template island generator ("' . $this->getGeneratorName() . '")');
                             break;
                         }
-                        $pl->getGeneratorManager()->registerGenerator($this->getTemplateIslandGenerator()::GENERATOR_NAME, $this->getTemplateIslandGenerator());
+                        $pl->getGeneratorManager()->registerGenerator($this->getGeneratorName(), DummyIslandGenerator::class);
+                        foreach ($this->getGeneratorNames() as $genname)
+                            if ($pl->getGeneratorManager()->getGenerator($genname) === null) $pl->getGeneratorManager()->registerGenerator($genname, DummyIslandGenerator::class);
                         break;
                 }
                 break;
@@ -226,11 +235,25 @@ class IslandArchitect extends PluginBase {
     }
 
     /**
-     * @return class-string<TemplateIslandGenerator>
+     * @return class-string<StructureGeneratorTask>
      */
-    public function getTemplateIslandGenerator() {
-        if (is_a($this->generator_class, TemplateIslandGenerator::class, true) and is_string($this->generator_class)) return $this->generator_class;
-        return TemplateIslandGenerator::class;
+    public function getStructureGeneratorTaskClass() {
+        if (is_a($this->generator_class, StructureGeneratorTask::class, true) and is_string($this->generator_class)) return $this->generator_class;
+        return StructureGeneratorTask::class;
+    }
+
+    public function getGeneratorName() : string {
+        return DummyWorldGenerator::GENERATOR_NAME;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getGeneratorNames() : array {
+        return [
+            'isarch-generator',
+            'templateisland-generator'
+        ];
     }
 
     public function getSession(Player $player, bool $nonnull = false) : ?PlayerSession {
@@ -240,7 +263,7 @@ class IslandArchitect extends PluginBase {
     }
 
     public function mapGeneratorType(string $type) : ?string {
-        return file_exists($path = $this->getDataFolder() . 'islands/' . $type . '.isarch-templis') ? $path : null;
+        return file_exists($path = $this->getDataFolder() . 'islands/' . $type . '.json') ? $path : null;
     }
 
     /**
@@ -262,10 +285,10 @@ class IslandArchitect extends PluginBase {
     }
 
     /**
-     * @param class-string<TemplateIslandGenerator> $class
+     * @param class-string<StructureGeneratorTask> $class
      */
-    public function setTemplateIslandGenerator(string $class) : bool {
-        if (!is_a($class, TemplateIslandGenerator::class, true)) return false;
+    public function setStructureGeneratorTaskClass(string $class) : bool {
+        if (!is_a($class, StructureGeneratorTask::class, true)) return false;
         $this->generator_class = $class;
         return true;
     }
@@ -275,11 +298,23 @@ class IslandArchitect extends PluginBase {
             $r = new RandomGeneration;
             foreach ((array)$regex as $element => $chance) {
                 $element = explode(':', $element);
-                $r->increaseElementChance((int)$element[0], (int)($element[1] ?? 0), $chance);
+                $r->setElementChance((int)$element[0], (int)($element[1] ?? 0), $chance);
             }
             $regexid = $is->addRandom($r);
             $is->setRandomLabel($regexid, $label);
         }
+    }
+
+    public function setLevelStructureType(string $level, string $type) : bool {
+        if (isset($this->leveltype[$level])) return false;
+        $this->leveltype[$level] = $type;
+        return true;
+    }
+
+    public function getLevelStructureType(string $level) : ?string {
+        $type = $this->leveltype[$level] ?? null;
+        if (isset($type)) unset($this->leveltype[$level]);
+        return $type;
     }
 
 }

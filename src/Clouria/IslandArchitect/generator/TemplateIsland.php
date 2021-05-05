@@ -52,7 +52,7 @@ use function array_values;
 class TemplateIsland {
 
     public const DEFAULT_YOFFSET = 60;
-    protected const SYMBOLICS = [
+    public const SYMBOLICS = [
         [Item::PURPLE_GLAZED_TERRACOTTA],
         [Item::WHITE_GLAZED_TERRACOTTA],
         [Item::ORANGE_GLAZED_TERRACOTTA],
@@ -221,7 +221,7 @@ class TemplateIsland {
             foreach ($regexdata as $element => $chance) {
                 $element = explode(':', $element);
                 if ((int)$chance < 1) continue;
-                $regex->increaseElementChance((int)$element[0], (int)($element[1] ?? 0), (int)$chance);
+                $regex->setElementChance((int)$element[0], (int)($element[1] ?? 0), (int)$chance);
             }
             $self->randoms[] = $regex;
         }
@@ -258,12 +258,12 @@ class TemplateIsland {
             $this->symbolic = array_values($symbolic);
         }
 
-        while (($level = Server::getInstance()->getLevelByName($this->getLevel())) === null) {
+        if ($this->getLevel() !== null) while (($level = Server::getInstance()->getLevelByName($this->getLevel())) === null) {
             if ($wlock ?? false) break;
             Server::getInstance()->loadLevel($this->getLevel());
             $wlock = true;
         }
-        if ($level !== null) {
+        if (isset($level)) {
             $block = Block::get(Item::AIR);
             foreach ($remove ?? [] as $pos) {
                 $pos = explode(':', $pos);
@@ -351,12 +351,29 @@ class TemplateIsland {
         $this->changed = true;
     }
 
-    public function getRandomLabel(int $regex, bool $nullable = false) : ?string {
-        return $this->random_labels[$regex] ?? ($nullable ? null : 'Regex #' . $regex);
-    }
+    /**
+     * @param int|null $regex
+     * @param bool $nullable If the regex argument is null the return will always be null no matter what
+     * @return string|null
+     */
+        public function getRandomLabel(?int $regex, bool $nullable = false) : ?string {
+            if ($regex === null) return null;
+            return $this->random_labels[$regex] ?? ($nullable ? null : 'Regex #' . $regex);
+        }
 
-    public function setRandomLabel(int $regex, string $label) : void {
+    public function setRandomLabel(int $regex, ?string $label) : bool {
+        if ($label === null or empty($label)) {
+            if (isset($this->random_labels[$regex])) {
+                unset($this->random_labels[$regex]);
+                $this->changed = true;
+                return true;
+            }
+            return false;
+        }
+        if (isset($this->random_labels[$regex]) and $this->random_labels[$regex] === $label) return false;
         $this->random_labels[$regex] = $label;
+        $this->changed = true;
+        return true;
     }
 
     public function resetRandomLabel(int $regex) : bool {
@@ -383,15 +400,19 @@ class TemplateIsland {
     public function getProcessedBlock(int $x, int $y, int $z, Random $random) : ?array {
         $y -= $this->getYOffset();
         $block = $this->structure[$x . ':' . $y . ':' . $z] ?? null;
+        if (!isset($block)) return null;
         $block = explode(':', $block);
-        if (!isset($block[1])) return null;
         switch ((int)$block[0]) {
             case 1:
                 $block = $this->getRandomById((int)$block[1])->randomElementArray($random);
                 if ($block[0] === Item::AIR) return null;
                 else return $block;
+
+            default:
+                $block = [(int)$block[1], (int)($block[2] ?? 0)];
+                if ($block[0] === Item::AIR) return null;
+                return $block;
         }
-        return null;
     }
 
     public function getYOffset() : int {
@@ -570,7 +591,7 @@ class TemplateIsland {
     }
 
     public function hasChanges() : bool {
-        if ($this->changed) return $this->changed;
+        if ($this->changed) return true;
         foreach ($this->randoms as $r) if ($r->hasChanges()) return true;
         foreach ($this->chests as $c) if ($c->hasChanges()) return true;
         return false;

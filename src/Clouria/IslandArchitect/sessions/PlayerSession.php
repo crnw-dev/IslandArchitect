@@ -35,6 +35,7 @@ use muqsit\invmenu\InvMenu;
 use pocketmine\level\Level;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\ByteTag;
+use jojoe77777\FormAPI\ModalForm;
 use pocketmine\utils\TextFormat as TF;
 use Clouria\IslandArchitect\IslandArchitect;
 use muqsit\invmenu\transaction\InvMenuTransaction;
@@ -93,7 +94,7 @@ class PlayerSession {
         return true;
     }
 
-    public function checkOutIsland(?TemplateIsland $island = null) : void {
+    public function checkOutIsland(TemplateIsland $island) : void {
         if ($this->export_lock) {
             $this->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'An island is exporting in background, please wait until the island export is finished!');
             return;
@@ -223,6 +224,13 @@ class PlayerSession {
         $ft->setInvisible(true);
         $this->getPlayer()->getLevel()->addParticle($ft, [$this->getPlayer()]);
         return true;
+    }
+
+    protected function errorInvalidBlock(?\Closure $callback = null) : void {
+        $form = new ModalForm($callback ?? null);
+        $form->setTitle(TF::BOLD . TF::DARK_RED . 'Error');
+        $form->setContent(TF::GOLD . 'Submitted item must be a valid block item!');
+        $this->getPlayer()->sendForm($form);
     }
 
     public function submitBlockSession(?\Closure $callback = null, ?Item $default = null, bool $convert = true) : bool {
