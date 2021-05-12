@@ -48,9 +48,11 @@ use Clouria\IslandArchitect\generator\tasks\IslandDataEmitTask;
 use function max;
 use function min;
 use function round;
+use function scandir;
 use function get_class;
 use function microtime;
 use function class_exists;
+use function array_search;
 use function spl_object_id;
 
 class PlayerSession {
@@ -271,13 +273,17 @@ class PlayerSession {
 
     public function changeIslandLevel(string $level, ?\Closure $callback = null) : void {
         $is = $this->getIsland();
+        if ($is->getLevel() === null) {
+            $is->setLevel($level);
+            return;
+        }
         $form = new ModalForm(function(Player $p = null, bool $d = true) use ($level, $callback) : void {
             if (!$d) return;
             $this->getPlayer()->sendMessage(TF::YELLOW . 'Island level changed to ' . TF::BOLD . TF::GOLD . $level);
         });
         $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Change Island Level');
         $form->setContent(TF::YELLOW . 'Are you sure to change the island level to "' . TF::BOLD . TF::GOLD . $level . '"?' . TF::RESET . TF::YELLOW . ' All the previous island settings will be ' . TF::BOLD . TF::RED . 'reset!');
-        if ($is->getLevel() === null) $is->setLevel($level);
+        $this->getPlayer()->sendForm($form);
     }
 
     public function overviewIsland() : void {
@@ -299,7 +305,7 @@ class PlayerSession {
                     break;
 
                 case 3:
-                    $p->pickLevel(function(string $w) : void {
+                    $this->pickLevel(function(string $w) : void {
                         $this->changeIslandLevel($w);
                     });
                     break;
@@ -340,5 +346,18 @@ class PlayerSession {
         $item->setCount($count);
         foreach ($nbt as $tag) $item->setNamedTagEntry($tag);
         return $item;
+    }
+
+    public function pickLevel(\Closure $callback) : void {
+        $wl = scandir(Server::getInstance()->getDataPath() . 'worlds/');
+        unset($wl[array_search('.', $wl, true)]);
+        unset($wl[array_search('..', $wl, true)]);
+        $form = new SimpleForm(function(Player $p, int $d = null) use ($wl) : void {
+            if (!isset($d) or !isset($wl[$d])) return;
+            $this->pickLevel($wl[$d]);
+        });
+        $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Select Level');
+        foreach ($wl as $w) $form->addButton(TF::DARK_BLUE . $w);
+        $this->getPlayer()->sendForm($form);
     }
 }
