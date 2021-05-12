@@ -191,8 +191,7 @@ class IslandArchitectCommand extends Command {
                     }
                     $level = $args[1];
                 } elseif ($s->getIsland()->getLevel() !== $sender->getLevel()->getFolderName()) $level = $sender->getLevel()->getFolderName();
-                else $level = null;
-                $s->changeIslandLevel($level);
+                if (isset($level)) $s->changeIslandLevel($level);
                 break;
 
             case 'yoffset':

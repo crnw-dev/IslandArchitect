@@ -36,6 +36,7 @@ use pocketmine\level\Level;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\ByteTag;
 use jojoe77777\FormAPI\ModalForm;
+use jojoe77777\FormAPI\SimpleForm;
 use pocketmine\utils\TextFormat as TF;
 use Clouria\IslandArchitect\IslandArchitect;
 use muqsit\invmenu\transaction\InvMenuTransaction;
@@ -266,6 +267,51 @@ class PlayerSession {
 
         $menu->send($this->getPlayer());
         return true;
+    }
+
+    public function changeIslandLevel(string $level, ?\Closure $callback = null) : void {
+        $is = $this->getIsland();
+        $form = new ModalForm(function(Player $p = null, bool $d = true) use ($level, $callback) : void {
+            if (!$d) return;
+            $this->getPlayer()->sendMessage(TF::YELLOW . 'Island level changed to ' . TF::BOLD . TF::GOLD . $level);
+        });
+        $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Change Island Level');
+        $form->setContent(TF::YELLOW . 'Are you sure to change the island level to "' . TF::BOLD . TF::GOLD . $level . '"?' . TF::RESET . TF::YELLOW . ' All the previous island settings will be ' . TF::BOLD . TF::RED . 'reset!');
+        if ($is->getLevel() === null) $is->setLevel($level);
+    }
+
+    public function overviewIsland() : void {
+        $is = $this->getIsland();
+        $sc = $is->getStartCoord();
+        $ec = $is->getStartCoord();
+        $spawn = $is->getSpawn();
+        $form = new SimpleForm(function(Player $p, int $d = null) use ($sc, $ec, $spawn) : void {
+            if ($d === null) return;
+            if ($sc === null) $d++;
+            if ($ec === null) $d++;
+            if ($spawn === null) $d++;
+            switch ($d) {
+
+                case 0:
+                case 1:
+                case 2:
+                    $p->teleport($d === 0 ? $sc : $d === 1 ? $ec : $spawn);
+                    break;
+
+                case 3:
+                    $p->pickLevel(function(string $w) : void {
+                        $this->changeIslandLevel($w);
+                    });
+                    break;
+            }
+        });
+        $form->setTitle(TF::BOLD . TF::DARK_AQUA . 'Overview Island');
+        if ($sc !== null) $form->addButton(TF::BOLD . TF::DARK_BLUE . 'Start coord: ' . $sc->getFloorX() . ', ' . $sc->getFloorY() . ', ' . $sc->getFloorZ() . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click to teleport)');
+        if ($ec !== null) $form->addButton(TF::BOLD . TF::DARK_BLUE . 'End coord: ' . $ec->getFloorX() . ', ' . $ec->getFloorY() . ', ' . $ec->getFloorZ() . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click to teleport)');
+        if ($spawn !== null) $form->addButton(TF::BOLD . TF::DARK_BLUE . 'Spawn: ' . $spawn->getFloorX() . ', ' . $spawn->getFloorY() . ', ' . $spawn->getFloorZ() . "\n" . TF::RESET . TF::ITALIC . TF::GRAY . '(Click to teleport)');
+        $form->addButton(TF::BOLD . TF::DARK_BLUE . 'Level:' . "\n" . TF::RESET . TF::BLUE . $is->getLevel());
+        $form->addButton(TF::BOLD . TF::DARK_RED . 'Delete island');
+        $this->getPlayer()->sendForm($form);
     }
 
     protected static function inputConversion(Item $item, &$succeed = false) : Item {
