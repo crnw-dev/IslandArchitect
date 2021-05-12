@@ -37,6 +37,7 @@ use pocketmine\scheduler\AsyncTask;
 use pocketmine\scheduler\ClosureTask;
 use Clouria\IslandArchitect\IslandArchitect;
 use function filesize;
+use function var_dump;
 use function file_exists;
 use function is_callable;
 use function array_shift;
@@ -65,21 +66,33 @@ class StructureGeneratorTask extends AsyncTask {
      * @var Chunk|null
      */
     protected $chunk;
+    /**
+     * @var string
+     */
+    protected $type;
+    /**
+     * @var string
+     */
+    private $origin;
 
-    public function __construct(string $file, Random $random, Level $level, int $chunkX, int $chunkZ, ?\Closure $callback = null) {
+    public function __construct(string $file, Random $random, Level $level, int $chunkX, int $chunkZ, string $origin = null, ?\Closure $callback = null) {
         $this->storeLocal([$file, $level, $chunkX, $chunkZ, $callback]);
         $this->file = $file;
         $this->random = $random;
         $this->chunkX = $chunkX;
         $this->chunkZ = $chunkZ;
+        $this->origin = $origin;
         $this->chunk = $level->getChunk($chunkX, $chunkZ, true)->fastSerialize();
     }
 
     public function onRun() {
         $file = $this->file;
         if (!file_exists($file)) {
-            $this->setResult([self::FILE_NOT_FOUND]);
-            return;
+            $origin = $this->origin;
+            if (!isset($origin) or !file_exists($origin) or !@copy($origin, $file)) {
+                $this->setResult([self::FILE_NOT_FOUND]);
+                return;
+            }
         }
         $reflect = new \ReflectionProperty($this->worker, 'memoryLimit');
         $reflect->setAccessible(true);
@@ -129,9 +142,10 @@ class StructureGeneratorTask extends AsyncTask {
         $level = $fridge[1];
         if ($level instanceof Level) {
             $chunk = $result[1];
+            $level->setChunk((int)$fridge[2], (int)$fridge[3], $chunk);
             if ($chunk instanceof Chunk) IslandArchitect::getInstance()->getScheduler()->scheduleDelayedTask(new ClosureTask(function(int $ct) use ($fridge, $chunk, $level) : void {
-                    $level->setChunk((int)$fridge[2], (int)$fridge[3], $chunk);
-                }), 5 * 20);
+
+            }), 5 * 20);
             $spawn = $result[3];
             if ($spawn instanceof Vector3 and !$spawn->equals($level->getSpawnLocation())) {
                 $level->setSpawnLocation($spawn);
