@@ -109,17 +109,18 @@ class StructureGeneratorTask extends AsyncTask {
         $chunk = Chunk::fastDeserialize($this->chunk);
 
         $random = $this->random;
+        $blocks = 0;
         for ($y = 0; $y <= Level::Y_MAX; $y++) {
             $subchunk = $chunk->getSubChunk($y >> 4, true);
             for ($x = $cx << 4; $x < ($cx + 1) << 4; $x++)
                 for ($z = $cz << 4; $z < ($cz + 1) << 4; $z++) {
                     $block = $struct->getProcessedBlock($x, $y, $z, $random);
                     if (!isset($block)) continue;
-                    $subchunk->setBlock($x & 0x0f, $y & 0x0f, $z & 0x0f, $block[0], $block[1]);
+                    if ($subchunk->setBlock($x & 0x0f, $y & 0x0f, $z & 0x0f, $block[0], $block[1])) $blocks++;
                 }
         }
 
-        $this->setResult([self::SUCCEED, $chunk, $random, $struct->getSpawn()]);
+        $this->setResult([self::SUCCEED, $blocks > 0 ? $chunk : null, $random, $struct->getSpawn()]);
     }
 
     public function onCompletion(Server $server) : void {
