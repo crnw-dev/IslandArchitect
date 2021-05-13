@@ -38,7 +38,6 @@ use pocketmine\utils\SingletonTrait;
 use pocketmine\utils\TextFormat as TF;
 use czechpmdevs\buildertools\BuilderTools;
 use pocketmine\event\level\LevelSaveEvent;
-use pocketmine\event\level\ChunkLoadEvent;
 use pocketmine\event\block\BlockPlaceEvent;
 use pocketmine\event\block\BlockBreakEvent;
 use Clouria\IslandArchitect\IslandArchitect;
@@ -53,8 +52,6 @@ use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use Clouria\IslandArchitect\extended\skyblock\DummyIslandGenerator;
 use Clouria\IslandArchitect\events\RandomGenerationBlockUpdateEvent;
 use Clouria\IslandArchitect\extended\pocketmine\DummyWorldGenerator;
-use function var_dump;
-use function file_exists;
 use function class_exists;
 
 class IslandArchitectEventListener implements Listener {

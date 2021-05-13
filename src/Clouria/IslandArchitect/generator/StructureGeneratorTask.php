@@ -37,7 +37,6 @@ use pocketmine\scheduler\AsyncTask;
 use pocketmine\scheduler\ClosureTask;
 use Clouria\IslandArchitect\IslandArchitect;
 use function filesize;
-use function var_dump;
 use function file_exists;
 use function is_callable;
 use function array_shift;
@@ -89,7 +88,8 @@ class StructureGeneratorTask extends AsyncTask {
         $file = $this->file;
         if (!file_exists($file)) {
             $origin = $this->origin;
-            if (!isset($origin) or !file_exists($origin) or !@copy($origin, $file)) {
+            if (isset($origin) and file_exists($origin)) copy($origin, $file);
+            if (!file_exists($file)) {
                 $this->setResult([self::FILE_NOT_FOUND]);
                 return;
             }
@@ -103,21 +103,19 @@ class StructureGeneratorTask extends AsyncTask {
             return;
         }
         $struct = TemplateIsland::load(file_get_contents($file));
-        $chunk = Chunk::fastDeserialize($this->chunk);
-        $chunk->setGenerated(true);
 
         $cx = $this->chunkX;
         $cz = $this->chunkZ;
+        $chunk = Chunk::fastDeserialize($this->chunk);
+
         $random = $this->random;
         for ($y = 0; $y <= Level::Y_MAX; $y++) {
             $subchunk = $chunk->getSubChunk($y >> 4, true);
-            $blocks = 0;
             for ($x = $cx << 4; $x < ($cx + 1) << 4; $x++)
                 for ($z = $cz << 4; $z < ($cz + 1) << 4; $z++) {
                     $block = $struct->getProcessedBlock($x, $y, $z, $random);
                     if (!isset($block)) continue;
-                    $r = $subchunk->setBlock($x & 0x0f, $y & 0x0f, $z & 0x0f, $block[0], $block[1]);
-                    if ($r) $blocks++;
+                    $subchunk->setBlock($x & 0x0f, $y & 0x0f, $z & 0x0f, $block[0], $block[1]);
                 }
         }
 
@@ -142,10 +140,11 @@ class StructureGeneratorTask extends AsyncTask {
         $level = $fridge[1];
         if ($level instanceof Level) {
             $chunk = $result[1];
-            $level->setChunk((int)$fridge[2], (int)$fridge[3], $chunk);
-            if ($chunk instanceof Chunk) IslandArchitect::getInstance()->getScheduler()->scheduleDelayedTask(new ClosureTask(function(int $ct) use ($fridge, $chunk, $level) : void {
-
-            }), 5 * 20);
+            $cx = (int)$fridge[2];
+            $cz = (int)$fridge[3];
+            if ($chunk instanceof Chunk) IslandArchitect::getInstance()->getScheduler()->scheduleDelayedTask(new ClosureTask(function(int $ct) use ($cz, $cx, $fridge, $chunk, $level) : void {
+                $level->setChunk($cx, $cz, $chunk);
+            }), 20);
             $spawn = $result[3];
             if ($spawn instanceof Vector3 and !$spawn->equals($level->getSpawnLocation())) {
                 $level->setSpawnLocation($spawn);
