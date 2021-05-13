@@ -47,6 +47,7 @@ class StructureGeneratorTask extends AsyncTask {
     public const SUCCEED = 0;
     public const FILE_NOT_FOUND = 1;
     public const NOT_ENOUGH_MEMORY = 2;
+    public const CORRUPTED_FILE = 3;
 
     protected $file;
     /**
@@ -102,7 +103,15 @@ class StructureGeneratorTask extends AsyncTask {
             $this->setResult([self::NOT_ENOUGH_MEMORY]);
             return;
         }
-        $struct = TemplateIsland::load(file_get_contents($file));
+        for ($t = 0; $t <= 3; $t++) { // TODO: Make the timeout customizable
+            $struct = TemplateIsland::load(file_get_contents($file));
+            if ($struct !== null) break;
+            sleep(2);
+        }
+        if ($struct === null) {
+            $this->setResult([self::CORRUPTED_FILE]);
+            return;
+        }
 
         $cx = $this->chunkX;
         $cz = $this->chunkZ;
@@ -136,6 +145,10 @@ class StructureGeneratorTask extends AsyncTask {
 
             case self::NOT_ENOUGH_MEMORY:
                 $log->critical('Not enough memory');
+                return;
+
+            case self::CORRUPTED_FILE:
+                $log->critical('Corrupted file');
                 return;
         }
         $level = $fridge[1];
