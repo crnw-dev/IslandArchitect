@@ -120,7 +120,7 @@ class StructureGeneratorTask extends AsyncTask {
                 }
         }
 
-        $this->setResult([self::SUCCEED, $blocks > 0 ? $chunk : null, $random, $struct->getSpawn()]);
+        $this->setResult([self::SUCCEED, $blocks > 0 ? $chunk : null, $random, $struct->getSpawn(), $struct->getYOffset()]);
     }
 
     public function onCompletion(Server $server) : void {
@@ -147,6 +147,7 @@ class StructureGeneratorTask extends AsyncTask {
                 $level->setChunk($cx, $cz, $chunk);
             }), 20);
             $spawn = $result[3];
+            if ($spawn instanceof Vector3) $spawn = $spawn->add(0, $result[4]);
             if ($spawn instanceof Vector3 and !$spawn->equals($level->getSpawnLocation())) {
                 $level->setSpawnLocation($spawn);
                 foreach ($level->getPlayers() as $p) $p->teleport($level->getSpawnLocation());
