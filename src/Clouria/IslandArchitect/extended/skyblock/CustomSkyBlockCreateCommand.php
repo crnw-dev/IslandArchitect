@@ -112,6 +112,9 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
                 null, DummyIslandGenerator::class);
             Server::getInstance()->loadLevel($identifier);
             $level = Server::getInstance()->getLevelByName($identifier);
+            $vec = DummyIslandGenerator::getChestPosition();
+
+            $level->loadChunk($vec->getFloorX() >> 4, $vec->getFloorZ() >> 4);
         }
         if (!$session->getPlayer()->isOnline()) return;
         $islandManager->openIsland($identifier, [$session->getOfflineSession()], true, DummyWorldGenerator::GENERATOR_NAME,
