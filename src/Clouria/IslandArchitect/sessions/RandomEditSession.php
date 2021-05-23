@@ -84,7 +84,7 @@ class RandomEditSession {
      * RandomEditSession constructor.
      */
     public function __construct(PlayerSession $session, ?RandomGeneration $regex = null, ?int $id = null, ?int $meta = null, ?\Closure $callback = null) {
-        // TODO: Display error if no FormAPI installed
+        $session->getPlayer()->sendMessage(TF::BOLD . TF::RED . 'No FormAPI (https://github.com/Infernus101/FormAPI) installation detected!');
         $this->session = $session;
         $this->regex = $regex;
         if (isset($id)) $this->last_edited_element = $id . (isset($meta) ? ':' . $meta : '');

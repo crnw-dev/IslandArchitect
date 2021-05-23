@@ -29,13 +29,16 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\generator;
 
 use pocketmine\Server;
+use pocketmine\tile\Chest;
 use pocketmine\level\Level;
 use pocketmine\utils\Random;
 use pocketmine\math\Vector3;
+use pocketmine\utils\TextFormat as TF;
 use pocketmine\level\format\Chunk;
 use pocketmine\scheduler\AsyncTask;
 use pocketmine\scheduler\ClosureTask;
 use Clouria\IslandArchitect\IslandArchitect;
+use function explode;
 use function filesize;
 use function file_exists;
 use function is_callable;
@@ -76,7 +79,7 @@ class StructureGeneratorTask extends AsyncTask {
     private $origin;
 
     public function __construct(string $file, Random $random, Level $level, int $chunkX, int $chunkZ, string $origin = null, ?\Closure $callback = null) {
-        $this->storeLocal([$file, $level, $chunkX, $chunkZ, $callback]);
+        $this->storeLocal([$file, $level, $chunkX, $chunkZ, $callback, $origin]);
         $this->file = $file;
         $this->random = $random;
         $this->chunkX = $chunkX;
@@ -108,7 +111,7 @@ class StructureGeneratorTask extends AsyncTask {
             if ($struct !== null) break;
             sleep(2);
         }
-        if ($struct === null) {
+        if (!isset($struct)) {
             $this->setResult([self::CORRUPTED_FILE]);
             return;
         }
@@ -129,35 +132,49 @@ class StructureGeneratorTask extends AsyncTask {
                 }
         }
 
-        $this->setResult([self::SUCCEED, $blocks > 0 ? $chunk : null, $random, $struct->getSpawn(), $struct->getYOffset()]);
+        foreach ($struct->getChests() as $coordraw => $chest) {
+            $coord = explode(':', $coordraw);
+            if (((int)$coord[0] >> 4) !== $cx or ((int)$coord[2] >> 4) !== $cz) continue;
+            $chests[$coordraw] = $chest->getRuntimeContents($random);
+        }
+
+        $this->setResult([self::SUCCEED, $blocks > 0 ? $chunk : null, $random, $struct->getSpawn(), $struct->getYOffset(), $chests ?? []]);
     }
 
     public function onCompletion(Server $server) : void {
-        // TODO: Handle error if failed to generate structure
         $fridge = $this->fetchLocal();
         $result = $this->getResult();
-        $log = IslandArchitect::getInstance()->getLogger();
-        switch ($result[0]) {
-
-            case self::FILE_NOT_FOUND:
-                $log->critical('File not found');
-                return;
-
-            case self::NOT_ENOUGH_MEMORY:
-                $log->critical('Not enough memory');
-                return;
-
-            case self::CORRUPTED_FILE:
-                $log->critical('Corrupted file');
-                return;
-        }
         $level = $fridge[1];
+        if ($result[0] !== self::SUCCEED) {
+            $reason = [
+                          self::FILE_NOT_FOUND => 'Structure data not found',
+                          self::NOT_ENOUGH_MEMORY => 'Generator worker thread ran out of memory',
+                          self::CORRUPTED_FILE => 'Corrupted file',
+                      ][$result[0]];
+            if ($level instanceof Level) {
+                foreach ($level->getPlayers() as $p) $p->sendMessage(TF::BOLD . TF::RED . 'Critical error occurred while generating your island: ' . $reason . '. Consider asking a server admin for help!');
+                $details[] = 'Level: ' . $level->getProvider()->getName();
+                $details[] = 'Players in level: ' . implode(', ', $level->getPlayers());
+            }
+            $details[] = 'Expected structure file path: ' . $fridge[0];
+            $details[] = 'Source structure file path: ' . $fridge[5];
+            $details[] = 'Chunk: ' . $fridge[2] . ', ' . $fridge[3];
+            IslandArchitect::getInstance()->getLogger()->error(TF::BOLD . TF::RED . 'Critical error occurred while generating structure:' . implode("\n", $details ?? []));
+        }
         if ($level instanceof Level) {
             $chunk = $result[1];
             $cx = (int)$fridge[2];
             $cz = (int)$fridge[3];
-            if ($chunk instanceof Chunk) IslandArchitect::getInstance()->getScheduler()->scheduleDelayedTask(new ClosureTask(function(int $ct) use ($cz, $cx, $fridge, $chunk, $level) : void {
+            if ($chunk instanceof Chunk) IslandArchitect::getInstance()->getScheduler()->scheduleDelayedTask(new ClosureTask(function(int $ct) use ($result, $cz, $cx, $chunk, $level) : void {
                 $level->setChunk($cx, $cz, $chunk);
+                foreach ($result[5] as $coord => $chest) {
+                    $coord = explode(':', $coord);
+                    $tile = Chest::createTile(Chest::CHEST, $level, Chest::createNBT(new Vector3((int)$coord[0], (int)$coord[1], (int)$coord[2])));
+                    if ($tile instanceof Chest) {
+                        $inv = $tile->getInventory();
+                        $inv->setContents($chest);
+                    }
+                }
             }), 20);
             $spawn = $result[3];
             if ($spawn instanceof Vector3) $spawn = $spawn->add(0, $result[4]);
