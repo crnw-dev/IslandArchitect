@@ -161,7 +161,7 @@ class StructureGeneratorTask extends AsyncTask {
             $details[] = 'Chunk: ' . $fridge[2] . ', ' . $fridge[3];
             IslandArchitect::getInstance()->getLogger()->error(TF::BOLD . TF::RED . 'Critical error occurred while generating structure:' . implode("\n", $details ?? []));
         }
-        if ($level instanceof Level) {
+        if ($level instanceof Level and !$level->isClosed()) {
             $chunk = $result[1];
             $cx = (int)$fridge[2];
             $cz = (int)$fridge[3];
