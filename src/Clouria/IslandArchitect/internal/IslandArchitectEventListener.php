@@ -28,14 +28,17 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\internal;
 
 use pocketmine\Server;
+use pocketmine\tile\Chest;
 use pocketmine\utils\Random;
 use room17\SkyBlock\SkyBlock;
 use pocketmine\nbt\tag\IntTag;
 use pocketmine\event\Listener;
+use pocketmine\level\Position;
 use pocketmine\nbt\tag\ListTag;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\utils\SingletonTrait;
 use pocketmine\utils\TextFormat as TF;
+use pocketmine\inventory\ChestInventory;
 use czechpmdevs\buildertools\BuilderTools;
 use pocketmine\event\level\LevelSaveEvent;
 use pocketmine\event\block\BlockPlaceEvent;
@@ -48,10 +51,12 @@ use pocketmine\event\entity\EntityExplodeEvent;
 use pocketmine\event\server\QueryRegenerateEvent;
 use pocketmine\event\inventory\InventoryOpenEvent;
 use Clouria\IslandArchitect\sessions\PlayerSession;
+use Clouria\IslandArchitect\sessions\IslandChestSession;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use Clouria\IslandArchitect\extended\skyblock\DummyIslandGenerator;
 use Clouria\IslandArchitect\events\RandomGenerationBlockUpdateEvent;
 use Clouria\IslandArchitect\extended\pocketmine\DummyWorldGenerator;
+use function explode;
 use function class_exists;
 
 class IslandArchitectEventListener implements Listener {
@@ -192,6 +197,23 @@ class IslandArchitectEventListener implements Listener {
      * @priority MONITOR
      */
     public function onInventoryOpen(InventoryOpenEvent $ev) : void {
+        // TODO: Create new island chest when player interact with a chest
+        $s = IslandArchitect::getInstance()->getSession($ev->getPlayer());
+        if ($s !== null) $is = $s->getIsland();
+        if (!isset($is)) return;
+
+        $inv = $ev->getInventory();
+        if (!$inv instanceof ChestInventory) return;
+        $holder = $inv->getHolder();
+
+        if ($is->getLevel() !== $holder->getLevel()->getFolderName()) return;
+        foreach ($is->getChests() as $coord => $chest) {
+            $coord = explode(':', $coord);
+            if ((int)$coord[0] !== $holder->getFloorX() or (int)$coord[1] !== $holder->getFloorY() or (int)$coord[2] !== $holder->getFloorZ()) continue;
+            new IslandChestSession($s, $chest);
+            $ev->setCancelled();
+            break;
+        }
     }
 
     /**
