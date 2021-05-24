@@ -36,7 +36,9 @@ use Clouria\IslandArchitect\IslandArchitect;
 use room17\SkyBlock\command\presets\CreateCommand;
 use room17\SkyBlock\event\island\IslandCreateEvent;
 use room17\SkyBlock\utils\message\MessageContainer;
+use Clouria\IslandArchitect\internal\GeneratorTaskManager;
 use Clouria\IslandArchitect\events\IslandWorldPreCreateEvent;
+use Clouria\IslandArchitect\generator\structure\StructureType;
 use Clouria\IslandArchitect\extended\pocketmine\DummyWorldGenerator;
 use function strtolower;
 
@@ -107,7 +109,7 @@ class CustomSkyBlockCreateCommand extends CreateCommand {
             $level = $server->getLevelByName($identifier);
             $level->setSpawnLocation($generator::getWorldSpawn());
         } else {
-            IslandArchitect::getInstance()->setLevelStructureType($identifier, $type);
+            GeneratorTaskManager::setLevelStructureType($identifier, StructureType::fromFile($type));
             Server::getInstance()->generateLevel($identifier,
                 null, DummyIslandGenerator::class);
             Server::getInstance()->loadLevel($identifier);

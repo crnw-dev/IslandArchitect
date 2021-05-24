@@ -27,8 +27,6 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\internal;
 
-use pocketmine\Server;
-use pocketmine\utils\Random;
 use room17\SkyBlock\SkyBlock;
 use pocketmine\nbt\tag\IntTag;
 use pocketmine\event\Listener;
@@ -225,7 +223,7 @@ class IslandArchitectEventListener implements Listener {
         if (($r = array_search($this, $pl = $ev->getPlugins())) === false) return;
         unset($pl[$r]);
         $ev->setPlugins($pl);
-    }
+    } // TODO: Remove feature
 
     /**
      * @priority MONITOR
@@ -233,15 +231,6 @@ class IslandArchitectEventListener implements Listener {
     public function onChunkPopulate(ChunkPopulateEvent $ev) : void {
         $gen = $ev->getLevel()->getProvider()->getGenerator();
         if ($gen !== DummyWorldGenerator::GENERATOR_NAME or !(class_exists(SkyBlock::class) and DummyIslandGenerator::LEGACY_GENERATOR_NAME)) return;
-        $type = IslandArchitect::getInstance()->getLevelStructureType($ev->getLevel()->getFolderName());
-        $class = IslandArchitect::getInstance()->getStructureGeneratorTaskClass();
-        Server::getInstance()->getAsyncPool()->submitTask(new $class(
-            $ev->getLevel()->getProvider()->getPath() . 'isarch-structure.json',
-            new Random($ev->getLevel()->getProvider()->getSeed()),
-            $ev->getLevel(),
-            $ev->getChunk()->getX(),
-            $ev->getChunk()->getZ(),
-            $type
-        ));
+        GeneratorTaskManager::generateChunkForLevel($ev->getLevel(), $ev->getChunk());
     }
 }

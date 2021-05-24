@@ -33,11 +33,12 @@ use pocketmine\tile\Chest;
 use pocketmine\level\Level;
 use pocketmine\utils\Random;
 use pocketmine\math\Vector3;
-use pocketmine\utils\TextFormat as TF;
 use pocketmine\level\format\Chunk;
 use pocketmine\scheduler\AsyncTask;
+use pocketmine\utils\TextFormat as TF;
 use pocketmine\scheduler\ClosureTask;
 use Clouria\IslandArchitect\IslandArchitect;
+use Clouria\IslandArchitect\internal\GeneratorTaskManager;
 use function explode;
 use function filesize;
 use function file_exists;
@@ -78,14 +79,15 @@ class StructureGeneratorTask extends AsyncTask {
      */
     private $origin;
 
-    public function __construct(string $file, Random $random, Level $level, int $chunkX, int $chunkZ, string $origin = null, ?\Closure $callback = null) {
-        $this->storeLocal([$file, $level, $chunkX, $chunkZ, $callback, $origin]);
+    public function __construct(Random $random, Level $level, Chunk $chunk, ?\Closure $callback = null) {
+        $file = $level->getProvider()->getPath() . 'isarch-structure.json';
+        $origin = GeneratorTaskManager::getLevelStructureType($level);
+
+        $this->storeLocal([$level, $chunk->getX(), $chunk->getZ(), $callback]);
         $this->file = $file;
         $this->random = $random;
-        $this->chunkX = $chunkX;
-        $this->chunkZ = $chunkZ;
         $this->origin = $origin;
-        $this->chunk = $level->getChunk($chunkX, $chunkZ, true)->fastSerialize();
+        $this->chunk = $chunk->fastSerialize();
     }
 
     public function onRun() {
@@ -144,7 +146,7 @@ class StructureGeneratorTask extends AsyncTask {
     public function onCompletion(Server $server) : void {
         $fridge = $this->fetchLocal();
         $result = $this->getResult();
-        $level = $fridge[1];
+        $level = $fridge[0];
         if ($result[0] !== self::SUCCEED) {
             $reason = [
                           self::FILE_NOT_FOUND => 'Structure data not found',
@@ -156,16 +158,15 @@ class StructureGeneratorTask extends AsyncTask {
                 $details[] = 'Level: ' . $level->getProvider()->getName();
                 $details[] = 'Players in level: ' . implode(', ', $level->getPlayers());
             }
-            $details[] = 'Expected structure file path: ' . $fridge[0];
-            $details[] = 'Source structure file path: ' . $fridge[5];
-            $details[] = 'Chunk: ' . $fridge[2] . ', ' . $fridge[3];
+            $details[] = 'Expected structure file path: ' . $fridge[$level->getProvider()->getPath() . 'isarch-structure.json'];
+            $details[] = 'Chunk: ' . $fridge[1] . ', ' . $fridge[2];
             IslandArchitect::getInstance()->getLogger()->error(TF::BOLD . TF::RED . 'Critical error occurred while generating structure:' . implode("\n", $details ?? []));
         }
         if ($level instanceof Level and !$level->isClosed()) {
             $chunk = $result[1];
-            $cx = (int)$fridge[2];
-            $cz = (int)$fridge[3];
-            if ($chunk instanceof Chunk) IslandArchitect::getInstance()->getScheduler()->scheduleDelayedTask(new ClosureTask(function(int $ct) use ($result, $cz, $cx, $chunk, $level) : void {
+            if ($chunk instanceof Chunk) IslandArchitect::getInstance()->getScheduler()->scheduleDelayedTask(new ClosureTask(function(int $ct) use ($result, $chunk, $level, $fridge) : void {
+                $cx = (int)$fridge[1];
+                $cz = (int)$fridge[2];
                 $level->setChunk($cx, $cz, $chunk);
                 foreach ($result[5] as $coord => $chest) {
                     $coord = explode(':', $coord);
@@ -183,7 +184,7 @@ class StructureGeneratorTask extends AsyncTask {
                 foreach ($level->getPlayers() as $p) $p->teleport($level->getSpawnLocation());
             }
         }
-        $callback = $fridge[4];
+        $callback = $fridge[3];
         array_shift($result);
         if (is_callable($callback)) $callback(...$result);
     }

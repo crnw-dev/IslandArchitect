@@ -43,6 +43,7 @@ use Clouria\IslandArchitect\sessions\PlayerSession;
 use Clouria\IslandArchitect\generator\TemplateIsland;
 use Clouria\IslandArchitect\internal\IslandArchitectCommand;
 use Clouria\IslandArchitect\generator\StructureGeneratorTask;
+use Clouria\IslandArchitect\generator\structure\StructureType;
 use Clouria\IslandArchitect\extended\buildertools\CustomPrinter;
 use Clouria\IslandArchitect\internal\IslandArchitectEventListener;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
@@ -52,7 +53,6 @@ use Clouria\IslandArchitect\extended\pocketmine\DummyWorldGenerator;
 use Clouria\IslandArchitect\extended\skyblock\CustomSkyBlockCreateCommand;
 use function is_a;
 use function get_class;
-use function file_exists;
 use function array_search;
 use function class_exists;
 
@@ -252,7 +252,7 @@ class IslandArchitect extends PluginBase {
     public function getGeneratorNames() : array {
         return [
             'isarch-generator',
-            'templateisland-generator'
+            'templateisland-generator',
         ];
     }
 
@@ -262,8 +262,8 @@ class IslandArchitect extends PluginBase {
         return $s ?? null;
     }
 
-    public function mapGeneratorType(string $type) : ?string {
-        return file_exists($path = $this->getDataFolder() . 'islands/' . $type . '.json') ? $path : null;
+    public function mapGeneratorType(string $type) : ?StructureType {
+        return StructureType::fromFile($this->getDataFolder() . 'islands/' . $type . '.json');
     }
 
     /**
@@ -303,18 +303,6 @@ class IslandArchitect extends PluginBase {
             $regexid = $is->addRandom($r);
             $is->setRandomLabel($regexid, $label);
         }
-    }
-
-    public function setLevelStructureType(string $level, string $type) : bool {
-        if (isset($this->leveltype[$level])) return false;
-        $this->leveltype[$level] = $type;
-        return true;
-    }
-
-    public function getLevelStructureType(string $level) : ?string {
-        $type = $this->leveltype[$level] ?? null;
-        if (isset($type)) unset($this->leveltype[$level]);
-        return $type;
     }
 
 }
