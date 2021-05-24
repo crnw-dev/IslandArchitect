@@ -41,6 +41,7 @@ use Clouria\IslandArchitect\generator\properties\IslandChest;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use Clouria\IslandArchitect\events\TemplateIslandChestContentsUpdateEvent;
 use function is_string;
+use function is_callable;
 
 class IslandChestSession {
 
@@ -145,9 +146,8 @@ class IslandChestSession {
 
     protected function closeCallback() : void {
         if (!$this->isChanged()) return;
-        $ev = new TemplateIslandChestContentsUpdateEvent($this->getSession(), $this->getChest(), $this->$this->getMenu()->getInventory()->getContents());
+        $ev = new TemplateIslandChestContentsUpdateEvent($this->getSession(), $this->getChest(), $this->getMenu()->getInventory()->getContents());
         $ev->call();
-        if ($ev->isCancelled()) return;
         if (is_string($ev->getContents()[0] ?? null)) $this->getChest()->setContents($ev->getContents());
         else foreach ($ev->getContents() as $slot => $item) {
             if (
@@ -169,6 +169,6 @@ class IslandChestSession {
                 $this->getChest()->setRandom($slot, $regexid);
             }
         }
-        $this->getCallback()();
+        if (is_callable($this->getCallback())) $this->getCallback()();
     }
 }
