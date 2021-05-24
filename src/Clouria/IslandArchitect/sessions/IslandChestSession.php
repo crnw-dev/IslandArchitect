@@ -103,6 +103,7 @@ class IslandChestSession {
             foreach ($reflect->getValue(SkyBlock::getInstance()->getSettings()) as $slot => $item) $this->getMenu()->getInventory()->setItem($slot, $item, false);
             $this->changed = true;
         } else foreach ($contents as $slot => $content) {
+            if (!isset($content)) continue;
             $content = explode(':', $content);
             if ((int)$content[0] === 0) $item = Item::get((int)$content[1], (int)$content[2], (int)$content[3], isset($content[4]) ? base64_decode((string)$content[4]) : '');
             else {

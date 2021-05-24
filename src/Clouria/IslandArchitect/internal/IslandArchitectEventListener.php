@@ -28,12 +28,10 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\internal;
 
 use pocketmine\Server;
-use pocketmine\tile\Chest;
 use pocketmine\utils\Random;
 use room17\SkyBlock\SkyBlock;
 use pocketmine\nbt\tag\IntTag;
 use pocketmine\event\Listener;
-use pocketmine\level\Position;
 use pocketmine\nbt\tag\ListTag;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\utils\SingletonTrait;
@@ -52,6 +50,7 @@ use pocketmine\event\server\QueryRegenerateEvent;
 use pocketmine\event\inventory\InventoryOpenEvent;
 use Clouria\IslandArchitect\sessions\PlayerSession;
 use Clouria\IslandArchitect\sessions\IslandChestSession;
+use Clouria\IslandArchitect\generator\properties\IslandChest;
 use Clouria\IslandArchitect\generator\properties\RandomGeneration;
 use Clouria\IslandArchitect\extended\skyblock\DummyIslandGenerator;
 use Clouria\IslandArchitect\events\RandomGenerationBlockUpdateEvent;
@@ -197,23 +196,24 @@ class IslandArchitectEventListener implements Listener {
      * @priority MONITOR
      */
     public function onInventoryOpen(InventoryOpenEvent $ev) : void {
-        // TODO: Create new island chest when player interact with a chest
         $s = IslandArchitect::getInstance()->getSession($ev->getPlayer());
         if ($s !== null) $is = $s->getIsland();
         if (!isset($is)) return;
+        if ($s->getPlayer()->getLevel()->getFolderName() !== $is->getLevel()) return;
 
         $inv = $ev->getInventory();
         if (!$inv instanceof ChestInventory) return;
         $holder = $inv->getHolder();
-
-        if ($is->getLevel() !== $holder->getLevel()->getFolderName()) return;
         foreach ($is->getChests() as $coord => $chest) {
             $coord = explode(':', $coord);
             if ((int)$coord[0] !== $holder->getFloorX() or (int)$coord[1] !== $holder->getFloorY() or (int)$coord[2] !== $holder->getFloorZ()) continue;
             new IslandChestSession($s, $chest);
             $ev->setCancelled();
-            break;
+            return;
         }
+        $chest = new IslandChest;
+        $is->setChest($holder->asVector3(), $chest);
+        new IslandChestSession($s, $chest);
     }
 
     /**

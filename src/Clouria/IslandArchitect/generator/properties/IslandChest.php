@@ -55,7 +55,7 @@ class IslandChest {
      * @return array<string|RandomGeneration>
      */
     public function getContents() : array {
-        foreach ($this->contents as $index => $content) $contents[$index] = $content;
+        foreach ($this->contents as $index => $content) if (isset($contents)) $contents[$index] = $content;
         return $contents ?? [];
     }
 
