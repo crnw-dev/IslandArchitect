@@ -28,16 +28,23 @@ declare(strict_types=1);
 namespace Clouria\IslandArchitect\generator\structure;
 
 use pocketmine\utils\Binary;
-use function fread;
+use Clouria\IslandArchitect\Utils;
 use function fseek;
 use function is_resource;
-use const SEEK_CUR;
 
 class StructureData {
 
     public const FORMAT_VERSION = 0;
 
+    /**
+     * @var resource
+     */
     public $stream;
+
+    /**
+     * @var int
+     */
+    public $chunkhash;
 
     /**
      * @throws StructureParseException
@@ -45,14 +52,26 @@ class StructureData {
     public function decode() {
         if (!is_resource($this->stream)) return;
         fseek($this->stream, 0);
-        $header = fread($this->stream, $offset = 3);
-        // Format version (1), sub version (1), extended blocks (1)
-        fseek($this->stream, $offset, SEEK_CUR);
+        $header = Utils::ReadAndSeek($this->stream, 4);
+        // Format version (1), sub version (1), extended blocks (1), chunk hash size (1)
 
         $ver = Binary::readByte($header[0]);
 
         if ($ver > self::FORMAT_VERSION) $this->panicParse("Unsupported structure format version " . $ver, false);
         $extendedbk = Binary::readByte($header[2]) === 1;
+
+        $chashsize = [
+                         0 => 1,
+                         1 => 2,
+                         3 => 4,
+                         4 => 8,
+                     ][$header[3]];
+        $chunkmap = Utils::ReadAndSeek($this->stream, $chashsize * 8);
+        // An array of chunk hash followed by file offset (8), max limit 1MB per chunk
+
+        for ($cpointer = 0; $cpointer < $chunkmap / ($chashsize + 8); $chunkmap += ($chashsize + 8)) {
+            // TODO: Read data with correct range by its length
+        }
     }
 
     /**
