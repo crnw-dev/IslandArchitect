@@ -58,6 +58,7 @@ use function class_exists;
 
 class IslandArchitect extends PluginBase {
 
+    public const PLUGIN_NAME = "IslandArchitect";
     private static $instance = null;
 
     /**
