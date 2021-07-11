@@ -27,11 +27,14 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\generator\structure;
 
+use pocketmine\level\Level;
 use pocketmine\utils\Binary;
 use Clouria\IslandArchitect\Utils;
+use pocketmine\level\format\Chunk;
 use function abs;
 use function fseek;
 use function substr;
+use function strlen;
 use function is_resource;
 use const SEEK_CUR;
 use const PHP_INT_MAX;
@@ -47,9 +50,9 @@ class StructureData {
     public $stream;
 
     /**
-     * @var int
+     * @var Chunk
      */
-    public $chunkhash;
+    public $chunk;
 
     /**
      * @throws StructureParseException
@@ -73,7 +76,7 @@ class StructureData {
             $mappedlen = Binary::readLLong(substr($cmapped, 2));
             $mappedhash = Binary::readSignedLShort(substr($cmapped, 0, 2));
             if ($mappedhash < 0) $mappedhash += 2147483647 - $mappedhash - 1;
-            if ($mappedhash === $this->chunkhash) {
+            if ($mappedhash === Level::chunkHash($this->chunk->getX(), $this->chunk->getZ())) {
                 $clen = $mappedlen;
                 break;
             }
@@ -82,6 +85,7 @@ class StructureData {
             fseek($this->stream, (int)(abs($mappedlen) - ($mappedlen < 0 ? 1 : 0)), SEEK_CUR);
         }
         unset($cmap, $cpointer, $ccount, $cmapped, $mappedlen, $mappedhash);
+        if (!isset($clen)) return;
 
         do {
             $junction = Utils::ReadAndSeek($this->stream, 3);
@@ -91,6 +95,15 @@ class StructureData {
             if ($plen < 0) $plen += 32767 - $plen - 1;
             $pdata = Utils::ReadAndSeek($this->stream, $plen);
             $clen -= 3 + $plen;
+
+            for ($bkpointer = 0; $bkpointer < strlen($pdata); $bkpointer += 2) {
+                $bk = Binary::readSignedLShort(substr($pdata, $bkpointer, 2));
+                if ($bk < 0) $bk += 32767 - $bk - 1;
+
+                $id = ($bk + 1) / 16;
+                $meta = ($bk + 1) % 16;
+                if ($id > 0) $this->chunk->setBlock($bkpointer / 2, $bkpointer / 2, $bkpointer / 2, $id, $meta);
+            }
         } while ($clen > 0);
     }
 
