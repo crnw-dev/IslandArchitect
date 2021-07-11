@@ -90,16 +90,21 @@ class StructureData {
         if (!isset($clen)) return;
 
         do {
-            $junction = Utils::ReadAndSeek($this->stream, 3);
-            // Part expend type (1), signed part length (2)
+            $junction = Utils::ReadAndSeek($this->stream, 5);
+            // Part expend type (1), signed part length (2), signed part trailing offset (2)
             $ptype = Binary::readByte($junction[0]);
-            $plen = Binary::readSignedLShort(substr($junction, 1));
+            $plen = Binary::readSignedLShort(substr($junction, 1, 2));
             if ($plen < 0) $plen += 32767 - $plen - 1;
-            $pdata = Utils::ReadAndSeek($this->stream, $plen);
+            $ptrailing = Binary::readSignedByte(substr($junction, 3, 2));
+            if ($ptrailing < 0) $ptrailing += 32767 - $ptrailing - 1;
+            unset($junction);
+
             $clen -= 3 + $plen;
 
+            $pdata = Utils::ReadAndSeek($this->stream, $plen);
             for ($bkpointer = 0; $bkpointer < strlen($pdata); $bkpointer += 2) {
-                $bklocator = $bkpointer / 2;
+                $bklocator = $ptrailing + $bkpointer / 2;
+                // Part trailing offset are basically the count of air blocks at the front of part data
                 $bk = Binary::readSignedLShort(substr($pdata, $bkpointer, 2));
                 if ($bk < 0) $bk += 32767 - $bk - 1;
 
