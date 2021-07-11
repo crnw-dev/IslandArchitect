@@ -64,7 +64,7 @@ class StructureData {
         $ver = Binary::readByte($header[0]);
 
         if ($ver > self::FORMAT_VERSION) $this->panicParse("Unsupported structure format version " . $ver, false);
-        $extendedbk = Binary::readByte($header[2]) === 1;
+        $extendedbk = Binary::readByte($header[2]) >= 128;
 
         $clength = substr($header, 3);
         if (strlen($clength) !== 8) return; // Empty structure
