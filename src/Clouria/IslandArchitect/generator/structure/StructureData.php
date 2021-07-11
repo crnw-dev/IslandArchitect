@@ -31,6 +31,7 @@ use pocketmine\level\Level;
 use pocketmine\utils\Binary;
 use Clouria\IslandArchitect\Utils;
 use pocketmine\level\format\Chunk;
+use Clouria\IslandArchitect\IslandArchitect;
 use function abs;
 use function fseek;
 use function substr;
@@ -43,6 +44,7 @@ class StructureData {
 
     public const FORMAT_VERSION = 0;
     public const CHUNKMAP_ELEMENT_SIZE = 10;
+    public const Y_MAX = 0x100; // Hardcode Y max or breaks block filling after Y is has increased
 
     /**
      * @var resource
@@ -64,7 +66,7 @@ class StructureData {
         // Format version (1), sub version (1), chunks count (2)
 
         $ver = Binary::readByte($header[0]);
-        if ($ver > self::FORMAT_VERSION) $this->panicParse("Unsupported structure format version " . $ver, false);
+        if ($ver > self::FORMAT_VERSION) $this->panicParse("Unsupported structure format version " . $ver, false, false);
 
         $ccount = Binary::readSignedLShort(substr($header, 2));
         $cmap = Utils::ReadAndSeek($this->stream, self::CHUNKMAP_ELEMENT_SIZE * $ccount);
@@ -97,21 +99,37 @@ class StructureData {
             $clen -= 3 + $plen;
 
             for ($bkpointer = 0; $bkpointer < strlen($pdata); $bkpointer += 2) {
+                $bklocator = $bkpointer / 2;
                 $bk = Binary::readSignedLShort(substr($pdata, $bkpointer, 2));
                 if ($bk < 0) $bk += 32767 - $bk - 1;
 
                 $id = ($bk + 1) / 16;
                 $meta = ($bk + 1) % 16;
-                if ($id > 0) $this->chunk->setBlock($bkpointer / 2, $bkpointer / 2, $bkpointer / 2, $id, $meta);
+                if ($id > 0) {
+                    switch ($ptype) {
+                        case 0:
+                            $x = (int)($bklocator / self::Y_MAX) % 16;
+                            $y = ($bklocator) % self::Y_MAX;
+                            $z = (int)((int)($bklocator / self::Y_MAX) / 16);
+                            break;
+
+                        default:
+                            $this->panicParse("Unknown block expend type " . $ptype, false, true);
+                            return;
+                    }
+                    $this->chunk->setBlock($x, $y, $z, $id, $meta);
+                }
             }
         } while ($clen > 0);
     }
 
     /**
+     * @param bool $higherver
      * @throws StructureParseException
      */
-    protected function panicParse(string $err, bool $corrupted = true) : void {
+    protected function panicParse(string $err, bool $corrupted = true, bool $higherver = false) : void {
         if ($corrupted) $err .= ", is the structure data file occupied?";
+        if ($higherver) $err .= ", is the structure exported from a higher version of " . IslandArchitect::PLUGIN_NAME . "?";
         throw new StructureParseException($this->stream, "", $err);
     }
 
