@@ -29,9 +29,11 @@ namespace Clouria\IslandArchitect\generator\structure;
 
 use pocketmine\level\Level;
 use pocketmine\utils\Binary;
+use pocketmine\utils\Random;
 use Clouria\IslandArchitect\Utils;
 use pocketmine\level\format\Chunk;
 use Clouria\IslandArchitect\IslandArchitect;
+use Clouria\IslandArchitect\generator\properties\StructureProperty;
 use function abs;
 use function fseek;
 use function substr;
@@ -49,12 +51,22 @@ class StructureData {
     /**
      * @var resource
      */
-    public $stream;
+    protected $stream;
 
     /**
      * @var Chunk
      */
-    public $chunk;
+    protected $chunk;
+
+    /**
+     * @var Random
+     */
+    protected $random;
+
+    /**
+     * @var array<string, StructureProperty>
+     */
+    protected $properties;
 
     /**
      * @throws StructureParseException
