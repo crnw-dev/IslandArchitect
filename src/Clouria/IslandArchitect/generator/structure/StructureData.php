@@ -29,12 +29,17 @@ namespace Clouria\IslandArchitect\generator\structure;
 
 use pocketmine\utils\Binary;
 use Clouria\IslandArchitect\Utils;
+use function abs;
 use function fseek;
+use function substr;
 use function is_resource;
+use const SEEK_CUR;
+use const PHP_INT_MAX;
 
 class StructureData {
 
     public const FORMAT_VERSION = 0;
+    public const CHUNKMAP_ELEMENT_SIZE = 10;
 
     /**
      * @var resource
@@ -52,23 +57,26 @@ class StructureData {
     public function decode() {
         if (!is_resource($this->stream)) return;
         fseek($this->stream, 0);
-        $header = Utils::ReadAndSeek($this->stream, 3);
-        // Format version (1), sub version (1), chunk hash size (1)
+        $header = Utils::ReadAndSeek($this->stream, 4);
+        // Format version (1), sub version (1), chunks count (2)
 
         $ver = Binary::readByte($header[0]);
         if ($ver > self::FORMAT_VERSION) $this->panicParse("Unsupported structure format version " . $ver, false);
 
-        $chashsize = [
-                         0 => 1,
-                         1 => 2,
-                         3 => 4,
-                         4 => 8,
-                     ][$header[3]];
-        $chunkmap = Utils::ReadAndSeek($this->stream, $chashsize * 8);
-        // An array of chunk hash followed by file offset (8), max limit 1MB per chunk
+        $ccount = Binary::readSignedLShort(substr($header, 2));
+        $cmap = Utils::ReadAndSeek($this->stream, self::CHUNKMAP_ELEMENT_SIZE * $ccount);
+        // An array (32) of chunk hash (2) followed by chunk length (8), max limit 2MB per chunk
+        // TODO: Unset unsed variables
 
-        for ($cpointer = 0; $cpointer < $chunkmap / ($chashsize + 8); $chunkmap += ($chashsize + 8)) {
-            // TODO: Read data with correct range by its length
+        for ($cpointer = 0; $cpointer < $ccount * self::CHUNKMAP_ELEMENT_SIZE; $cpointer += self::CHUNKMAP_ELEMENT_SIZE) {
+            $cmapped = substr($cmap, $cpointer, self::CHUNKMAP_ELEMENT_SIZE);
+            $mappedlen = Binary::readLLong(substr($cmapped, 2));
+            $mappedhash = Binary::readSignedLShort(substr($cmapped, 0, 2));
+            if ($mappedhash < 0) $mappedhash += 2147483647 + abs($mappedhash) - 1;
+            if ($mappedhash === $this->chunkhash) break;
+
+            if ($mappedlen < 0) fseek($this->stream, PHP_INT_MAX, SEEK_CUR);
+            fseek($this->stream, (int)(abs($mappedlen) - ($mappedlen < 0 ? 1 : 0)), SEEK_CUR);
         }
     }
 
