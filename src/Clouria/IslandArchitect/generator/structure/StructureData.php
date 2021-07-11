@@ -91,7 +91,7 @@ class StructureData {
 
         do {
             $junction = Utils::ReadAndSeek($this->stream, 5);
-            // Part expend type (1), signed part length (2), signed part trailing offset (2)
+            // Part expand type (1), signed part length (2), signed part trailing offset (2)
             $ptype = Binary::readByte($junction[0]);
             $plen = Binary::readSignedLShort(substr($junction, 1, 2));
             if ($plen < 0) $plen += 32767 - $plen - 1;
@@ -110,20 +110,23 @@ class StructureData {
 
                 $id = ($bk + 1) / 16;
                 $meta = ($bk + 1) % 16;
-                if ($id > 0) {
-                    switch ($ptype) {
-                        case 0:
-                            $x = (int)($bklocator / self::Y_MAX) % 16;
-                            $y = ($bklocator) % self::Y_MAX;
-                            $z = (int)((int)($bklocator / self::Y_MAX) / 16);
-                            break;
+                switch ($ptype % 2) {
+                    case 1:
+                        $x = (int)((int)($bklocator / self::Y_MAX) / 16);
+                        $y = ($bklocator) % self::Y_MAX;
+                        $z = (int)($bklocator / self::Y_MAX) % 16;
+                        break;
 
-                        default:
-                            $this->panicParse("Unknown block expend type " . $ptype, false, true);
-                            return;
-                    }
-                    $this->chunk->setBlock($x, $y, $z, $id, $meta);
+                    default:
+                        $x = (int)($bklocator / self::Y_MAX) % 16;
+                        $y = ($bklocator) % self::Y_MAX;
+                        $z = (int)((int)($bklocator / self::Y_MAX) / 16);
+                        break;
                 }
+                if ($ptype % 4 === 2) $x = 15 - $x;
+                if ($ptype % 4 === 3) $z = 15 - $z;
+                if ($ptype >= 4) $y = self::Y_MAX - 1 - $y;
+                $this->chunk->setBlock($x, $y, $z, $id, $meta);
             }
         } while ($clen > 0);
     }
