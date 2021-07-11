@@ -58,15 +58,13 @@ class StructureData {
     public function decode() {
         if (!is_resource($this->stream)) return;
         fseek($this->stream, 0);
-        $header = Utils::ReadAndSeek($this->stream, 11);
-        // Format version (1), sub version (1), extended blocks (1), signed length of first chunk (8)
+        $header = Utils::ReadAndSeek($this->stream, 10);
+        // Format version (1), sub version (1), signed length of first chunk (8)
 
         $ver = Binary::readByte($header[0]);
-
         if ($ver > self::FORMAT_VERSION) $this->panicParse("Unsupported structure format version " . $ver, false);
-        $extendedbk = Binary::readByte($header[2]) >= 128;
 
-        $clength = substr($header, 3);
+        $clength = substr($header, 2);
         if (strlen($clength) !== 8) return; // Empty structure
         $clength = Binary::readLLong($clength);
 
