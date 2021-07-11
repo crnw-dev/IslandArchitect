@@ -66,7 +66,7 @@ class StructureData {
         $ccount = Binary::readSignedLShort(substr($header, 2));
         $cmap = Utils::ReadAndSeek($this->stream, self::CHUNKMAP_ELEMENT_SIZE * $ccount);
         // An array (32) of chunk hash (2) followed by chunk length (8), max limit 2MB per chunk
-        // TODO: Unset unsed variables
+        unset($header, $ver);
 
         for ($cpointer = 0; $cpointer < $ccount * self::CHUNKMAP_ELEMENT_SIZE; $cpointer += self::CHUNKMAP_ELEMENT_SIZE) {
             $cmapped = substr($cmap, $cpointer, self::CHUNKMAP_ELEMENT_SIZE);
@@ -78,6 +78,7 @@ class StructureData {
             if ($mappedlen < 0) fseek($this->stream, PHP_INT_MAX, SEEK_CUR);
             fseek($this->stream, (int)(abs($mappedlen) - ($mappedlen < 0 ? 1 : 0)), SEEK_CUR);
         }
+        unset($cmap, $cpointer, $ccount, $cmapped, $mappedlen, $mappedhash);
     }
 
     /**
