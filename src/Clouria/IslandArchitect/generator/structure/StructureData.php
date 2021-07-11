@@ -132,6 +132,8 @@ class StructureData {
     }
 
     /**
+     * @param string $err
+     * @param bool $corrupted
      * @param bool $higherver
      * @throws StructureParseException
      */
