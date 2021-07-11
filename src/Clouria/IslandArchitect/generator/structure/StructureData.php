@@ -105,6 +105,9 @@ class StructureData {
             $junction = Utils::readAndSeek($this->stream, 5);
             // Part expand type (1), signed part length (2), signed part trailing offset (2)
             $ptype = Binary::readByte($junction[0]);
+
+            if ($ptype > 64) break; // End of chunks, structure properties are the next
+
             $plen = Binary::readSignedLShort(substr($junction, 1, 2));
             if ($plen < 0) $plen += 32767 - $plen - 1;
             $ptrailing = Binary::readSignedByte(substr($junction, 3, 2));
@@ -122,6 +125,7 @@ class StructureData {
 
                 $id = ($bk + 1) / 16;
                 $meta = $bk % 16;
+                unset($bk);
                 $f = ($bklocator) % self::Y_MAX;
                 $s = (int)($bklocator / self::Y_MAX) % 16;
                 $t = (int)((int)($bklocator / self::Y_MAX) / 16);
@@ -150,6 +154,18 @@ class StructureData {
                 $this->chunk->setBlock($x, $y, $z, $id, $meta);
             }
         } while ($clen > 0);
+        unset($ptype, $ptrailing, $bklocator, $bkpointer, $pdata, $plen);
+
+        if (!isset($junction)) $junction = Utils::readAndSeek($this->stream, 1);
+        // Structure property identifier length (1), structure property data length (4)
+        $pnamelen = Binary::readByte($junction[0]);
+        $pdatalen = Binary::readLInt(substr($junction, 1, 4));
+        if ($pdatalen < 0) $pdatalen += 2147483647 - $pdatalen - 1;
+        unset($junction);
+        $pname = Utils::readAndSeek($this->stream, $pnamelen);
+        if (!isset($this->properties[$pname])) $this->panicParse("Structure property \"" . $pname . "\" not found", false, true);
+
+        $this->properties[$pname]->getFunc()($this, $pdatalen);
     }
 
     /**
