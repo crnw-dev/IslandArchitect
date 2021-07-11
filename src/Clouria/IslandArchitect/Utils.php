@@ -35,7 +35,7 @@ final class Utils {
 
     private function __construct() { }
 
-    public static function ReadAndSeek($stream, int $length) : string {
+    public static function readAndSeek($stream, int $length) : string {
         $data = fread($stream, $length);
         fseek($stream, $length, SEEK_CUR);
         return $data;
