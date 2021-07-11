@@ -110,22 +110,31 @@ class StructureData {
 
                 $id = ($bk + 1) / 16;
                 $meta = $bk % 16;
-                switch ($ptype % 2) {
-                    case 1:
-                        $x = (int)((int)($bklocator / self::Y_MAX) / 16);
-                        $y = ($bklocator) % self::Y_MAX;
-                        $z = (int)($bklocator / self::Y_MAX) % 16;
-                        break;
-
-                    default:
-                        $x = (int)($bklocator / self::Y_MAX) % 16;
-                        $y = ($bklocator) % self::Y_MAX;
-                        $z = (int)((int)($bklocator / self::Y_MAX) / 16);
-                        break;
+                $f = ($bklocator) % self::Y_MAX;
+                $s = (int)($bklocator / self::Y_MAX) % 16;
+                $t = (int)((int)($bklocator / self::Y_MAX) / 16);
+                if ($ptype % 4 > 1) {
+                    $y = $t;
+                    if ($ptype % 2) {
+                        $x = $f;
+                        $z = $s;
+                    } else {
+                        $x = $s;
+                        $z = $f;
+                    }
+                } else {
+                    $y = $f;
+                    if ($ptype % 2) {
+                        $x = $s;
+                        $z = $t;
+                    } else {
+                        $x = $t;
+                        $z = $s;
+                    }
                 }
-                if ($ptype % 4 === 2) $x = 15 - $x;
-                if ($ptype % 4 === 3) $z = 15 - $z;
-                if ($ptype >= 4) $y = self::Y_MAX - 1 - $y;
+                if ($ptype % 8 > 3) $x = 15 - $x;
+                if ($ptype % 8 > 3) $z = 15 - $z;
+                if ($ptype % 16 > 7) $y = self::Y_MAX - 1 - $y;
                 $this->chunk->setBlock($x, $y, $z, $id, $meta);
             }
         } while ($clen > 0);
