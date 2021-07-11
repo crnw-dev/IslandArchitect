@@ -74,14 +74,14 @@ class StructureData {
     public function decode() {
         if (!is_resource($this->stream)) return;
         fseek($this->stream, 0);
-        $header = Utils::ReadAndSeek($this->stream, 4);
+        $header = Utils::readAndSeek($this->stream, 4);
         // Format version (1), sub version (1), chunks count (2)
 
         $ver = Binary::readByte($header[0]);
         if ($ver > self::FORMAT_VERSION) $this->panicParse("Unsupported structure format version " . $ver, false, false);
 
         $ccount = Binary::readSignedLShort(substr($header, 2));
-        $cmap = Utils::ReadAndSeek($this->stream, self::CHUNKMAP_ELEMENT_SIZE * $ccount);
+        $cmap = Utils::readAndSeek($this->stream, self::CHUNKMAP_ELEMENT_SIZE * $ccount);
         // An array (32) of chunk hash (2) followed by chunk length (8), max limit 2MB per chunk
         unset($header, $ver);
 
@@ -102,7 +102,7 @@ class StructureData {
         if (!isset($clen)) return;
 
         do {
-            $junction = Utils::ReadAndSeek($this->stream, 5);
+            $junction = Utils::readAndSeek($this->stream, 5);
             // Part expand type (1), signed part length (2), signed part trailing offset (2)
             $ptype = Binary::readByte($junction[0]);
             $plen = Binary::readSignedLShort(substr($junction, 1, 2));
@@ -113,7 +113,7 @@ class StructureData {
 
             $clen -= 3 + $plen;
 
-            $pdata = Utils::ReadAndSeek($this->stream, $plen);
+            $pdata = Utils::readAndSeek($this->stream, $plen);
             for ($bkpointer = 0; $bkpointer < strlen($pdata); $bkpointer += 2) {
                 $bklocator = $ptrailing + $bkpointer / 2;
                 // Part trailing offset are basically the count of air blocks at the front of part data
