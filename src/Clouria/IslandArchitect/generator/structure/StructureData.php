@@ -109,7 +109,7 @@ class StructureData {
                 if ($bk < 0) $bk += 32767 - $bk - 1;
 
                 $id = ($bk + 1) / 16;
-                $meta = ($bk + 1) % 16;
+                $meta = $bk % 16;
                 switch ($ptype % 2) {
                     case 1:
                         $x = (int)((int)($bklocator / self::Y_MAX) / 16);
