@@ -72,13 +72,26 @@ class StructureData {
             $cmapped = substr($cmap, $cpointer, self::CHUNKMAP_ELEMENT_SIZE);
             $mappedlen = Binary::readLLong(substr($cmapped, 2));
             $mappedhash = Binary::readSignedLShort(substr($cmapped, 0, 2));
-            if ($mappedhash < 0) $mappedhash += 2147483647 + abs($mappedhash) - 1;
-            if ($mappedhash === $this->chunkhash) break;
+            if ($mappedhash < 0) $mappedhash += 2147483647 - $mappedhash - 1;
+            if ($mappedhash === $this->chunkhash) {
+                $clen = $mappedlen;
+                break;
+            }
 
             if ($mappedlen < 0) fseek($this->stream, PHP_INT_MAX, SEEK_CUR);
             fseek($this->stream, (int)(abs($mappedlen) - ($mappedlen < 0 ? 1 : 0)), SEEK_CUR);
         }
         unset($cmap, $cpointer, $ccount, $cmapped, $mappedlen, $mappedhash);
+
+        do {
+            $junction = Utils::ReadAndSeek($this->stream, 3);
+            // Part expend type (1), signed part length (2)
+            $ptype = Binary::readByte($junction[0]);
+            $plen = Binary::readSignedLShort(substr($junction, 1));
+            if ($plen < 0) $plen += 32767 - $plen - 1;
+            $pdata = Utils::ReadAndSeek($this->stream, $plen);
+            $clen -= 3 + $plen;
+        } while ($clen > 0);
     }
 
     /**
