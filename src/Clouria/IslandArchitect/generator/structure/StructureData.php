@@ -27,20 +27,17 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\generator\structure;
 
-use pocketmine\level\Level;
 use pocketmine\utils\Binary;
 use pocketmine\utils\Random;
 use Clouria\IslandArchitect\Utils;
 use pocketmine\level\format\Chunk;
 use Clouria\IslandArchitect\IslandArchitect;
 use Clouria\IslandArchitect\generator\properties\StructureProperty;
-use function abs;
 use function fseek;
 use function substr;
 use function strlen;
 use function is_resource;
 use const SEEK_CUR;
-use const PHP_INT_MAX;
 
 class StructureData {
 
@@ -73,26 +70,10 @@ class StructureData {
      */
     public function decode() {
         if (!is_resource($this->stream)) return;
-        $header = Utils::readAndSeek($this->stream, 2);
-        $ccount = Utils::overflowBytes(substr($header, 2, 2));
-        $cmap = Utils::readAndSeek($this->stream, self::CHUNKMAP_ELEMENT_SIZE * $ccount);
-        // An array (32) of chunk hash (2) followed by chunk length (8), max limit 2MB per chunk
-        unset($header);
-
-        for ($cpointer = 0; $cpointer < $ccount * self::CHUNKMAP_ELEMENT_SIZE; $cpointer += self::CHUNKMAP_ELEMENT_SIZE) {
-            $cmapped = substr($cmap, $cpointer, self::CHUNKMAP_ELEMENT_SIZE);
-            $mappedlen = Binary::readLLong(substr($cmapped, 2));
-            $mappedhash = Utils::overflowBytes(substr($cmapped, 0, 2));
-            if ($mappedhash === Level::chunkHash($this->chunk->getX(), $this->chunk->getZ())) {
-                $clen = $mappedlen;
-                break;
-            }
-
-            if ($mappedlen < 0) fseek($this->stream, PHP_INT_MAX, SEEK_CUR);
-            fseek($this->stream, (int)(abs($mappedlen) - ($mappedlen < 0 ? 1 : 0)), SEEK_CUR);
-        }
-        unset($cmap, $cpointer, $ccount, $cmapped, $mappedlen, $mappedhash);
-        if (!isset($clen)) return;
+        $props = Utils::readAndSeek($this->stream, 4); // Properties map, max length 1GB
+        // Map length (unsigned 4)
+        $cmeta = Utils::readAndSeek($this->stream, 8); // Chunk meta
+        // Chunk hash (signed 4), chunk length divided by two (signed 4)
 
         do {
             $junction = Utils::readAndSeek($this->stream, 5);
