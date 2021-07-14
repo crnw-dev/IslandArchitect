@@ -80,16 +80,15 @@ class StructureData {
         $ver = Binary::readByte($header[0]);
         if ($ver > self::FORMAT_VERSION) $this->panicParse("Unsupported structure format version " . $ver, false, false);
 
-        $ccount = Binary::readSignedLShort(substr($header, 2));
+        $ccount = Utils::overflowBytes(substr($header, 2));
         $cmap = Utils::readAndSeek($this->stream, self::CHUNKMAP_ELEMENT_SIZE * $ccount);
         // An array (32) of chunk hash (2) followed by chunk length (8), max limit 2MB per chunk
-        unset($header, $ver);
+        unset($header);
 
         for ($cpointer = 0; $cpointer < $ccount * self::CHUNKMAP_ELEMENT_SIZE; $cpointer += self::CHUNKMAP_ELEMENT_SIZE) {
             $cmapped = substr($cmap, $cpointer, self::CHUNKMAP_ELEMENT_SIZE);
             $mappedlen = Binary::readLLong(substr($cmapped, 2));
-            $mappedhash = Binary::readSignedLShort(substr($cmapped, 0, 2));
-            if ($mappedhash < 0) $mappedhash += 2147483647 - $mappedhash - 1;
+            $mappedhash = Utils::overflowBytes(substr($cmapped, 0, 2));
             if ($mappedhash === Level::chunkHash($this->chunk->getX(), $this->chunk->getZ())) {
                 $clen = $mappedlen;
                 break;
@@ -108,10 +107,8 @@ class StructureData {
 
             if ($ptype > 64) break; // End of chunks, structure properties are the next
 
-            $plen = Binary::readSignedLShort(substr($junction, 1, 2));
-            if ($plen < 0) $plen += 32767 - $plen - 1;
-            $ptrailing = Binary::readSignedByte(substr($junction, 3, 2));
-            if ($ptrailing < 0) $ptrailing += 32767 - $ptrailing - 1;
+            $plen = Utils::overflowBytes(substr($junction, 1, 2));
+            $ptrailing = Utils::overflowBytes(substr($junction, 3, 2));
             unset($junction);
 
             $clen -= 3 + $plen;
@@ -120,8 +117,7 @@ class StructureData {
             for ($bkpointer = 0; $bkpointer < strlen($pdata); $bkpointer += 2) {
                 $bklocator = $ptrailing + $bkpointer / 2;
                 // Part trailing offset are basically the count of air blocks at the front of part data
-                $bk = Binary::readSignedLShort(substr($pdata, $bkpointer, 2));
-                if ($bk < 0) $bk += 32767 - $bk - 1;
+                $bk = Utils::overflowBytes(substr($pdata, $bkpointer, 2));
 
                 $id = ($bk + 1) / 16;
                 $meta = $bk % 16;
@@ -159,8 +155,7 @@ class StructureData {
         if (!isset($junction)) $junction = Utils::readAndSeek($this->stream, 1);
         // Structure property identifier length (1), structure property data length (4)
         $pnamelen = Binary::readByte($junction[0]);
-        $pdatalen = Binary::readLInt(substr($junction, 1, 4));
-        if ($pdatalen < 0) $pdatalen += 2147483647 - $pdatalen - 1;
+        $pdatalen = Utils::overflowBytes(substr($junction, 1, 4));
         unset($junction);
         $pname = Utils::readAndSeek($this->stream, $pnamelen);
         if (!isset($this->properties[$pname])) $this->panicParse("Structure property \"" . $pname . "\" not found", false, true);
