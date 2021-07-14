@@ -73,14 +73,8 @@ class StructureData {
      */
     public function decode() {
         if (!is_resource($this->stream)) return;
-        fseek($this->stream, 0);
-        $header = Utils::readAndSeek($this->stream, 4);
-        // Format version (1), sub version (1), chunks count (2)
-
-        $ver = Binary::readByte($header[0]);
-        if ($ver > self::FORMAT_VERSION) $this->panicParse("Unsupported structure format version " . $ver, false, false);
-
-        $ccount = Utils::overflowBytes(substr($header, 2));
+        $header = Utils::readAndSeek($this->stream, 2);
+        $ccount = Utils::overflowBytes(substr($header, 2, 2));
         $cmap = Utils::readAndSeek($this->stream, self::CHUNKMAP_ELEMENT_SIZE * $ccount);
         // An array (32) of chunk hash (2) followed by chunk length (8), max limit 2MB per chunk
         unset($header);
@@ -173,6 +167,14 @@ class StructureData {
         if ($corrupted) $err .= ", is the structure data file occupied?";
         if ($higherver) $err .= ", is the structure exported from a higher version of " . IslandArchitect::PLUGIN_NAME . "?";
         throw new StructureParseException($this->stream, "", $err);
+    }
+
+    public static function validateFormatVersion($stream) : bool {
+        $ver = Utils::readAndSeek($stream, 1);
+        fseek($stream, 1, SEEK_CUR);
+        $ver = Binary::readByte($ver);
+        return $ver <= self::FORMAT_VERSION;
+        // if ($ver > self::FORMAT_VERSION) $this->panicParse("Unsupported structure format version " . $ver . ", try updating " . IslandArchitect::PLUGIN_NAME, false);
     }
 
 }
