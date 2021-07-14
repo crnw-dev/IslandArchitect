@@ -27,10 +27,8 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect;
 
-use pocketmine\utils\Binary;
 use function fread;
 use function fseek;
-use function strlen;
 use const SEEK_CUR;
 
 final class Utils {
@@ -42,27 +40,4 @@ final class Utils {
         fseek($stream, $length, SEEK_CUR);
         return $data;
     }
-
-    public static function overflowBytes(string $data) : int {
-        switch (strlen($data)) {
-            case 1:
-                $data = Binary::readSignedByte($data);
-                $max = 127;
-                break;
-            case 2:
-                $data = Binary::readSignedLShort($data);
-                $max = 32767;
-                break;
-            case 4:
-                $data = Binary::readLInt($data);
-                $max = 2147483647;
-                break;
-            case 8:
-                throw new \InvalidArgumentException("Cannot overflow longs");
-            default:
-                throw new \InvalidArgumentException("Cannot overflow bytes with the length of " . strlen($data));
-        }
-        return $data < 0 ? $data + $max + 1 - $data : $data;
-    }
-
 }
