@@ -27,16 +27,17 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\generator\structure;
 
+use pocketmine\level\Level;
 use pocketmine\utils\Binary;
 use pocketmine\utils\Random;
 use Clouria\IslandArchitect\Utils;
 use pocketmine\level\format\Chunk;
 use Clouria\IslandArchitect\IslandArchitect;
 use Clouria\IslandArchitect\generator\properties\StructureProperty;
+use function abs;
 use function fseek;
 use function substr;
 use function strlen;
-use function is_resource;
 use const SEEK_CUR;
 
 class StructureData {
@@ -69,73 +70,29 @@ class StructureData {
      * @throws StructureParseException
      */
     public function decode() {
-        if (!is_resource($this->stream)) return;
-        $props = Utils::readAndSeek($this->stream, 4); // Properties map, max length 1GB
-        // Map length (unsigned 4)
-        $cmeta = Utils::readAndSeek($this->stream, 8); // Chunk meta
-        // Chunk hash (signed 4), chunk length divided by two (signed 4)
+        fseek($this->stream, 2);
 
-        do {
-            $junction = Utils::readAndSeek($this->stream, 5);
-            // Part expand type (1), signed part length (2), signed part trailing offset (2)
-            $ptype = Binary::readByte($junction[0]);
+        $propmlen = Utils::readAndSeek($this->stream, 4);
+        if (strlen($propmlen) !== 4) $this->panicParse("File ends before property map");
+        $propmlen = Binary::readLInt($propmlen);
+        if ($propmlen < 0) fseek($this->stream, 2147483647);
+        fseek($this->stream, abs($propmlen)); // Properties map length (4, max length 4GB)
+        unset($propmlen);
 
-            if ($ptype > 64) break; // End of chunks, structure properties are the next
+        $cmeta = Utils::readAndSeek($this->stream, 6); // Chunk meta
+        // Chunk hash (4), blocks count divided by two / chunk length divided by two (unsigned 2)
+        if (strlen($cmeta) !== 8) $this->panicParse("File has no chunks");
+        while (Binary::readLInt(substr($cmeta, 0, 4)) !== Level::chunkHash($this->chunk->getX(), $this->chunk->getZ())) {
+            fseek($this->stream, Binary::readLShort(substr($cmeta, 4, 2)) * 2);
+            $cmeta = Utils::readAndSeek($this->stream, 6);
+            if (strlen($cmeta) !== 6) return; // File ends
+        }
+        $cdata = Utils::readAndSeek($this->stream, $clen = Binary::readLShort(substr($cmeta, 4, 2)) * 2);
+        if (strlen($cdata) !== $clen) $this->panicParse("Declared chunk length (" . $clen . ") mismatch with the actual one (file ends after a data of " . strlen($cdata) . " bytes)");
+        unset($clen);
 
-            $plen = Utils::overflowBytes(substr($junction, 1, 2));
-            $ptrailing = Utils::overflowBytes(substr($junction, 3, 2));
-            unset($junction);
-
-            $clen -= 3 + $plen;
-
-            $pdata = Utils::readAndSeek($this->stream, $plen);
-            for ($bkpointer = 0; $bkpointer < strlen($pdata); $bkpointer += 2) {
-                $bklocator = $ptrailing + $bkpointer / 2;
-                // Part trailing offset are basically the count of air blocks at the front of part data
-                $bk = Utils::overflowBytes(substr($pdata, $bkpointer, 2));
-
-                $id = ($bk + 1) / 16;
-                $meta = $bk % 16;
-                unset($bk);
-                $f = ($bklocator) % self::Y_MAX;
-                $s = (int)($bklocator / self::Y_MAX) % 16;
-                $t = (int)((int)($bklocator / self::Y_MAX) / 16);
-                if ($ptype % 4 > 1) {
-                    $y = $t;
-                    if ($ptype % 2) {
-                        $x = $f;
-                        $z = $s;
-                    } else {
-                        $x = $s;
-                        $z = $f;
-                    }
-                } else {
-                    $y = $f;
-                    if ($ptype % 2) {
-                        $x = $s;
-                        $z = $t;
-                    } else {
-                        $x = $t;
-                        $z = $s;
-                    }
-                }
-                if ($ptype % 8 > 3) $x = 15 - $x;
-                if ($ptype % 8 > 3) $z = 15 - $z;
-                if ($ptype % 16 > 7) $y = self::Y_MAX - 1 - $y;
-                $this->chunk->setBlock($x, $y, $z, $id, $meta);
-            }
-        } while ($clen > 0);
-        unset($ptype, $ptrailing, $bklocator, $bkpointer, $pdata, $plen);
-
-        if (!isset($junction)) $junction = Utils::readAndSeek($this->stream, 1);
-        // Structure property identifier length (1), structure property data length (4)
-        $pnamelen = Binary::readByte($junction[0]);
-        $pdatalen = Utils::overflowBytes(substr($junction, 1, 4));
-        unset($junction);
-        $pname = Utils::readAndSeek($this->stream, $pnamelen);
-        if (!isset($this->properties[$pname])) $this->panicParse("Structure property \"" . $pname . "\" not found", false, true);
-
-        $this->properties[$pname]->getFunc()($this, $pdatalen);
+        for ($cpointer = 0; $cpointer < $clen * 2; $clen += 2) {
+        }
     }
 
     /**
