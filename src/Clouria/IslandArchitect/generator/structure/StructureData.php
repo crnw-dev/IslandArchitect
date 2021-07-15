@@ -67,6 +67,7 @@ class StructureData {
     protected $properties;
 
     /**
+     * Please notice that every bytes are (should) stored in the order of little endian. If you found any that are not, please consider open a pull request / issue to let me know
      * @throws StructureParseException
      */
     public function decode() {
@@ -88,6 +89,10 @@ class StructureData {
             if (strlen($cmeta) !== 6) return; // File ends
         }
         $cdata = Utils::readAndSeek($this->stream, $clen = Binary::readLShort(substr($cmeta, 4, 2)) * 2);
+        /*
+         * Chunk data are basically just blocks, each block are stored in unsigned shorts (2)
+         * The value is split into 8 parts, each part has the size of 8192
+         */
         if (strlen($cdata) !== $clen) $this->panicParse("Declared chunk length (" . $clen . ") mismatch with the actual one (file ends after a data of " . strlen($cdata) . " bytes)");
         unset($clen);
 
