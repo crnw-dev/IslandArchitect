@@ -91,12 +91,29 @@ class StructureData {
         $cdata = Utils::readAndSeek($this->stream, $clen = Binary::readLShort(substr($cmeta, 4, 2)) * 2);
         /*
          * Chunk data are basically just blocks, each block are stored in unsigned shorts (2)
-         * The value is split into 8 parts, each part has the size of 8192
+         * The value is split into 4 types, each type has the size of 16384
          */
         if (strlen($cdata) !== $clen) $this->panicParse("Declared chunk length (" . $clen . ") mismatch with the actual one (file ends after a data of " . strlen($cdata) . " bytes)");
-        unset($clen);
 
-        for ($cpointer = 0; $cpointer < $clen * 2; $clen += 2) {
+        $clocator = 0;
+        for ($cpointer = 0; $cpointer < $clen * 2; $cpointer += 2) {
+            $bkraw = Binary::readLShort(substr($cdata, $cpointer, 2));
+            switch ($bktype = ceil(($bkraw + 1 / 16384))) {
+                case 1: // Regular block
+                    $bk = $bkraw % 16384;
+                    $this->chunk->setBlock($clocator % 16, $clocator >> 4 >> 4 % self::Y_MAX, ($clocator >> 4) % 16, $bk >> 4, $bk % 16);
+                    break;
+                case 2: // Air (block skipping)
+                    $clocator += ($bktype % 16384) + 1;
+                    break;
+
+                case 3:
+                    break;
+
+                // Type 4 will not be handled as they are not used in this version of IslandArchitect
+
+            }
+            $clocator++;
         }
     }
 
