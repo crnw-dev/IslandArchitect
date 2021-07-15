@@ -27,6 +27,7 @@ declare(strict_types=1);
 
 namespace Clouria\IslandArchitect\generator\structure;
 
+use pocketmine\item\Item;
 use pocketmine\level\Level;
 use pocketmine\utils\Binary;
 use pocketmine\utils\Random;
@@ -101,9 +102,10 @@ class StructureData {
             switch ($bktype = ceil(($bkraw + 1 / 16384))) {
                 case 1: // Regular block
                     $bk = $bkraw % 16384;
-                    $this->chunk->setBlock($clocator % 16, $clocator >> 4 >> 4 % self::Y_MAX, ($clocator >> 4) % 16, $bk >> 4, $bk % 16);
+                    $id = $bk >> 4;
+                    if ($id !== Item::AIR) $this->chunk->setBlock($clocator % 16, $clocator >> 4 >> 4 % self::Y_MAX, ($clocator >> 4) % 16, $id, $bk % 16);
                     break;
-                case 2: // Air (block skipping)
+                case 2: // Block skipping (air)
                     $clocator += ($bktype % 16384) + 1;
                     break;
 
