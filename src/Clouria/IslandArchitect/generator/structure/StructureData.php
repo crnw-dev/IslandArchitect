@@ -75,7 +75,7 @@ class StructureData {
 
         $cmeta = Utils::readAndSeek($this->stream, 6); // Chunk meta
         // Chunk hash (4), chunk length divided by two / blocks count (unsigned 2)
-        if (strlen($cmeta) !== 8) $this->panicParse("File has no chunks");
+        if (strlen($cmeta) !== 8) $this->panicParse('File has no chunks');
         while (Binary::readLInt(substr($cmeta, 0, 4)) !== Level::chunkHash($this->chunk->getX(), $this->chunk->getZ())) {
             fseek($this->stream, Binary::readLShort(substr($cmeta, 4, 2)) * 2, SEEK_CUR);
             $cmeta = Utils::readAndSeek($this->stream, 6);
@@ -86,7 +86,7 @@ class StructureData {
          * Chunk data are basically just blocks, each block are stored in unsigned shorts (2)
          * The value is split into 4 types, each type has the size of 16384
          */
-        if (strlen($cdata) !== $clen) $this->panicParse("Declared chunk length (" . $clen . ") mismatch with the actual one (file ends after a data of " . strlen($cdata) . " bytes)");
+        if (strlen($cdata) !== $clen) $this->panicParse('Declared chunk length (' . $clen . ') mismatch with the actual one (file ends after a data of ' . strlen($cdata) . ' bytes)');
 
         $clocator = 0;
         for ($cpointer = 0; $cpointer < $clen * 2; $cpointer += 2) {
@@ -103,7 +103,7 @@ class StructureData {
 
                 case 3:
                     $pointer = ftell($this->stream);
-                    if ($pointer === false) throw new \RuntimeException("Cannot fetch the position of pointer from file descriptor");
+                    if ($pointer === false) throw new \RuntimeException('Cannot fetch the position of pointer from file descriptor');
                     $id = $bkraw % self::BKV_TYPE_SIZE;
                     $prop = $this->loadProperty($id);
                     if ($prop === null) throw new \RuntimeException('Structure property ' . $id . 'is required but cannot be found in the structure data');
@@ -125,9 +125,9 @@ class StructureData {
      * @throws StructureParseException
      */
     protected function panicParse(string $err, bool $corrupted = true, bool $higherver = false) : void {
-        if ($corrupted) $err .= ", is the structure data file occupied?";
-        if ($higherver) $err .= ", is the structure exported from a higher version of " . IslandArchitect::PLUGIN_NAME . "?";
-        throw new StructureParseException($this->stream, "", $err);
+        if ($corrupted) $err .= ', is the structure data file occupied?';
+        if ($higherver) $err .= ', is the structure exported from a higher version of ' . IslandArchitect::PLUGIN_NAME . '?';
+        throw new StructureParseException($this->stream, '', $err);
     }
 
     public static function validateFormatVersion($stream) : bool {
@@ -135,7 +135,7 @@ class StructureData {
         fseek($stream, 1, SEEK_CUR);
         $ver = Binary::readByte($ver);
         return $ver <= self::FORMAT_VERSION;
-        // if ($ver > self::FORMAT_VERSION) $this->panicParse("Unsupported structure format version " . $ver . ", try updating " . IslandArchitect::PLUGIN_NAME, false);
+        // if ($ver > self::FORMAT_VERSION) $this->panicParse('Unsupported structure format version ' . $ver . ', try updating ' . IslandArchitect::PLUGIN_NAME, false);
     }
 
     /**
@@ -173,7 +173,7 @@ class StructureData {
      */
     protected function loadPropertiesCount() : int {
         $propcount = Utils::readAndSeek($this->stream, 2); // Properties count (unsigned 2)
-        if (strlen($propcount) !== 2) $this->panicParse("File ends with no chunks or properties");
+        if (strlen($propcount) !== 2) $this->panicParse('File ends with no chunks or properties');
         $this->propcount = Binary::readLShort($propcount);
         return $this->propcount;
     }
