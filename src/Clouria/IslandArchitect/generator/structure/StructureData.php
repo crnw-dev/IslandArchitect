@@ -77,7 +77,7 @@ class StructureData {
         // Chunk hash (4), chunk length divided by two / blocks count (unsigned 2)
         if (strlen($cmeta) !== 8) $this->panicParse("File has no chunks");
         while (Binary::readLInt(substr($cmeta, 0, 4)) !== Level::chunkHash($this->chunk->getX(), $this->chunk->getZ())) {
-            fseek($this->stream, Binary::readLShort(substr($cmeta, 4, 2)) * 2);
+            fseek($this->stream, Binary::readLShort(substr($cmeta, 4, 2)) * 2, SEEK_CUR);
             $cmeta = Utils::readAndSeek($this->stream, 6);
             if (strlen($cmeta) !== 6) return; // File ends
         }
