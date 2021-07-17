@@ -74,12 +74,9 @@ class StructureData {
     public function decode() {
         fseek($this->stream, 2);
 
-        $propmlen = Utils::readAndSeek($this->stream, 4);
-        if (strlen($propmlen) !== 4) $this->panicParse("File ends before property map");
-        $propmlen = Binary::readLInt($propmlen);
-        if ($propmlen < 0) fseek($this->stream, 2147483647);
-        fseek($this->stream, abs($propmlen)); // Properties map length (4, max length 4GB)
-        unset($propmlen);
+        $propcount = Utils::readAndSeek($this->stream, 2); // Properties count (unsigned 2)
+        if (strlen($propcount) !== 2) $this->panicParse("File ends with no chunks or properties");
+        for ($proppointer = 0; $proppointer < $propcount; $proppointer++) fseek($this->stream, Binary::readLShort(Utils::readAndSeek($this->stream, 2)), SEEK_CUR); // Property length (unsigned 2), max size 64KB per property
 
         $cmeta = Utils::readAndSeek($this->stream, 6); // Chunk meta
         // Chunk hash (4), blocks count divided by two / chunk length divided by two (unsigned 2)
