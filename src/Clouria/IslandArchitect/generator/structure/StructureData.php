@@ -31,6 +31,7 @@ use pocketmine\item\Item;
 use pocketmine\level\Level;
 use pocketmine\utils\Binary;
 use pocketmine\utils\Random;
+use pocketmine\math\Vector3;
 use Clouria\IslandArchitect\Utils;
 use pocketmine\level\format\Chunk;
 use Clouria\IslandArchitect\IslandArchitect;
@@ -61,16 +62,16 @@ class StructureData {
      */
     protected $random;
 
+    protected $propcount = null;
+
     /**
      * Please notice that every bytes are (should) stored in the order of little endian. If you found any that are not, please consider open a pull request / issue to let me know
      * @throws StructureParseException
      */
     public function decode() {
         fseek($this->stream, 2);
-
-        $propcount = Utils::readAndSeek($this->stream, 2); // Properties count (unsigned 2)
-        if (strlen($propcount) !== 2) $this->panicParse("File ends with no chunks or properties");
-        for ($proppointer = 0; $proppointer < $propcount; $proppointer++) fseek($this->stream, Binary::readLShort(Utils::readAndSeek($this->stream, 2)), SEEK_CUR); // Property length (unsigned 2), max size 64KB per property
+        for ($proppointer = 0; $proppointer < $this->getPropertiesCount(); $proppointer++) fseek($this->stream, Binary::readLShort(Utils::readAndSeek($this->stream, 2)), SEEK_CUR); // Property length (unsigned 2), max size 64KB per property
+        unset($proppointer);
 
         $cmeta = Utils::readAndSeek($this->stream, 6); // Chunk meta
         // Chunk hash (4), chunk length divided by two / blocks count (unsigned 2)
@@ -128,6 +129,26 @@ class StructureData {
         $ver = Binary::readByte($ver);
         return $ver <= self::FORMAT_VERSION;
         // if ($ver > self::FORMAT_VERSION) $this->panicParse("Unsupported structure format version " . $ver . ", try updating " . IslandArchitect::PLUGIN_NAME, false);
+    }
+
+    /**
+     * @return int Attempt to load the property count if null
+     * @throws StructureParseException
+     */
+    public function getPropertiesCount() : int {
+        if ($this->propcount === null) return $this->loadPropertiesCount();
+        return $this->propcount;
+    }
+
+    /**
+     * Please set the stream pointer to 2 before running
+     * @throws StructureParseException
+     */
+    protected function loadPropertiesCount() : int {
+        $propcount = Utils::readAndSeek($this->stream, 2); // Properties count (unsigned 2)
+        if (strlen($propcount) !== 2) $this->panicParse("File ends with no chunks or properties");
+        $this->propcount = Binary::readLShort($propcount);
+        return $this->propcount;
     }
 
 }
