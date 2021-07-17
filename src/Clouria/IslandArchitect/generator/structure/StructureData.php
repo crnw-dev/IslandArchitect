@@ -102,6 +102,9 @@ class StructureData {
                     break;
 
                 case 3:
+                    $pointer = ftell($this->stream);
+                    if ($pointer === false) throw new \RuntimeException("Cannot fetch the position of pointer from file descriptor");
+                    $this->loadProperty($bkraw % self::BKV_TYPE_SIZE)->run($this, $pointer, new Vector3($clocator % 16, $clocator >> 4 >> 4 % self::Y_MAX, ($clocator >> 4) % 16));
                     break;
 
                 // Type 4 will not be handled as they are not used in this version of IslandArchitect
@@ -129,6 +132,27 @@ class StructureData {
         $ver = Binary::readByte($ver);
         return $ver <= self::FORMAT_VERSION;
         // if ($ver > self::FORMAT_VERSION) $this->panicParse("Unsupported structure format version " . $ver . ", try updating " . IslandArchitect::PLUGIN_NAME, false);
+    }
+
+    /**
+     * @throws StructureParseException Property count cannot be loaded
+     * @throws \RuntimeException Property not found
+     */
+    public function loadProperty(int $id) : ?StructureProperty {
+        if ($this->getPropertiesCount() <= $id) throw new \RuntimeException('Structure property ' . $id . 'is required but cannot be found in the structure data');
+        fseek($this->stream, 2);
+        for ($pointer = 0; $pointer < $id; $pointer++) fseek($this->stream, Binary::readLShort(Utils::readAndSeek($this->stream, 2)), SEEK_CUR);
+
+        $data = Utils::readAndSeek($this->stream, Binary::readLShort(Utils::readAndSeek($this->stream, 2)));
+        $namelen = Binary::readByte($data[0]);
+        switch (substr($data, $namelen)) {
+            case RandomGeneration::getName():
+                break;
+            case IslandChest::getName():
+                break;
+            default:
+                break;
+        }
     }
 
     /**
