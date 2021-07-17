@@ -35,7 +35,6 @@ use Clouria\IslandArchitect\Utils;
 use pocketmine\level\format\Chunk;
 use Clouria\IslandArchitect\IslandArchitect;
 use Clouria\IslandArchitect\generator\properties\StructureProperty;
-use function abs;
 use function fseek;
 use function substr;
 use function strlen;
@@ -44,8 +43,8 @@ use const SEEK_CUR;
 class StructureData {
 
     public const FORMAT_VERSION = 0;
-    public const CHUNKMAP_ELEMENT_SIZE = 10;
     public const Y_MAX = 0x100; // Hardcode Y max or breaks block filling after Y is has increased
+    public const BKV_TYPE_SIZE = 16384;
 
     /**
      * @var resource
@@ -63,11 +62,6 @@ class StructureData {
     protected $random;
 
     /**
-     * @var array<string, StructureProperty>
-     */
-    protected $properties;
-
-    /**
      * Please notice that every bytes are (should) stored in the order of little endian. If you found any that are not, please consider open a pull request / issue to let me know
      * @throws StructureParseException
      */
@@ -79,7 +73,7 @@ class StructureData {
         for ($proppointer = 0; $proppointer < $propcount; $proppointer++) fseek($this->stream, Binary::readLShort(Utils::readAndSeek($this->stream, 2)), SEEK_CUR); // Property length (unsigned 2), max size 64KB per property
 
         $cmeta = Utils::readAndSeek($this->stream, 6); // Chunk meta
-        // Chunk hash (4), blocks count divided by two / chunk length divided by two (unsigned 2)
+        // Chunk hash (4), chunk length divided by two / blocks count (unsigned 2)
         if (strlen($cmeta) !== 8) $this->panicParse("File has no chunks");
         while (Binary::readLInt(substr($cmeta, 0, 4)) !== Level::chunkHash($this->chunk->getX(), $this->chunk->getZ())) {
             fseek($this->stream, Binary::readLShort(substr($cmeta, 4, 2)) * 2);
@@ -96,14 +90,14 @@ class StructureData {
         $clocator = 0;
         for ($cpointer = 0; $cpointer < $clen * 2; $cpointer += 2) {
             $bkraw = Binary::readLShort(substr($cdata, $cpointer, 2));
-            switch ($bktype = ceil(($bkraw + 1 / 16384))) {
+            switch ($bktype = ceil(($bkraw + 1 / self::BKV_TYPE_SIZE))) {
                 case 1: // Regular block
-                    $bk = $bkraw % 16384;
+                    $bk = $bkraw % self::BKV_TYPE_SIZE;
                     $id = $bk >> 4;
                     if ($id !== Item::AIR) $this->chunk->setBlock($clocator % 16, $clocator >> 4 >> 4 % self::Y_MAX, ($clocator >> 4) % 16, $id, $bk % 16);
                     break;
                 case 2: // Block skipping (air)
-                    $clocator += ($bktype % 16384) + 1;
+                    $clocator += ($bktype % self::BKV_TYPE_SIZE) + 1;
                     break;
 
                 case 3:
