@@ -36,6 +36,7 @@ use Clouria\IslandArchitect\Utils;
 use pocketmine\level\format\Chunk;
 use Clouria\IslandArchitect\IslandArchitect;
 use Clouria\IslandArchitect\generator\properties\StructureProperty;
+use function max;
 use function fseek;
 use function substr;
 use function strlen;
@@ -88,14 +89,15 @@ class StructureData {
          */
         if (strlen($cdata) !== $clen) $this->panicParse('Declared chunk length (' . $clen . ') mismatch with the actual one (file ends after a data of ' . strlen($cdata) . ' bytes)');
 
-        $clocator = 0;
+        $clocator = $repeat = 0;
         for ($cpointer = 0; $cpointer < $clen * 2; $cpointer += 2) {
             $bkraw = Binary::readLShort(substr($cdata, $cpointer, 2));
             switch ($bktype = ceil(($bkraw + 1 / self::BKV_TYPE_SIZE))) {
                 case 1: // Regular block
                     $bk = $bkraw % self::BKV_TYPE_SIZE;
                     $id = $bk >> 4;
-                    if ($id !== Item::AIR) $this->chunk->setBlock($clocator % 16, $clocator >> 4 >> 4 % self::Y_MAX, ($clocator >> 4) % 16, $id, $bk % 16);
+                    for (; $clocator < $clocator + max($repeat, 1); $clocator++) if ($id !== Item::AIR) $this->chunk->setBlock($clocator % 16, $clocator >> 4 >> 4 % self::Y_MAX, ($clocator >> 4) % 16, $id, $bk % 16);
+                    $repeat = 0;
                     break;
                 case 2: // Block skipping (air)
                     $clocator += ($bktype % self::BKV_TYPE_SIZE) + 1;
@@ -108,13 +110,18 @@ class StructureData {
                     $prop = $this->loadProperty($id);
                     if ($prop === null) throw new \RuntimeException('Structure property ' . $id . 'is required but cannot be found in the structure data');
                     fseek($this->stream, $pointer);
-                    $prop->run($this, $pointer, new Vector3($clocator % 16, $clocator >> 4 >> 4 % self::Y_MAX, ($clocator >> 4) % 16));
+                    $prop->run($this, $pointer, new Vector3($clocator % 16, $clocator >> 4 >> 4 % self::Y_MAX, ($clocator >> 4) % 16), $repeat);
                     break;
 
-                // Type 4 will not be handled as they are not used in this version of IslandArchitect
+                case 4:
+                    // Block repeating (Doing basically the same thing as type 2 but not just repeating air)
+                    // Instead, it repeats the block of the next block value
+                    // The next block value should not be 2 or 4
+                    $repeat = ($bktype % self::BKV_TYPE_SIZE) + 1;
+                    $clocator++;
+                    break;
 
             }
-            $clocator++;
         }
     }
 
