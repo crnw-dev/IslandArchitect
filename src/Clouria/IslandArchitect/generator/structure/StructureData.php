@@ -126,6 +126,27 @@ class StructureData {
     }
 
     /**
+     * @return Chunk
+     */
+    public function getChunk() : Chunk {
+        return $this->chunk;
+    }
+
+    /**
+     * @return resource
+     */
+    public function getStream() {
+        return $this->stream;
+    }
+
+    /**
+     * @return Random
+     */
+    public function getRandom() : Random {
+        return $this->random;
+    }
+
+    /**
      * @param string $err
      * @param bool $corrupted
      * @param bool $higherver
