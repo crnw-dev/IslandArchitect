@@ -111,6 +111,7 @@ class StructureData {
                     if ($prop === null) throw new \RuntimeException('Structure property ' . $id . 'is required but cannot be found in the structure data');
                     fseek($this->stream, $pointer);
                     $prop->run($this, $pointer, new Vector3($clocator % 16, $clocator >> 4 >> 4 % self::Y_MAX, ($clocator >> 4) % 16), $repeat);
+                    fseek($this->stream, $pointer);
                     break;
 
                 case 4:
