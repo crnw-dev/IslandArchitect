@@ -33,7 +33,7 @@ use pocketmine\event\Event;
 use pocketmine\math\Vector3;
 use pocketmine\event\Cancellable;
 use Clouria\IslandArchitect\sessions\PlayerSession;
-use Clouria\IslandArchitect\generator\properties\RandomGeneration;
+use Clouria\IslandArchitect\generator\attachments\RandomGeneration;
 
 class RandomGenerationBlockUpdateEvent extends IslandArchitectEvent implements Cancellable {
 

@@ -34,7 +34,7 @@ use jojoe77777\FormAPI\ModalForm;
 use jojoe77777\FormAPI\CustomForm;
 use pocketmine\utils\TextFormat as TF;
 use Clouria\IslandArchitect\generator\TemplateIsland;
-use Clouria\IslandArchitect\generator\properties\RandomGeneration;
+use Clouria\IslandArchitect\generator\attachments\RandomGeneration;
 use function is_int;
 use function explode;
 use function array_keys;

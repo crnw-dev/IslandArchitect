@@ -46,7 +46,7 @@ use Clouria\IslandArchitect\generator\StructureGeneratorTask;
 use Clouria\IslandArchitect\generator\structure\StructureType;
 use Clouria\IslandArchitect\extended\buildertools\CustomPrinter;
 use Clouria\IslandArchitect\internal\IslandArchitectEventListener;
-use Clouria\IslandArchitect\generator\properties\RandomGeneration;
+use Clouria\IslandArchitect\generator\attachments\RandomGeneration;
 use Clouria\IslandArchitect\internal\IslandArchitectPluginTickTask;
 use Clouria\IslandArchitect\extended\skyblock\DummyIslandGenerator;
 use Clouria\IslandArchitect\extended\pocketmine\DummyWorldGenerator;

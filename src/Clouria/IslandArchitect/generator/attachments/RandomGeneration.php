@@ -26,7 +26,7 @@
 
 declare(strict_types=1);
 
-namespace Clouria\IslandArchitect\generator\properties;
+namespace Clouria\IslandArchitect\generator\attachments;
 
 use pocketmine\item\Item;
 use pocketmine\utils\Random;

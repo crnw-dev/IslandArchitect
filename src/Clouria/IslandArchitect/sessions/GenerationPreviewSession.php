@@ -39,7 +39,7 @@ use pocketmine\utils\TextFormat as TF;
 use pocketmine\level\generator\Generator;
 use Clouria\IslandArchitect\IslandArchitect;
 use muqsit\invmenu\transaction\DeterministicInvMenuTransaction;
-use Clouria\IslandArchitect\generator\properties\RandomGeneration;
+use Clouria\IslandArchitect\generator\attachments\RandomGeneration;
 use function in_array;
 use function random_int;
 use const INT32_MAX;

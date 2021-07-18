@@ -35,7 +35,7 @@ use pocketmine\math\Vector3;
 use Clouria\IslandArchitect\Utils;
 use pocketmine\level\format\Chunk;
 use Clouria\IslandArchitect\IslandArchitect;
-use Clouria\IslandArchitect\generator\properties\StructureProperty;
+use Clouria\IslandArchitect\generator\attachments\StructureAttachment;
 use function max;
 use function fseek;
 use function substr;
@@ -63,7 +63,7 @@ class StructureData {
      */
     protected $random;
 
-    protected $propcount = null;
+    protected $attachmentsCount = null;
 
     /**
      * Please notice that every bytes are (should) stored in the order of little endian. If you found any that are not, please consider open a pull request / issue to let me know
@@ -71,8 +71,10 @@ class StructureData {
      */
     public function decode() {
         fseek($this->stream, 2);
-        for ($proppointer = 0; $proppointer < $this->getPropertiesCount(); $proppointer++) fseek($this->stream, Binary::readLShort(Utils::readAndSeek($this->stream, 2)), SEEK_CUR); // Property length (unsigned 2), max size 64KB per property
-        unset($proppointer);
+        for ($attachmentPointer = 0; $attachmentPointer < $this->getAttachmentsCount(); $attachmentPointer++) fseek($this->stream, Binary::readLShort(Utils::readAndSeek($this->stream, 2)), SEEK_CUR); // Structure attachment length (unsigned 2), max size 64KB
+        // per
+        // structure attachment
+        unset($attachmentPointer);
 
         $cmeta = Utils::readAndSeek($this->stream, 6); // Chunk meta
         // Chunk hash (4), chunk length divided by two / blocks count (unsigned 2)
@@ -107,10 +109,10 @@ class StructureData {
                     $pointer = ftell($this->stream);
                     if ($pointer === false) throw new \RuntimeException('Cannot fetch the position of pointer from file descriptor');
                     $id = $bkraw % self::BKV_TYPE_SIZE;
-                    $prop = $this->loadProperty($id);
-                    if ($prop === null) throw new \RuntimeException('Structure property ' . $id . 'is required but cannot be found in the structure data');
+                    $attach = $this->loadAttachment($id);
+                    if ($attach === null) throw new \RuntimeException('Structure attachment ' . $id . 'is required but cannot be found in the structure data');
                     fseek($this->stream, $pointer);
-                    $prop->run($this, $pointer, new Vector3($clocator % 16, $clocator >> 4 >> 4 % self::Y_MAX, ($clocator >> 4) % 16), $repeat);
+                    $attach->run($this, $pointer, new Vector3($clocator % 16, $clocator >> 4 >> 4 % self::Y_MAX, ($clocator >> 4) % 16), $repeat);
                     fseek($this->stream, $pointer);
                     break;
 
@@ -168,10 +170,10 @@ class StructureData {
     }
 
     /**
-     * @throws StructureParseException Property count cannot be loaded
+     * @throws StructureParseException Structure attachments count cannot be loaded
      */
-    public function loadProperty(int $id) : ?StructureProperty {
-        if ($this->getPropertiesCount() <= $id) return null;
+    public function loadAttachment(int $id) : ?StructureAttachment {
+        if ($this->getAttachmentsCount() <= $id) return null;
         fseek($this->stream, 2);
         for ($pointer = 0; $pointer < $id; $pointer++) fseek($this->stream, Binary::readLShort(Utils::readAndSeek($this->stream, 2)), SEEK_CUR);
 
@@ -188,23 +190,23 @@ class StructureData {
     }
 
     /**
-     * @return int Attempt to load the property count if null
+     * @return int Attempt to load the structure attachments count if null
      * @throws StructureParseException
      */
-    public function getPropertiesCount() : int {
-        if ($this->propcount === null) return $this->loadPropertiesCount();
-        return $this->propcount;
+    public function getAttachmentsCount() : int {
+        if ($this->attachmentsCount === null) return $this->loadAttachmentsCount();
+        return $this->attachmentsCount;
     }
 
     /**
      * Please set the stream pointer to 2 before running
      * @throws StructureParseException
      */
-    protected function loadPropertiesCount() : int {
-        $propcount = Utils::readAndSeek($this->stream, 2); // Properties count (unsigned 2)
-        if (strlen($propcount) !== 2) $this->panicParse('File ends with no chunks or properties');
-        $this->propcount = Binary::readLShort($propcount);
-        return $this->propcount;
+    protected function loadAttachmentsCount() : int {
+        $attachmentsCount = Utils::readAndSeek($this->stream, 2); // Structure attachments count (unsigned 2)
+        if (strlen($attachmentsCount) !== 2) $this->panicParse('File ends with no chunks and attachments');
+        $this->attachmentsCount = Binary::readLShort($attachmentsCount);
+        return $this->attachmentsCount;
     }
 
 }

@@ -29,7 +29,7 @@ namespace Clouria\IslandArchitect\events;
 
 use pocketmine\item\Item;
 use Clouria\IslandArchitect\sessions\PlayerSession;
-use Clouria\IslandArchitect\generator\properties\IslandChest;
+use Clouria\IslandArchitect\generator\attachments\IslandChest;
 
 class TemplateIslandChestContentsUpdateEvent extends IslandArchitectEvent {
 

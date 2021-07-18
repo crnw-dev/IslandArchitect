@@ -40,7 +40,7 @@ use czechpmdevs\buildertools\utils\Math;
 use Clouria\IslandArchitect\IslandArchitect;
 use czechpmdevs\buildertools\editors\Printer;
 use Clouria\IslandArchitect\sessions\PlayerSession;
-use Clouria\IslandArchitect\generator\properties\RandomGeneration;
+use Clouria\IslandArchitect\generator\attachments\RandomGeneration;
 use Clouria\IslandArchitect\events\RandomGenerationBlockUpdateEvent;
 
 class CustomPrinter extends Printer {
