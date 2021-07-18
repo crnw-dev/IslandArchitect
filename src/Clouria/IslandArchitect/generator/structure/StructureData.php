@@ -153,7 +153,7 @@ class StructureData {
      * @param bool $higherver
      * @throws StructureParseException
      */
-    protected function panicParse(string $err, bool $corrupted = true, bool $higherver = false) : void {
+    private function panicParse(string $err, bool $corrupted = true, bool $higherver = false) : void {
         if ($corrupted) $err .= ', is the structure data file occupied?';
         if ($higherver) $err .= ', is the structure exported from a higher version of ' . IslandArchitect::PLUGIN_NAME . '?';
         throw new StructureParseException($this->stream, '', $err);
