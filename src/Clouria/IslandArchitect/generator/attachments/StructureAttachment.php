@@ -36,10 +36,9 @@ interface StructureAttachment {
      * @param StructureData $data
      * @param string $identifier The attachment identifier declared in the attachment header
      * @param int $length The attachment data length declared in the attachment header
-     * @param int $pointer Pointer of the stream (file descriptor / websocket...) in StructureData
      * @return static|self
      */
-    public static function parse(StructureData $data, string $identifier, int $length, int &$pointer) : self;
+    public static function parse(StructureData $data, string $identifier, int $length) : self;
 
     /**
      * @param StructureData $data

@@ -35,6 +35,7 @@ use pocketmine\math\Vector3;
 use Clouria\IslandArchitect\Utils;
 use pocketmine\level\format\Chunk;
 use Clouria\IslandArchitect\IslandArchitect;
+use Clouria\IslandArchitect\generator\attachments\RandomGeneration;
 use Clouria\IslandArchitect\generator\attachments\StructureAttachment;
 use function max;
 use function fseek;
@@ -110,10 +111,9 @@ class StructureData {
                     if ($pointer === false) throw new \RuntimeException('Cannot fetch the position of pointer from file descriptor');
                     $id = $bkraw % self::BKV_TYPE_SIZE;
                     $attach = $this->loadAttachment($id);
-                    if ($attach === null) throw new \RuntimeException('Structure attachment ' . $id . 'is required but cannot be found in the structure data');
+                    if ($attach === null) throw new \RuntimeException('Structure attachment ' . $id . ' is required but cannot be found in the structure data');
                     fseek($this->stream, $pointer);
                     $attach->run($this, $pointer, new Vector3($clocator % 16, $clocator >> 4 >> 4 % self::Y_MAX, ($clocator >> 4) % 16), $repeat);
-                    fseek($this->stream, $pointer);
                     break;
 
                 case 4:
@@ -177,13 +177,14 @@ class StructureData {
         fseek($this->stream, 2);
         for ($pointer = 0; $pointer < $id; $pointer++) fseek($this->stream, Binary::readLShort(Utils::readAndSeek($this->stream, 2)), SEEK_CUR);
 
-        $data = Utils::readAndSeek($this->stream, Binary::readLShort(Utils::readAndSeek($this->stream, 2)));
-        $namelen = Binary::readByte($data[0]);
-        switch (substr($data, $namelen)) {
-            case RandomGeneration::getName():
-                break;
-            case IslandChest::getName():
-                break;
+        $header = Utils::readAndSeek($this->stream, 3);
+        $datalen = Binary::readLShort(substr($header, 0, 2));
+        switch (Utils::readAndSeek($this->stream, Binary::readByte($header[2]))) {
+            case $id = RandomGeneration::getIdentifier():
+                return RandomGeneration::parse($this, $id, $datalen);
+            case $id = IslandChest::getIdentifier():
+                return IslandChest::parse($this, $id, $datalen);
+
             default:
                 break;
         }
