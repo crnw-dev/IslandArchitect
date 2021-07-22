@@ -198,7 +198,7 @@ class StructureData {
                 break;
         }
         if (!is_a($class, StructureAttachment::class, true)) throw new \RuntimeException('Class ' . $class . '" does not implement the StructureAttachment interface but got registered as an structure attachment');
-        return $class::newUnloaded();
+        return $class::newUnloaded($id);
     }
 
     /**

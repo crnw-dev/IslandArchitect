@@ -33,19 +33,21 @@ use Clouria\IslandArchitect\generator\structure\StructureData;
 
 class NullAttachment implements StructureAttachment {
 
+    private function __construct() { }
+
     public static function getIdentifier() : string {
         return IslandArchitect::PLUGIN_NAME . ':null';
     }
 
-    public static function newUnloaded() : StructureAttachment {
-        return new self;
+    public static function newUnloaded(string $identifier) : StructureAttachment {
+        throw new \RuntimeException('Structure attachment "' . $identifier . '" is used but is not registered, is it from a different plugin?');
     }
 
     public function isLoaded() : bool {
-        return false;
+        throw new \RuntimeException('This line of code is supposed to be reachable');
     }
 
     public function run(StructureData $data, int &$pointer, Vector3 $pos, int $repeat) {
-        throw new \RuntimeException('Structure attachment "' . $identifier . '" is used but is not registered, is it from a different plugin?');
+        throw new \RuntimeException('This line of code is supposed to be reachable');
     }
 }
