@@ -30,17 +30,21 @@ namespace Clouria\IslandArchitect\generator\attachments;
 
 use pocketmine\item\Item;
 use pocketmine\utils\Random;
+use pocketmine\math\Vector3;
+use pocketmine\utils\Binary;
 use pocketmine\nbt\tag\ListTag;
 use pocketmine\nbt\tag\ByteTag;
 use pocketmine\nbt\tag\ShortTag;
+use Clouria\IslandArchitect\Utils;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\utils\TextFormat as TF;
+use Clouria\IslandArchitect\generator\structure\StructureData;
 use function asort;
 use function explode;
 use function array_values;
 use const SORT_NUMERIC;
 
-class RandomGeneration {
+class RandomGeneration implements StructureAttachment {
 
     /**
      * @var array<string, int>
@@ -128,7 +132,7 @@ class RandomGeneration {
             $regex[] = new CompoundTag('', [
                 new ShortTag('id', (int)$block[0]),
                 new ByteTag('meta', (int)($block[1] ?? 0)),
-                new ShortTag('chance', $chance)
+                new ShortTag('chance', $chance),
             ]);
             $bi = Item::get((int)$block[0], (int)($block[1] ?? 0));
             $blockslore[] = $bi->getName() . ' (' . $bi->getId() . ':' . $bi->getDamage() . '): ' . TF::BOLD . TF::GREEN . $chance . TF::ITALIC . ' (' . round($chance / ($totalchance ?? $chance) * 100, 2) . '%%)';
@@ -137,8 +141,8 @@ class RandomGeneration {
         $i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . 'Random generation' . (!empty($blockslore ?? []) ? ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $blockslore ?? []) : ''));
         $tag = new CompoundTag('IslandArchitect', [
             new CompoundTag('random-generation', [
-                new ListTag('regex', $regex ?? [])
-            ])
+                new ListTag('regex', $regex ?? []),
+            ]),
         ]);
         if (isset($regexid)) $tag->setInt('regexid', $regexid);
         $i->setNamedTagEntry($tag);
@@ -185,5 +189,27 @@ class RandomGeneration {
         $this->elements = $elements ?? null;
         if ($changed ?? false) $this->changed = true;
         return $changed ?? false;
+    }
+
+    public static function parse(StructureData $data, string $identifier, int $length) : StructureAttachment {
+        $stream = $data->getStream();
+        $count = Binary::readLShort(Utils::readAndSeek($stream, 2)); // Elements count (overflow 4)
+        $length -= 4;
+        $class = new RandomGeneration;
+        if ($count * 4 !== $length) ; // TODO: Handle NBT
+        for ($epointer = 0; $epointer < $count * 4; $epointer += 4) {
+            $elementraw = Binary::readLInt(Utils::readAndSeek($stream, 4));
+            if ($elementraw < 0) $elementraw = -1 - $elementraw;
+            $class->setElementChance(($elementraw % 16384) >> 4, ($elementraw % 16384) % 16, (int)($elementraw / 16384) + 1);
+        }
+        return $class;
+    }
+
+    public function run(StructureData $data, int &$pointer, Vector3 $pos, int $repeat) {
+        // TODO: Implement run() method.
+    }
+
+    public static function getIdentifier() : string {
+        // TODO: Implement getIdentifier() method.
     }
 }
