@@ -47,7 +47,7 @@ final class NullAttachment implements StructureAttachment {
         throw new \RuntimeException('This line of code is supposed to be reachable');
     }
 
-    public function run(StructureData $data, int &$pointer, Vector3 $pos, int $repeat) {
+    public function run(StructureData $data, int &$pointer, int $length, Vector3 $pos, int $repeat) {
         throw new \RuntimeException('This line of code is supposed to be reachable');
     }
 }

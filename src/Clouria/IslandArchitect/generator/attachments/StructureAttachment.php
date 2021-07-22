@@ -42,11 +42,12 @@ interface StructureAttachment {
     /**
      * @param StructureData $data
      * @param int $pointer Pointer of the stream (file descriptor / websocket...) in StructureData
+     * @param int $length Length of attachment data
      * @param Vector3 $pos Current block position in chunk (0-15, 0-255, 0-15)
      * @param int $repeat Count of remaining repeat cycles
      * @return mixed
      */
-    public function run(StructureData $data, int &$pointer, Vector3 $pos, int $repeat);
+    public function run(StructureData $data, int &$pointer, int $length, Vector3 $pos, int $repeat);
 
     /**
      * @return string The identifier should include a fallback prefix and the attachment name and MUST have less than 256 (single-byte) characters
