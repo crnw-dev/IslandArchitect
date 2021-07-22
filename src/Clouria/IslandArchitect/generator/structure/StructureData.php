@@ -185,9 +185,8 @@ class StructureData {
         fseek($this->stream, 2);
         for ($pointer = 0; $pointer < $id; $pointer++) fseek($this->stream, Binary::readLShort(Utils::readAndSeek($this->stream, 2)), SEEK_CUR);
 
-        $header = Utils::readAndSeek($this->stream, 3);
-        $datalen = Binary::readLShort(substr($header, 0, 2));
-        switch ($id = Utils::readAndSeek($this->stream, Binary::readByte($header[2]))) {
+        $id = Utils::readAndSeek($this->stream, Binary::readByte(Utils::readAndSeek($this->stream, 2)));
+        switch ($id) {
             case RandomGeneration::getIdentifier():
                 $class = RandomGeneration::class;
                 break;
@@ -199,7 +198,7 @@ class StructureData {
                 break;
         }
         if (!is_a($class, StructureAttachment::class, true)) throw new \RuntimeException('Class ' . $class . '" does not implement the StructureAttachment interface but got registered as an structure attachment');
-        return $class::parse($this, $id, $datalen);
+        return $class::newUnloaded();
     }
 
     /**

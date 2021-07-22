@@ -33,12 +33,11 @@ use Clouria\IslandArchitect\generator\structure\StructureData;
 interface StructureAttachment {
 
     /**
-     * @param StructureData $data
-     * @param string $identifier The attachment identifier declared in the attachment header
-     * @param int $length The attachment data length declared in the attachment header
-     * @return static|self
+     * @return static
      */
-    public static function parse(StructureData $data, string $identifier, int $length) : self;
+    public static function newUnloaded() : self;
+
+    public function isLoaded() : bool;
 
     /**
      * @param StructureData $data
