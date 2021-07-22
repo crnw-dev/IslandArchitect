@@ -31,7 +31,7 @@ use pocketmine\math\Vector3;
 use Clouria\IslandArchitect\IslandArchitect;
 use Clouria\IslandArchitect\generator\structure\StructureData;
 
-class NullAttachment implements StructureAttachment {
+final class NullAttachment implements StructureAttachment {
 
     private function __construct() { }
 
