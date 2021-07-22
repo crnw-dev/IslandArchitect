@@ -35,9 +35,12 @@ use pocketmine\math\Vector3;
 use Clouria\IslandArchitect\Utils;
 use pocketmine\level\format\Chunk;
 use Clouria\IslandArchitect\IslandArchitect;
+use Clouria\IslandArchitect\generator\attachments\IslandChest;
+use Clouria\IslandArchitect\generator\attachments\NullAttachment;
 use Clouria\IslandArchitect\generator\attachments\RandomGeneration;
 use Clouria\IslandArchitect\generator\attachments\StructureAttachment;
 use function max;
+use function is_a;
 use function fseek;
 use function substr;
 use function strlen;
@@ -65,6 +68,11 @@ class StructureData {
     protected $random;
 
     protected $attachmentsCount = null;
+
+    /**
+     * @var array<string, class-string<StructureAttachment>>
+     */
+    protected $attachmentClasses = [];
 
     /**
      * Please notice that every bytes are (should) stored in the order of little endian. If you found any that are not, please consider open a pull request / issue to let me know
@@ -179,15 +187,19 @@ class StructureData {
 
         $header = Utils::readAndSeek($this->stream, 3);
         $datalen = Binary::readLShort(substr($header, 0, 2));
-        switch (Utils::readAndSeek($this->stream, Binary::readByte($header[2]))) {
-            case $id = RandomGeneration::getIdentifier():
-                return RandomGeneration::parse($this, $id, $datalen);
-            case $id = IslandChest::getIdentifier():
-                return IslandChest::parse($this, $id, $datalen);
-
+        switch ($id = Utils::readAndSeek($this->stream, Binary::readByte($header[2]))) {
+            case RandomGeneration::getIdentifier():
+                $class = RandomGeneration::class;
+                break;
+            case IslandChest::getIdentifier():
+                $class = IslandChest::class;
+                break;
             default:
+                $class = $this->attachmentClasses[$id] ?? NullAttachment::class;
                 break;
         }
+        if (!is_a($class, StructureAttachment::class, true)) throw new \RuntimeException('Class ' . $class . '" does not implement the StructureAttachment interface but got registered as an structure attachment');
+        return $class::parse($this, $id, $datalen);
     }
 
     /**
