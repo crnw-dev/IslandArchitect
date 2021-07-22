@@ -118,10 +118,10 @@ class StructureData {
                     $pointer = ftell($this->stream);
                     if ($pointer === false) throw new \RuntimeException('Cannot fetch the position of pointer from file descriptor');
                     $id = $bkraw % self::BKV_TYPE_SIZE;
-                    $attach = $this->loadAttachment($id, $attachmentLen);
+                    $attach = $this->loadAttachment($id, $start, $attachmentLen);
                     if ($attach === null) throw new \RuntimeException('Structure attachment ' . $id . ' is required but cannot be found in the structure data');
+                    $attach->run($this, $start, $attachmentLen, new Vector3($clocator % 16, $clocator >> 4 >> 4 % self::Y_MAX, ($clocator >> 4) % 16), $repeat);
                     fseek($this->stream, $pointer);
-                    $attach->run($this, $pointer, $attachmentLen, new Vector3($clocator % 16, $clocator >> 4 >> 4 % self::Y_MAX, ($clocator >> 4) % 16), $repeat);
                     break;
 
                 case 4:
@@ -180,11 +180,15 @@ class StructureData {
     /**
      * @throws StructureParseException Structure attachments count cannot be loaded
      */
-    public function loadAttachment(int $id, &$length) : ?StructureAttachment {
+    public function loadAttachment(int $id, &$start, &$length) : ?StructureAttachment {
         if ($this->getAttachmentsCount() <= $id) return null;
-        fseek($this->stream, 2);
-        for ($pointer = 0; $pointer < $id; $pointer++) fseek($this->stream, Binary::readLShort(Utils::readAndSeek($this->stream, 2)), SEEK_CUR);
+        fseek($this->stream, $start = 2);
+        for ($pointer = 0; $pointer < $id; $pointer++) {
+            $start += Binary::readLShort(Utils::readAndSeek($this->stream, 2));
+            fseek($this->stream, $start, SEEK_CUR);
+        }
 
+        $start += 3;
         $header = Utils::readAndSeek($this->stream, 3);
         $datalen = Binary::readLShort(substr($header, 0, 2));
         $namelen = Binary::readByte($header[2]);
