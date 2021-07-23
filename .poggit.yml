@@ -9,5 +9,5 @@ projects:
     - src: Infernus101/FormAPI/libFormAPI
       version: ^1.4
     - src: muqsit/invmenu/invmenu
-      version: ^4.1
+      version: ^4.1.1
 ...
