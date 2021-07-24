@@ -38,8 +38,10 @@ use pocketmine\nbt\tag\ShortTag;
 use Clouria\IslandArchitect\Utils;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\utils\TextFormat as TF;
+use Clouria\IslandArchitect\IslandArchitect;
 use Clouria\IslandArchitect\generator\structure\StructureData;
 use function asort;
+use function count;
 use function explode;
 use function array_values;
 use const SORT_NUMERIC;
@@ -191,25 +193,42 @@ class RandomGeneration implements StructureAttachment {
         return $changed ?? false;
     }
 
-    public static function parse(StructureData $data, string $identifier, int $length) : StructureAttachment {
-        $stream = $data->getStream();
-        $count = Binary::readLShort(Utils::readAndSeek($stream, 2)); // Elements count (overflow 4)
-        $length -= 4;
-        $class = new RandomGeneration;
-        if ($count * 4 !== $length) ; // TODO: Handle NBT
-        for ($epointer = 0; $epointer < $count * 4; $epointer += 4) {
-            $elementraw = Binary::readLInt(Utils::readAndSeek($stream, 4));
-            if ($elementraw < 0) $elementraw = -1 - $elementraw;
-            $class->setElementChance(($elementraw % 16384) >> 4, ($elementraw % 16384) % 16, (int)($elementraw / 16384) + 1);
-        }
-        return $class;
-    }
+    /**
+     * @var null|int[]
+     */
+    protected $cachedElementsMap = null;
 
-    public function run(StructureData $data, int &$pointer, Vector3 $pos, int $repeat) {
-        // TODO: Implement run() method.
+    public function run(StructureData $data, int $start, int $length, Vector3 $pos, int $repeat) {
+        for (; $repeat >= 0; $repeat--) {
+            $stream = $data->getStream();
+            if (!isset($this->cachedElementsMap)) {
+                $ecount = Binary::readLShort(Utils::readAndSeek($stream, 2)); // Elements count / elements map length divided by two (unsigned )
+                $this->cachedElementsMap = [];
+                for ($epointer = 0; $epointer < $ecount; $ecount++) $this->cachedElementsMap[] = Binary::readLShort(Utils::readAndSeek($stream, 2)); // Element (unsigned 2)
+            } else $ecount = count($this->cachedElementsMap);
+
+            $totalchance = 0;
+            foreach ($this->cachedElementsMap as $element) $totalchance += ($element % 16) + 1;
+
+            $rand = $data->getRandom()->nextBoundedInt($totalchance) + 1;
+
+            foreach ($this->cachedElementsMap as $element) {
+                $rand -= ($element % 16) + 1;
+                if ($rand <= 0) break;
+            }
+            // TODO: Do stuff and handle NBT
+        }
     }
 
     public static function getIdentifier() : string {
-        // TODO: Implement getIdentifier() method.
+        return IslandArchitect::PLUGIN_NAME . ':random_generation';
+    }
+
+    public static function newUnloaded(string $identifier) : StructureAttachment {
+        return new self;
+    }
+
+    public function isLoaded() : bool {
+        return !empty($this->getAllElements());
     }
 }
