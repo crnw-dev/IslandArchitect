@@ -42,6 +42,8 @@ use Clouria\IslandArchitect\IslandArchitect;
 use Clouria\IslandArchitect\generator\structure\StructureData;
 use function asort;
 use function count;
+use function assert;
+use function is_int;
 use function explode;
 use function array_values;
 use const SORT_NUMERIC;
@@ -198,14 +200,16 @@ class RandomGeneration implements StructureAttachment {
      */
     protected $cachedElementsMap = null;
 
-    public function run(StructureData $data, int $start, int $length, Vector3 $pos, int $repeat) {
+    public function run(StructureData $data, int $start, int $length, Vector3 $pos, int $repeat) : Item {
         for (; $repeat >= 0; $repeat--) {
             $stream = $data->getStream();
             if (!isset($this->cachedElementsMap)) {
                 $ecount = Binary::readLShort(Utils::readAndSeek($stream, 2)); // Elements count / elements map length divided by two (unsigned )
                 $this->cachedElementsMap = [];
                 for ($epointer = 0; $epointer < $ecount; $ecount++) $this->cachedElementsMap[] = Binary::readLShort(Utils::readAndSeek($stream, 2)); // Element (unsigned 2)
-            } else $ecount = count($this->cachedElementsMap);
+                unset($ecount, $epointer);
+            }
+            if (count($this->cachedElementsMap) < 2) throw new \RuntimeException('Random generation regex has less than 2 elements');
 
             $totalchance = 0;
             foreach ($this->cachedElementsMap as $element) $totalchance += ($element % 16) + 1;
@@ -216,7 +220,10 @@ class RandomGeneration implements StructureAttachment {
                 $rand -= ($element % 16) + 1;
                 if ($rand <= 0) break;
             }
-            // TODO: Do stuff and handle NBT
+            assert(isset($element) and is_int($element));
+            $element = $element >> 4;
+            return Item::get($element >> 4, $element % 16); // Add randomized count if possible
+            // TODO: Handle NBT
         }
     }
 
