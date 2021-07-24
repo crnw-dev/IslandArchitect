@@ -178,9 +178,20 @@ class StructureData {
     }
 
     /**
+     * @var StructureAttachment[]
+     */
+    protected $attachmentCaches = [];
+
+    /**
+     * @param int $id
+     * @param $start mixed|int The start offset of attachment will be assign to this pointer
+     * @param $length mixed|int The data length (excludes attachment header) of attachment will be assign to this pointer
+     * @param bool $cache Get attachment instance from cache pool? / Save it to the cache pool after loading?
+     * @return StructureAttachment|null
      * @throws StructureParseException Structure attachments count cannot be loaded
      */
-    public function loadAttachment(int $id, &$start, &$length) : ?StructureAttachment {
+    public function loadAttachment(int $id, &$start, &$length, bool $cache = true) : ?StructureAttachment {
+        if ($cache and isset($this->attachmentCaches[$id])) return $this->attachmentCaches[$id];
         if ($this->getAttachmentsCount() <= $id) return null;
         fseek($this->stream, $start = 2);
         for ($pointer = 0; $pointer < $id; $pointer++) {
@@ -205,7 +216,9 @@ class StructureData {
                 break;
         }
         if (!is_a($class, StructureAttachment::class, true)) throw new \RuntimeException('Class ' . $class . '" does not implement the StructureAttachment interface but got registered as an structure attachment');
-        return $class::newUnloaded($id);
+        $new = $class::newUnloaded($id);
+        if ($cache) $this->attachmentCaches[$id] = $new;
+        return $new;
     }
 
     /**
