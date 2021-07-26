@@ -42,6 +42,7 @@ use Clouria\IslandArchitect\IslandArchitect;
 use Clouria\IslandArchitect\generator\structure\StructureData;
 use function asort;
 use function count;
+use function fseek;
 use function assert;
 use function is_int;
 use function explode;
@@ -90,9 +91,28 @@ class RandomGeneration implements StructureAttachment {
         return $this->elements;
     }
 
-    public function randomElementItem(Random $random) : Item {
-        $array = $this->randomElementArray($random);
-        return Item::get($array[0], $array[1]);
+    public function randomElementItem($stream, Random $random) : Item {
+        if (!isset($this->cachedElementsMap)) {
+            $ecount = Binary::readLShort(Utils::readAndSeek($stream, 2)); // Elements count / elements map length divided by two (unsigned 2)
+            $this->cachedElementsMap = [];
+            for ($epointer = 0; $epointer < $ecount; $ecount++) $this->cachedElementsMap[] = Utils::overflowSignedInt(Binary::readLInt(Utils::readAndSeek($stream, 4))); // Element (overflow 4)
+            unset($ecount, $epointer);
+        }
+        if (count($this->cachedElementsMap) < 2) throw new \RuntimeException('Random generation regex has less than 2 elements');
+
+        $totalchance = 0;
+        foreach ($this->cachedElementsMap as $element) $totalchance += ($element % 16) + 1;
+
+        $rand = $random->nextBoundedInt($totalchance) + 1;
+
+        foreach ($this->cachedElementsMap as $element) {
+            $rand -= ($element % 16) + 1;
+            if ($rand <= 0) break;
+        }
+        assert(isset($element) and is_int($element));
+        $element = $element >> 4;
+        return Item::get($element >> 4, $element % 16); // Add randomized count if possible
+        // TODO: Handle NBT
     }
 
     /**
@@ -200,31 +220,10 @@ class RandomGeneration implements StructureAttachment {
      */
     protected $cachedElementsMap = null;
 
-    public function run(StructureData $data, int $start, int $length, Vector3 $pos, int $repeat) : Item {
-        for (; $repeat >= 0; $repeat--) {
-            $stream = $data->getStream();
-            if (!isset($this->cachedElementsMap)) {
-                $ecount = Binary::readLShort(Utils::readAndSeek($stream, 2)); // Elements count / elements map length divided by two (unsigned )
-                $this->cachedElementsMap = [];
-                for ($epointer = 0; $epointer < $ecount; $ecount++) $this->cachedElementsMap[] = Binary::readLShort(Utils::readAndSeek($stream, 2)); // Element (unsigned 2)
-                unset($ecount, $epointer);
-            }
-            if (count($this->cachedElementsMap) < 2) throw new \RuntimeException('Random generation regex has less than 2 elements');
-
-            $totalchance = 0;
-            foreach ($this->cachedElementsMap as $element) $totalchance += ($element % 16) + 1;
-
-            $rand = $data->getRandom()->nextBoundedInt($totalchance) + 1;
-
-            foreach ($this->cachedElementsMap as $element) {
-                $rand -= ($element % 16) + 1;
-                if ($rand <= 0) break;
-            }
-            assert(isset($element) and is_int($element));
-            $element = $element >> 4;
-            return Item::get($element >> 4, $element % 16); // Add randomized count if possible
-            // TODO: Handle NBT
-        }
+    public function run(StructureData $data, int $start, int $length, Vector3 $pos, int $repeat) : array {
+        fseek($data->getStream(), $start);
+        for (; $repeat >= 0; $repeat--) $items[] = $this->randomElementItem($data->getStream(), $data->getRandom());
+        return $items ?? [];
     }
 
     public static function getIdentifier() : string {
