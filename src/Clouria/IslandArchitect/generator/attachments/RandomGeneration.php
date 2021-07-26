@@ -40,16 +40,17 @@ use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\utils\TextFormat as TF;
 use Clouria\IslandArchitect\IslandArchitect;
 use Clouria\IslandArchitect\generator\structure\StructureData;
+use function max;
 use function asort;
 use function count;
 use function fseek;
-use function assert;
 use function is_int;
 use function explode;
 use function array_values;
 use const SORT_NUMERIC;
 
 class RandomGeneration implements StructureAttachment {
+    public const MAX_CHANCE = 64;
 
     /**
      * @var array<string, int>
@@ -101,17 +102,24 @@ class RandomGeneration implements StructureAttachment {
         if (count($this->cachedElementsMap) < 2) throw new \RuntimeException('Random generation regex has less than 2 elements');
 
         $totalchance = 0;
-        foreach ($this->cachedElementsMap as $element) $totalchance += ($element % 16) + 1;
+        foreach ($this->cachedElementsMap as $element) if (is_int($element)) $totalchance += ($element % self::MAX_CHANCE) + 1;
 
         $rand = $random->nextBoundedInt($totalchance) + 1;
 
-        foreach ($this->cachedElementsMap as $element) {
-            $rand -= ($element % 16) + 1;
+        foreach ($this->cachedElementsMap as $element) if (is_int($element)) {
+            $rand -= ($element % self::MAX_CHANCE) + 1;
             if ($rand <= 0) break;
         }
-        assert(isset($element) and is_int($element));
-        $element = $element >> 4;
-        return Item::get($element >> 4, $element % 16); // Add randomized count if possible
+        if (!isset($element)) return Item::get(Item::AIR);
+        $element = (int)($element / self::MAX_CHANCE);
+        $count = $element % 4096;
+        $min = ($count % 64) + 1;
+        $max = (int)($count / 64) + 1;
+        if ($min === $max) $count = $max;
+        else $count = $random->nextRange($min > $max ? $max - 1 : $min, max($min, $max));
+        // Hacky way to fit 65*65-65 values in a 64*64 range, blame Microjang for allowing a stack to have 0 - 64 items instead of 0 - 63
+        $value = (int)($element / 4096);
+        return Item::get($value >> 4, $value % 16, $count);
         // TODO: Handle NBT
     }
 
