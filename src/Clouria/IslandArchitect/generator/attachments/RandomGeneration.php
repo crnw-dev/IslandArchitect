@@ -241,8 +241,4 @@ class RandomGeneration implements StructureAttachment {
     public static function newUnloaded(string $identifier) : StructureAttachment {
         return new self;
     }
-
-    public function isLoaded() : bool {
-        return !empty($this->getAllElements());
-    }
 }

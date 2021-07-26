@@ -32,11 +32,6 @@ use Clouria\IslandArchitect\generator\structure\StructureData;
 
 interface StructureAttachment {
 
-    /**
-     * @return static
-     */
-    public static function newUnloaded(string $identifier) : self;
-
     public function isLoaded() : bool;
 
     /**
