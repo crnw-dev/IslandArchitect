@@ -40,4 +40,14 @@ final class Utils {
         fseek($stream, $length, SEEK_CUR);
         return $data;
     }
+
+    /**
+     * Only working on 64bit devices (PocketMine-MP only runs on 64bit devices)
+     * @param int $int
+     * @return int
+     */
+    public static function overflowSignedInt(int $int) : int {
+        if ($int < 0) return -$int + 2147483647;
+        return $int;
+    }
 }
