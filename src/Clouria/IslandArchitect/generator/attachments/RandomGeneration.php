@@ -32,12 +32,7 @@ use pocketmine\item\Item;
 use pocketmine\utils\Random;
 use pocketmine\math\Vector3;
 use pocketmine\utils\Binary;
-use pocketmine\nbt\tag\ListTag;
-use pocketmine\nbt\tag\ByteTag;
-use pocketmine\nbt\tag\ShortTag;
 use Clouria\IslandArchitect\Utils;
-use pocketmine\nbt\tag\CompoundTag;
-use pocketmine\utils\TextFormat as TF;
 use Clouria\IslandArchitect\IslandArchitect;
 use Clouria\IslandArchitect\generator\structure\StructureData;
 use function max;
@@ -53,40 +48,32 @@ class RandomGeneration implements StructureAttachment {
     public const MAX_CHANCE = 64;
 
     /**
-     * @var array<string, int>
+     * @var Item[]
      */
     protected $elements = [];
-    /**
-     * @var bool
-     */
-    protected $changed = false;
-
-    public static function fromNBT(ListTag $nbt) : self {
-        $self = new self;
-        foreach ($nbt as $block) if ($block instanceof CompoundTag) $self->setElementChance($block->getShort('id'), $block->getByte('meta', 0), $block->getShort('chance'));
-        return $self;
-    }
 
     /**
      * @param int $id
      * @param int $meta
      * @param int|null $chance
-     * @return bool Return false when the chance is slower than 0 or higher than 32767
+     * @return bool Return false when the chance is slower than 0 or higher than 4096
+     *
+     * @see RandomGeneration::MAX_CHANCE
      */
     public function setElementChance(int $id, int $meta = 0, ?int $chance = null) : bool {
-        if ($chance > 32767) return false;
-        if ($chance > 0) $this->elements[$id . ':' . $meta] = $chance;
-        elseif (isset($this->elements[$id . ':' . $meta])) unset($this->elements[$id . ':' . $meta]);
-        $this->changed = true;
+        if ($chance > self::MAX_CHANCE) return false;
+        foreach ($this->elements as $element) if ($element->getId() === $id and $element->getDamage() === $meta) $se = $element->setCount($chance);
+        if (!isset($se)) $this->elements = Item::get($id, $meta, $chance);
         return true;
     }
 
     public function getElementChance(int $id, int $meta = 0) : int {
-        return $this->getAllElements()[$id . ':' . $meta] ?? 0;
+        foreach ($this->elements as $element) if ($element->getId() === $id and $element->getDamage() === $meta) return $element->getCount();
+        return 0;
     }
 
     /**
-     * @return array<string, int>
+     * @return Item[]
      */
     public function getAllElements() : array {
         return $this->elements;
@@ -147,56 +134,14 @@ class RandomGeneration implements StructureAttachment {
         return [Item::AIR, 0];
     }
 
-    public function equals(RandomGeneration $regex) : bool {
-        $blocks = $regex->getAllElements();
-        foreach ($this->getAllElements() as $block => $chance) {
-            if (($blocks[$block] ?? null) !== $chance) return false;
-            unset($blocks[$block]);
-        }
-        if (!empty($blocks)) return false;
-        return true;
-    }
-
-    public function getRandomGenerationItem(Item $item, ?int $regexid = null) : Item {
-        $totalchance = $this->getTotalChance();
-        foreach ($this->getAllElements() as $block => $chance) {
-            $block = explode(':', $block);
-            $regex[] = new CompoundTag('', [
-                new ShortTag('id', (int)$block[0]),
-                new ByteTag('meta', (int)($block[1] ?? 0)),
-                new ShortTag('chance', $chance),
-            ]);
-            $bi = Item::get((int)$block[0], (int)($block[1] ?? 0));
-            $blockslore[] = $bi->getName() . ' (' . $bi->getId() . ':' . $bi->getDamage() . '): ' . TF::BOLD . TF::GREEN . $chance . TF::ITALIC . ' (' . round($chance / ($totalchance ?? $chance) * 100, 2) . '%%)';
-        }
-        $i = $item;
-        $i->setCustomName(TF::RESET . TF::BOLD . TF::GOLD . 'Random generation' . (!empty($blockslore ?? []) ? ($glue = "\n" . TF::RESET . '- ' . TF::YELLOW) . implode($glue, $blockslore ?? []) : ''));
-        $tag = new CompoundTag('IslandArchitect', [
-            new CompoundTag('random-generation', [
-                new ListTag('regex', $regex ?? []),
-            ]),
-        ]);
-        if (isset($regexid)) $tag->setInt('regexid', $regexid);
-        $i->setNamedTagEntry($tag);
-        return $i;
-    }
-
     public function getTotalChance() : int {
         $totalchance = 0;
-        foreach ($this->getAllElements() as $chance) $totalchance += $chance;
+        foreach ($this->getAllElements() as $element) $totalchance += $element->getCount();
         return $totalchance;
     }
 
     public function isValid() : bool {
-        return !empty($this->getAllElements());
-    }
-
-    public function noMoreChanges() : void {
-        $this->changed = false;
-    }
-
-    public function hasChanges() : bool {
-        return $this->changed;
+        return $this->getAllElements() > 1;
     }
 
     /**
@@ -206,7 +151,8 @@ class RandomGeneration implements StructureAttachment {
         // Forgive my bad math (SOFe is gonna extend his tutorial class...)
         // Source: https://blog.csdn.net/qq_33160365/article/details/78932232
         $totalchance = $this->getTotalChance();
-        foreach ($this->getAllElements() as $chance) {
+        foreach ($this->getAllElements() as $element) {
+            $chance = $element->getCount();
             $smaller = $chance > $totalchance ? $totalchance : $chance;
             for ($i = 1; $i <= $smaller; $i++) if (($chance % $i) === 0 and ($totalchance % $i) === 0) $hcf = $i;
             $chances[] = $hcf ?? 1;
@@ -214,12 +160,12 @@ class RandomGeneration implements StructureAttachment {
         if (!isset($chances)) return false;
         asort($chances, SORT_NUMERIC);
         $chances = array_values($chances);
-        foreach ($this->getAllElements() as $block => $chance) {
-            $elements[$block] = $chance / $chances[0];
-            if ($elements[$block] !== $chance) $changed = true;
+        foreach ($this->getAllElements() as $element) {
+            $chance = $element->getCount();
+            $nc = $elements[] = $chance / $chances[0];
+            if ($nc !== $chance) $changed = true;
         }
         $this->elements = $elements ?? null;
-        if ($changed ?? false) $this->changed = true;
         return $changed ?? false;
     }
 
