@@ -49,6 +49,7 @@ use const SEEK_CUR;
 class StructureData {
 
     public const FORMAT_VERSION = 0;
+    public const SUB_VERSION = 0;
     public const Y_MAX = 0x100; // Hardcode Y max or breaks block filling after Y is has increased
     public const BKV_TYPE_SIZE = 16384;
 
@@ -169,9 +170,14 @@ class StructureData {
     }
 
     public static function validateFormatVersion($stream) : bool {
-        $ver = Utils::readAndSeek($stream, 1);
-        fseek($stream, 1, SEEK_CUR);
-        $ver = Binary::readByte($ver);
+        $header = Utils::readAndSeek($stream, 2);
+        $ver = Binary::readByte($header[0]);
+
+        if (Binary::readByte($header[1]) !== self::SUB_VERSION) {
+            // TODO: This structure is exported with a higher version of IslandArchitect, some features might be unavailable!
+        }
+
+
         return $ver <= self::FORMAT_VERSION;
         // if ($ver > self::FORMAT_VERSION) $this->panicParse('Unsupported structure format version ' . $ver . ', try updating ' . IslandArchitect::PLUGIN_NAME, false);
     }
