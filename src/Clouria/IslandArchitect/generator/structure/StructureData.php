@@ -80,9 +80,8 @@ class StructureData {
      */
     public function decode() {
         fseek($this->stream, 2);
-        for ($attachmentPointer = 0; $attachmentPointer < $this->getAttachmentsCount(); $attachmentPointer++) fseek($this->stream, Binary::readLShort(Utils::readAndSeek($this->stream, 2)), SEEK_CUR); // Structure attachment length (unsigned 2), max size 64KB
-        // per
-        // structure attachment
+        for ($attachmentPointer = 0; $attachmentPointer < $this->getAttachmentsCount(); $attachmentPointer++) fseek($this->stream, Binary::readLShort(Utils::readAndSeek($this->stream, 2)), SEEK_CUR);
+        // Structure attachment length (unsigned 2), max size 64 KiB per structure attachment
         unset($attachmentPointer);
 
         $cmeta = Utils::readAndSeek($this->stream, 6); // Chunk meta
